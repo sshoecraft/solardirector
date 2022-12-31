@@ -1,0 +1,3 @@
+service sb1 restart
+service sb2 restart
+service sb3 restart

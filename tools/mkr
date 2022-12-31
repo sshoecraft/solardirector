@@ -1,0 +1,24 @@
+dorel() {
+#for t in pi3 linux64 win64
+for t in linux64 win64
+do
+	make TARGET=${t} STATIC=yes || exit 1
+	make TARGET=${t} STATIC=yes release || exit 1
+	make TARGET=${t} STATIC=yes clean
+#	break
+done
+}
+dozip() {
+cd releases || exit 1
+for t in pi3 linux64 win64
+do
+	cd ${t} 2>/dev/null || continue
+	rm -f ../solard_${t}.tgz
+	zip -9 -r ../solard_${t}.zip .
+	cd ..
+	rm -rf ${t}
+done
+}
+make clean
+dorel
+dozip

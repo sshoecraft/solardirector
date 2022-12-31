@@ -1,0 +1,42 @@
+
+include "battery.js");
+
+//print(script_name,"start");
+
+//include("jslint.js")
+//var r = JSLINT("none");
+
+//load("array.foreach.js");
+
+//mqtt.write("it works\n");
+//print("mqtt: host:",mqtt.host)
+//mqtt.pub("test","hello");
+//print("thing:",inv.thing);
+//print("thing:",inv.host);
+//inv.pub("test","this");
+//mqtt.pub("Solard/Controller/test","it works!!!",1)
+//print("site:",solard.name);
+//solard.blah("yes");
+
+//solard.batteries.forEach(
+//print("count:",solard.batteries.length);
+
+for(var i=0; i < solard.batteries.length; i++) {
+	dump_battery(solard.batteries[i]);
+	print("name: ",bp.name);
+	print("capacity: ",bp.capacity);
+	print("voltage: ",bp.voltage);
+	print("current: ",bp.current);
+	print("ntemps: ",bp.ntemps);
+	print("temps: ["+bp.temps+"]");
+	print("ncells: ",bp.ncells);
+	print("cellvolt: ["+bp.cellvolt+"]");
+	print("cellres: ["+bp.cellres+"]");
+	print("cell_min: ",bp.cell_min);
+	print("cell_max: ",bp.cell_max);
+	print("cell_diff: ",bp.cell_diff);
+	print("cell_avg: ",bp.cell_avg);
+	print("cell_total: ",bp.cell_total);
+}
+
+//print(script_name,"stop");

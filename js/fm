@@ -1,0 +1,7 @@
+egrep -e mem_malloc -e mem_calloc -e mem_realloc -e mem_free *.c | awk -F: '{ print $1 }' | sort -u > /tmp/fm.dat
+while read n
+do
+	echo $n
+#	sed -i -e 's:mem_malloc:malloc:g' -e 's:mem_calloc:calloc:g' -e 's:mem_realloc:realloc:g' -e 's:mem_free:free:g' $n
+done < /tmp/fm.dat
+rm -f /tmp/fm.dat

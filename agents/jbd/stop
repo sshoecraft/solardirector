@@ -1,0 +1,4 @@
+#!/bin/bash
+killall jbd
+sleep 1
+killall -9 jbd

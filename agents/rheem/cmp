@@ -1,0 +1,1 @@
+for i in *.js; do diff -c $i /opt/sd/lib/agents/rheem/$i; done

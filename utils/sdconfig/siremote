@@ -1,0 +1,7 @@
+#./sdconfig si set config_filename /opt/sd/etc/si.json
+./sdconfig si can_init rdev 192.168.1.7 can0
+./sdconfig si set smanet_channels_path /opt/sd/lib/si_channels.json
+./sdconfig si smanet_init rdev 192.168.1.7 serial0
+./sdconfig si set bms_mode yes
+./sdconfig si set min_voltage 37.8 max_voltage 58.1
+./sdconfig si set charge_start_voltage 44.9 charge_end_voltage 56.0 charge_amps 280 grid_charge_amps 112 gen_charge_amps 280

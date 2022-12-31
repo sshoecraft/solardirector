@@ -1,0 +1,30 @@
+#BROKER="-m 192.168.1.7"
+names[0] = "can_transport"
+#SD="./sdconfig -d 2 ${BROKER}"
+SD="./sdconfig ${BROKER}"
+dosi() {
+#${SD} mcu Add Inverter si:transport=can,target=can0,topts=500000
+${SD} solard Add Inverter si:../agents/si,can_transport=rdev,can_target=192.168.1.7:3930,can_topts=can0,readonly=yes
+#${SD} Inverter/si Set min_voltage 39.2
+#${SD} Inverter/si Set max_voltage 58.8
+#${SD} Inverter/si Set charge_start_voltage 44.8
+#${SD} Inverter/si Set charge_end_voltage 58.1
+}
+doit() {
+	for i in $(seq 1 14)
+	do
+#		test $i -eq 2 && continue
+		n=$(printf "%02d" $i)
+
+		${SD} solard Add pack_${n} agent_path=../agents/jbd/jbd,agent_name=jbd,transport=ip,target=pack_${n},readonly=yes,agent_role=Battery
+#		${SD} mcu Add Battery pack_${n}:agent_path=../agents/jbd/jbd,agent_name=jbd,transport=ip,target=pack_${n}
+#		${SD} mcu Add Battery pack_${n}:agent_name=jbd,transport=ip,target=pack_${n},managed=no
+		break
+	done
+}
+#dosi
+#exit 0
+doit
+#${SD} mcu Set Battery pack_02
+#${SD} mcu Add Battery pack_02:agent_name=jk,transport=bt,target=3C:A5:4A:E4:09:31
+#${SD} mcu Add Battery pack_02:agent_name=jk,transport=ip,target=pack_02,managed=no

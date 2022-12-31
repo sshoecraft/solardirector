@@ -1,0 +1,1 @@
+cc -DDEBUG -DDEBUG_MEM -o t t.c -I../core ../core/libcore.a ../js/libjs.a -lm

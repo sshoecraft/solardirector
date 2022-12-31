@@ -1,0 +1,42 @@
+include("getopt.js");
+
+printf("argc: %d\n", argv.length);
+for(i=0; i < argv.length; i++) printf("argv[%d]: %s\n", i, argv[i]);
+var parser, option;
+
+//parser = new goBasicParser('abo:(output)', argv);
+parser = new ArgumentParser('abo:', argv);
+printf("parser: %s\n", parser);
+
+function usage(msg) {
+	printf("%s\n", msg);
+	abort(0);
+}
+
+while ((option = parser.getopt()) !== undefined) {
+	printf("option: %s\n", option.option);
+	switch (option.option) {
+	case 'a':
+		printf('option "a" is set\n');
+		break;
+
+	case 'b':
+		printf('option "b" is set\n');
+		break;
+
+	case 'o':
+		printf('option "o" has value "%s"\n', option.optarg);
+		break;
+
+	default:
+		/* error message already emitted by getopt */
+//		printf('?', option.option);
+		break;
+	}
+}
+
+printf("parser.optind(): %d, argv.length: %d\n", parser.optind(), argv.length);
+if (parser.optind() >= argv.length)
+	usage('missing required argument: "input"');
+
+console.log('input = %s', argv[parser.optind()]);

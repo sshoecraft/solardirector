@@ -1,0 +1,12 @@
+[Unit]
+Description=Sunny Island Agent
+After=network-online.target network.target mqtt.service mqtt.service si.service
+
+[Service]
+Type=simple
+EnvironmentFile=/etc/sd.env
+ExecStart=/opt/sd/bin/watchsi -c /opt/sd/etc/si.json -l /opt/sd/log/si.log -a
+Restart=on-failure
+
+[Install]
+WantedBy=multi-user.target

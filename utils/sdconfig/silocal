@@ -1,0 +1,4 @@
+./sdconfig si can_init can can0 500000
+./sdconfig si set smanet_channels_path /opt/sd/lib/chans.json
+./sdconfig si smanet_init serial /dev/ttyS0 19200,N,8,1
+./sdconfig si set bms_mode yes

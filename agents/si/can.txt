@@ -1,0 +1,51 @@
+
+This agent uses the following can_ids are inputs from the sunny island
+
+        /* 0x300 Active power grid/gen */
+        /* 0x301 Active power Sunny Island */
+        /* 0x302 Reactive power grid/gen */
+        /* 0x303 Reactive power Sunny Island */
+        /* 0x304 AC1 Voltage L1 / AC1 Voltage L2 / AC1 Voltage L3 / AC1 Frequency */
+        /* 0x305 Battery voltage Battery current Battery temperature SOC battery */
+        /* 0x306 SOH battery / Charging procedure / Operating state / active Error Message / Battery Charge Voltage Set-point */
+        /* 0x307 Relay state / Relay function bit 1 / Relay function bit 2 / Synch-Bits */
+        /* 0x308 TotLodPwr */
+        /* 0x309 AC2 Voltage L1 / AC2 Voltage L2 / AC2 Voltage L3 / AC2 Frequency */
+	/* 0x30A PVPwrAt / GdCsmpPwrAt / GdFeedPwr */
+
+intputs from external devices:
+
+	/* 0x30E Input current (reliable reading on AC2 line) */
+	/* 0x30F Output current (reliable reading on AC1 line) */
+
+sources can be specified in the config:
+
+	INPUT_CURRENT_SOURCE=calculated
+	/* can,can_id,offset,bytes,type,mult */
+	INPUT_CURRENT_SOURCE=can,0x30E,0,2,w,100
+	INPUT_CURRENT_SOURCE=smanet,TotExtCur
+	OUTPUT_CURRENT_SOURCE=calculated
+	OUTPUT_CURRENT_SOURCE=can,0x30F,0,2,w,100
+	OUTPUT_CURRENT_SOURCE=smanet,TotInvCur
+	TEMP_SOURCE=si
+	TEMP_SOURCE=can,0x30C,0,2,w,100
+	SOLAR_SOURCE=can,0x30D,0,2,w,100
+
+	note that smanet current sources will be updated during a normal read cycle
+
+outputs to the sunny island in bms mode
+
+        /* 0x350 Active Current Set-point / Reactive current Set-Point */
+        /* 0x352 Nominal frequency (F0) */
+        /* 0x353 Nominal voltage L1 (U0) */
+        /* 0x354 Function Bits SiCom V1 */
+        /* 0x355 SOC value / SOH value / HiResSOC */
+        /* 0x356 Battery Voltage / Battery Current / Battery Temperature */
+        /* 0x357 - 0x359 ?? */
+        /* 0x35A Alarms / Warnings */
+        /* 0x35B Events */
+        /* 0x35C Function Bits / Function Bits Relays */
+        /* 0x35E Manufacturer-Name-ASCII (8 chars) */
+        /* 0x35F - Bat-Type / BMS Version / Bat-Capacity / reserved Manufacturer ID */
+	/* 0x360 Limitation of external current (Gen/Grid) */
+

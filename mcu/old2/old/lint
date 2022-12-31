@@ -1,0 +1,4 @@
+#!/bin/sh
+filename=${1:?"jslint filename"}
+
+sdjs jslint.js $1 "jslint $1"

@@ -1,0 +1,1 @@
+egrep -e 'malloc\(' -e 'calloc\(' -e 'realloc\(' -e 'free\(' *.c | grep -v -e JS_ -e mem_ -e Bfree

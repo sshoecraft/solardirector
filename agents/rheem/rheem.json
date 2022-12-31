@@ -1,0 +1,18 @@
+{
+    "rheem": {
+        "email": "sshoecraft@earthlink.net",
+        "password": "Nhy67ujm",
+        "location": "31.809158,-95.144338",
+        "readonly": true,
+        "interval": 30,
+        "influx_database": "power"
+    },
+    "9565492218703926": {
+        "deftemp": 123,
+        "force_level": 10,
+        "force_level_mode": "high_demand",
+        "auto_on": "sunrise+120",
+        "auto_off": "sunset+120",
+        "auto_off_level": 40
+    }
+}

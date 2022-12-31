@@ -1,0 +1,1 @@
+for i in *.js; do diff -c /opt/sd/lib/agents/si/$i $i; done

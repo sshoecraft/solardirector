@@ -1,0 +1,7 @@
+[cellmon]
+topic=SolarD/Battery/+/Data
+
+[mqtt]
+BROKER=localhost
+#USERNAME=cellmon
+#PASSWORD=cellmon123

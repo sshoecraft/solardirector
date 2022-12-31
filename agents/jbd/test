@@ -1,0 +1,1 @@
+./jbd -e 'jbd.script_dir="."; jbd.libdir="../../core";'

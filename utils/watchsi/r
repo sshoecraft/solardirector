@@ -1,0 +1,3 @@
+make || exit 1
+make install
+systemctl restart watchsi

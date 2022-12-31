@@ -1,0 +1,34 @@
+
+/*
+Copyright (c) 2021, Stephen P. Shoecraft
+All rights reserved.
+
+This source code is licensed under the BSD-style license found in the
+LICENSE file in the root directory of this source tree.
+*/
+
+#ifndef __DEVSERVER_H
+#define __DEVSERVER_H
+
+#include <stdio.h>
+#include <stdint.h>
+#include <string.h>
+#include <pthread.h>
+#include "driver.h"
+#include "rdev.h"
+
+typedef struct devserver_config devserver_config_t;
+
+struct devserver_device {
+	solard_device_t *dev;
+	void *handle;
+};
+
+struct devserver_config {
+	list devices;
+};
+
+int devserver_add_unit(devserver_config_t *, devserver_io_t *);
+int devserver(devserver_config_t *,int);
+
+#endif

@@ -1,0 +1,685 @@
+2022-04-03 10:45:33  common.c(290) solard_common_init: configfile: /etc/sd.conf
+2022-04-03 10:45:33  common.c(124) solard_get_dirs: cfg: 0x55a1d63b18, section_name: , home: /root
+2022-04-03 10:45:33  common.c(79) _getpath: cfg: 0x55a1d63b18, home: /root, what: bin, ow: 1
+2022-04-03 10:45:33  common.c(50) _getcfg: cfg: 0x55a1d63b18, section_name: , dest: , what: bin, ow: 1
+2022-04-03 10:45:33  common.c(52) _getcfg: name: bindir
+2022-04-03 10:45:33  common.c(57) _getcfg: bindir p: (nil)
+2022-04-03 10:45:33  common.c(60) _getcfg: prefix p: 0x55a1d44618
+2022-04-03 10:45:33  common.c(63) _getcfg: prefix: /opt/sd
+2022-04-03 10:45:33  common.c(69) _getcfg: dest: /opt/sd/bin
+2022-04-03 10:45:33  common.c(73) _getcfg: returning: 0
+2022-04-03 10:45:33  common.c(79) _getpath: cfg: 0x55a1d63b18, home: /root, what: etc, ow: 1
+2022-04-03 10:45:33  common.c(50) _getcfg: cfg: 0x55a1d63b18, section_name: , dest: , what: etc, ow: 1
+2022-04-03 10:45:33  common.c(52) _getcfg: name: etcdir
+2022-04-03 10:45:33  common.c(57) _getcfg: etcdir p: (nil)
+2022-04-03 10:45:33  common.c(60) _getcfg: prefix p: 0x55a1d44618
+2022-04-03 10:45:33  common.c(63) _getcfg: prefix: /opt/sd
+2022-04-03 10:45:33  common.c(69) _getcfg: dest: /opt/sd/etc
+2022-04-03 10:45:33  common.c(73) _getcfg: returning: 0
+2022-04-03 10:45:33  common.c(79) _getpath: cfg: 0x55a1d63b18, home: /root, what: lib, ow: 1
+2022-04-03 10:45:33  common.c(50) _getcfg: cfg: 0x55a1d63b18, section_name: , dest: , what: lib, ow: 1
+2022-04-03 10:45:33  common.c(52) _getcfg: name: libdir
+2022-04-03 10:45:33  common.c(57) _getcfg: libdir p: (nil)
+2022-04-03 10:45:33  common.c(60) _getcfg: prefix p: 0x55a1d44618
+2022-04-03 10:45:33  common.c(63) _getcfg: prefix: /opt/sd
+2022-04-03 10:45:33  common.c(69) _getcfg: dest: /opt/sd/lib
+2022-04-03 10:45:33  common.c(73) _getcfg: returning: 0
+2022-04-03 10:45:33  common.c(79) _getpath: cfg: 0x55a1d63b18, home: /root, what: log, ow: 1
+2022-04-03 10:45:33  common.c(50) _getcfg: cfg: 0x55a1d63b18, section_name: , dest: , what: log, ow: 1
+2022-04-03 10:45:33  common.c(52) _getcfg: name: logdir
+2022-04-03 10:45:33  common.c(57) _getcfg: logdir p: (nil)
+2022-04-03 10:45:33  common.c(60) _getcfg: prefix p: 0x55a1d44618
+2022-04-03 10:45:33  common.c(63) _getcfg: prefix: /opt/sd
+2022-04-03 10:45:33  common.c(69) _getcfg: dest: /opt/sd/log
+2022-04-03 10:45:33  common.c(73) _getcfg: returning: 0
+2022-04-03 10:45:33  common.c(135) solard_get_dirs: BINDIR: /opt/sd/bin, ETCDIR: /opt/sd/etc, LIBDIR: /opt/sd/lib, LOGDIR: /opt/sd/log
+2022-04-03 10:45:33  agent.c(392) agent_init: instance_name: one
+2022-04-03 10:45:33  agent.c(397) agent_init: section_name: jbd
+2022-04-03 10:45:33  agent.c(45) agent_mktopic: name: one, func: Status
+2022-04-03 10:45:33  common.c(321) solard_common_startup: m: 0x55a1d649e8
+2022-04-03 10:45:33  common.c(322) solard_common_startup: mqtt_info: 
+2022-04-03 10:45:33  influx.c(177) influx_mkurl: size: 11
+2022-04-03 10:45:33  influx.c(179) influx_mkurl: url: 0x55a1d81738
+2022-04-03 10:45:33  influx.c(194) influx_mkurl: url: /health
+2022-04-03 10:45:33  influx.c(521) influx_health: url: 0x55a1d81738
+2022-04-03 10:45:33  influx.c(378) influx_request: url: /health, post: 0, data: (null)
+2022-04-03 10:45:33  influx.c(205) influx_destroy_results: count: 0
+2022-04-03 10:45:33  influx.c(230) influx_destroy_results: done!
+2022-04-03 10:45:33  influx.c(381) influx_request: data: (nil)
+2022-04-03 10:45:33  influx.c(396) influx_request: calling perform...
+2022-04-03 10:45:33  influx.c(398) influx_request: res: 3
+2022-04-03 10:45:33  influx.c(401) influx_request: influx_request failed: URL using bad/illegal format or missing URL
+2022-04-03 10:45:33  influx.c(149) influx_new: version: 
+2022-04-03 10:45:33  common.c(332) solard_common_startup: i: 0x55a1d65898
+2022-04-03 10:45:33  common.c(333) solard_common_startup: influx_info: 
+2022-04-03 10:45:33  mqtt.c(464) mqtt_add_props: adding mqtt...
+2022-04-03 10:45:33  influx.c(652) influx_add_props: name: jbd
+2022-04-03 10:45:33  common.c(344) solard_common_startup: config_from_mqtt: 0, configfile: ../agents/jbd/jbdtest.conf
+2022-04-03 10:45:33  common.c(362) solard_common_startup: reading configfile...
+2022-04-03 10:45:33  mqtt.c(49) mqtt_init: gen'ing MQTT ClientID...
+2022-04-03 10:45:33  mqtt.c(52) mqtt_init: clientid: 10bfb171-a3b6-44a9-9247-28be6513401c
+2022-04-03 10:45:33  mqtt.c(151) mqtt_newclient: create rc: 0
+2022-04-03 10:45:33  mqtt.c(159) mqtt_newclient: setcb rc: 0
+2022-04-03 10:45:33  mqtt.c(207) mqtt_connect: interval: 20
+2022-04-03 10:45:33  mqtt.c(214) mqtt_connect: lwt: SolarD/Agents/one/Status
+2022-04-03 10:45:33  mqtt.c(234) mqtt_connect: connecting...
+2022-04-03 10:45:33  mqtt.c(237) mqtt_connect: rc: 0
+2022-04-03 10:45:33  mqtt.c(322) mqtt_pub: topic: SolarD/Agents/one/Status, msglen: 6, retain: 1
+2022-04-03 10:45:33  mqtt.c(346) mqtt_pub: publishing...
+2022-04-03 10:45:33  mqtt.c(349) mqtt_pub: rc: 0
+2022-04-03 10:45:33  mqtt.c(362) mqtt_pub: waiting...
+2022-04-03 10:45:33  mqtt.c(364) mqtt_pub: rc: 0
+2022-04-03 10:45:33  mqtt.c(367) mqtt_pub: delivered message... token: 1
+2022-04-03 10:45:33  mqtt.c(400) mqtt_sub: topic: SolarD/Clients/10bfb171-a3b6-44a9-9247-28be6513401c
+2022-04-03 10:45:33  mqtt.c(405) mqtt_sub: rc: 0
+2022-04-03 10:45:33  agent.c(299) agent_startup: name: one, instance_name: pack_01
+2022-04-03 10:45:33  agent.c(45) agent_mktopic: name: pack_01, func: Status
+2022-04-03 10:45:33  mqtt.c(280) mqtt_set_lwt: old topic: SolarD/Agents/one/Status, new topic: SolarD/Agents/pack_01/Status
+2022-04-03 10:45:33  mqtt.c(292) mqtt_set_lwt: connected: 1
+2022-04-03 10:45:33  mqtt.c(257) mqtt_disconnect: timeout: 5
+2022-04-03 10:45:33  mqtt.c(261) mqtt_disconnect: rc: 0
+2022-04-03 10:45:33  mqtt.c(322) mqtt_pub: topic: SolarD/Agents/one/Status, msglen: 0, retain: 0
+2022-04-03 10:45:33  mqtt.c(346) mqtt_pub: publishing...
+2022-04-03 10:45:33  mqtt.c(349) mqtt_pub: rc: -3
+2022-04-03 10:45:33  mqtt.c(351) mqtt_pub: publish error
+2022-04-03 10:45:33  mqtt.c(269) mqtt_reconnect: reconnecting...
+2022-04-03 10:45:33  mqtt.c(257) mqtt_disconnect: timeout: 5
+2022-04-03 10:45:33  mqtt.c(261) mqtt_disconnect: rc: 0
+2022-04-03 10:45:33  mqtt.c(207) mqtt_connect: interval: 20
+2022-04-03 10:45:33  mqtt.c(214) mqtt_connect: lwt: SolarD/Agents/pack_01/Status
+2022-04-03 10:45:33  mqtt.c(234) mqtt_connect: connecting...
+2022-04-03 10:45:33  mqtt.c(237) mqtt_connect: rc: 0
+2022-04-03 10:45:33  mqtt.c(322) mqtt_pub: topic: SolarD/Agents/pack_01/Status, msglen: 6, retain: 1
+2022-04-03 10:45:33  mqtt.c(346) mqtt_pub: publishing...
+2022-04-03 10:45:33  mqtt.c(349) mqtt_pub: rc: 0
+2022-04-03 10:45:33  mqtt.c(362) mqtt_pub: waiting...
+2022-04-03 10:45:33  mqtt.c(364) mqtt_pub: rc: 0
+2022-04-03 10:45:33  mqtt.c(367) mqtt_pub: delivered message... token: 1
+2022-04-03 10:45:33  mqtt.c(400) mqtt_sub: topic: SolarD/Clients/10bfb171-a3b6-44a9-9247-28be6513401c
+2022-04-03 10:45:33  mqtt.c(405) mqtt_sub: rc: 0
+2022-04-03 10:45:33  mqtt.c(274) mqtt_reconnect: reconnect done!
+2022-04-03 10:45:33  mqtt.c(346) mqtt_pub: publishing...
+2022-04-03 10:45:33  mqtt.c(349) mqtt_pub: rc: 0
+2022-04-03 10:45:33  mqtt.c(362) mqtt_pub: waiting...
+2022-04-03 10:45:33  mqtt.c(364) mqtt_pub: rc: 0
+2022-04-03 10:45:33  mqtt.c(367) mqtt_pub: delivered message... token: 3
+2022-04-03 10:45:33  mqtt.c(207) mqtt_connect: interval: 20
+2022-04-03 10:45:33  mqtt.c(214) mqtt_connect: lwt: SolarD/Agents/pack_01/Status
+2022-04-03 10:45:33  mqtt.c(234) mqtt_connect: connecting...
+2022-04-03 10:45:33  mqtt.c(237) mqtt_connect: rc: 0
+2022-04-03 10:45:33  mqtt.c(322) mqtt_pub: topic: SolarD/Agents/pack_01/Status, msglen: 6, retain: 1
+2022-04-03 10:45:33  mqtt.c(346) mqtt_pub: publishing...
+2022-04-03 10:45:33  mqtt.c(349) mqtt_pub: rc: 0
+2022-04-03 10:45:33  mqtt.c(362) mqtt_pub: waiting...
+2022-04-03 10:45:33  mqtt.c(364) mqtt_pub: rc: 0
+2022-04-03 10:45:33  mqtt.c(367) mqtt_pub: delivered message... token: 1
+2022-04-03 10:45:33  agent.c(308) agent_startup: script_dir(1): .
+2022-04-03 10:45:33  config.c(974) jbd_config: req: 0
+2022-04-03 10:45:33  config.c(978) jbd_config: **** CONFIG INIT *******
+2022-04-03 10:45:33  config.c(982) jbd_config: ap: 0x55a1d63d48
+2022-04-03 10:45:33  config.c(985) jbd_config: tpinfo: 
+2022-04-03 10:45:33  jbd.c(34) jbd_tp_init: s->tp: (nil), s->tp_handle: (nil)
+2022-04-03 10:45:33  driver.c(25) find_driver: tp: 0x5582794ae8
+2022-04-03 10:45:33  jbd.c(45) jbd_tp_init: s->tp: 0x5582794ae8
+2022-04-03 10:45:33  jbd.c(64) jbd_tp_init: using driver: ip
+2022-04-03 10:45:33  jbd.c(66) jbd_tp_init: tp_handle: 0x55a1db6d28
+2022-04-03 10:45:33  jbd.c(89) jbd_tp_init: old_driver: (nil), old_handle: (nil)
+2022-04-03 10:45:33  config.c(958) jbd_config_add_parms: adding params: Capacity Config
+2022-04-03 10:45:33  config.c(958) jbd_config_add_parms: adding params: Function Configuration
+2022-04-03 10:45:33  config.c(958) jbd_config_add_parms: adding params: NTC Configuration
+2022-04-03 10:45:33  config.c(958) jbd_config_add_parms: adding params: Balance Configuration
+2022-04-03 10:45:33  config.c(958) jbd_config_add_parms: adding params: GPS Configuration
+2022-04-03 10:45:33  config.c(958) jbd_config_add_parms: adding params: Other Configuration
+2022-04-03 10:45:33  config.c(958) jbd_config_add_parms: adding params: Basic Parameters
+2022-04-03 10:45:33  config.c(958) jbd_config_add_parms: adding params: Hard Parameters
+2022-04-03 10:45:33  config.c(1033) jbd_config: returning: 0
+2022-04-03 10:45:33  agent.c(56) agent_sub: name: pack_01, func: (null)
+2022-04-03 10:45:33  agent.c(45) agent_mktopic: name: pack_01, func: (null)
+2022-04-03 10:45:33  agent.c(59) agent_sub: topic: SolarD/Agents/pack_01
+2022-04-03 10:45:33  mqtt.c(400) mqtt_sub: topic: SolarD/Agents/pack_01
+2022-04-03 10:45:33  mqtt.c(405) mqtt_sub: rc: 0
+2022-04-03 10:45:33  agent.c(434) agent_init: jsexec(0): 
+2022-04-03 10:45:33  agent.c(178) agent_script_exists: path: ./init.js
+2022-04-03 10:45:33  agent.c(180) agent_script_exists: returning: 1
+2022-04-03 10:45:33  agent.c(187) agent_start_script: name: init.js, script_dir: .
+2022-04-03 10:45:33  agent.c(192) agent_start_script: script: ./init.js
+2022-04-03 10:45:33  jsglobal.c(436) JS_CreateGlobalObject: Creating global object...
+2022-04-03 10:45:33  jsglobal.c(441) JS_CreateGlobalObject: Global object: 0x55a1dc0000
+2022-04-03 10:45:33  jsglobal.c(443) JS_CreateGlobalObject: Defining global props...
+2022-04-03 10:45:33  jsglobal.c(449) JS_CreateGlobalObject: Defining global funcs...
+2022-04-03 10:45:33  jsglobal.c(455) JS_CreateGlobalObject: Defining global constants...
+2022-04-03 10:45:33  jsglobal.c(461) JS_CreateGlobalObject: Defining global aliases...
+2022-04-03 10:45:33  jsglobal.c(467) JS_CreateGlobalObject: Setting global private...
+2022-04-03 10:45:33  jsglobal.c(471) JS_CreateGlobalObject: Adding standard classes...
+2022-04-03 10:45:33  jscan.c(292) js_InitCANClass: defining CAN object
+2022-04-03 10:45:33  jscan.c(298) js_InitCANClass: done!
+2022-04-03 10:45:33  jsglobal.c(477) JS_CreateGlobalObject: done!
+2022-04-03 10:45:33  common.c(500) jscommon_init: Defining common properties...
+2022-04-03 10:45:33  jsfuncs.c(261) js_jbd_init: defining jbd object
+2022-04-03 10:45:33  jsfuncs.c(141) js_jbd_data_new: info->props: 0x55a1deda38
+2022-04-03 10:45:33  jsfuncs.c(148) js_jbd_data_new: defining jbd_data object
+2022-04-03 10:45:33  jsfuncs.c(154) js_jbd_data_new: defining jbd_data aliases
+2022-04-03 10:45:33  jsfuncs.c(160) js_jbd_data_new: done!
+2022-04-03 10:45:33  jsfuncs.c(69) js_jbd_hw_new: defining jbd_hw_info object
+2022-04-03 10:45:33  jsfuncs.c(76) js_jbd_hw_new: done!
+2022-04-03 10:45:33  agent.c(719) jsagent_new: creating SDAgent object
+2022-04-03 10:45:33  mqtt.c(638) jsmqtt_new: Creating mqtt class...
+2022-04-03 10:45:33  mqtt.c(645) jsmqtt_new: done!
+2022-04-03 10:45:33  agent.c(734) jsagent_new: done!
+2022-04-03 10:45:33  jsfuncs.c(285) js_jbd_init: done!
+2022-04-03 10:45:33  agent.c(447) agent_init: script: 
+2022-04-03 10:45:33  agent.c(99) agent_get_info: info_flag: 0
+2022-04-03 10:45:33  config.c(974) jbd_config: req: 1
+2022-04-03 10:45:33  config.c(1009) jbd_config: vpp: 0x55a1d63dc0
+2022-04-03 10:45:33  info.c(70) jbd_get_info: s: 0x55a1d5fe48
+2022-04-03 10:45:33  jbd.c(708) jbd_open: s: 0x55a1d5fe48
+2022-04-03 10:45:33  jbd.c(717) jbd_open: returning: 0
+2022-04-03 10:45:33  info.c(54) jbd_get_hwinfo: transport: ip
+2022-04-03 10:45:33  jbd.c(243) jbd_rw: action: a5, reg: 3, data: 0x7fe1604898, datasz: 128
+2022-04-03 10:45:33  jbd.c(162) jbd_cmd: action: a5, reg: 3, data: 0x7fe1604898, len: 0
+2022-04-03 10:45:33  jbd.c(170) jbd_cmd: idx: 4, data_len: 0, pkt_size: 256
+2022-04-03 10:45:33  jbd.c(102) jbd_crc: len: 2
+2022-04-03 10:45:33  jbd.c(103) jbd_crc: crc: 0
+2022-04-03 10:45:33  jbd.c(105) jbd_crc: crc: fffd
+2022-04-03 10:45:33  jbd.c(179) jbd_cmd: returning: 7
+2022-04-03 10:45:33  jbd.c(246) jbd_rw: cmdlen: 7, min: 7
+2022-04-03 10:45:33  cmd(7):
+2022-04-03 10:45:33  0000: DD A5 03 00 FF FD 77                               ......w         
+2022-04-03 10:45:33  jbd.c(255) jbd_rw: retries: 3
+2022-04-03 10:45:33  jbd.c(260) jbd_rw: writing...
+2022-04-03 10:45:33  jbd.c(262) jbd_rw: bytes: 7
+2022-04-03 10:45:34  jbd.c(265) jbd_rw: bytes: 34
+2022-04-03 10:45:34  jbd.c(114) jbd_verify: len: 34
+2022-04-03 10:45:34  verify(34):
+2022-04-03 10:45:34  0000: DD 03 00 1B 15 0C 04 02 0B 36 1D 4C 00 53 2B 4B    .........6.L.S+K
+2022-04-03 10:45:34  0010: 00 00 00 00 00 00 19 26 03 0E 02 0B 9E 0B 9F FC    .......&........
+2022-04-03 10:45:34  0020: A6 77                                              .w              
+2022-04-03 10:45:34  jbd.c(122) jbd_verify: start bit: dd
+2022-04-03 10:45:34  jbd.c(125) jbd_verify: register: 3
+2022-04-03 10:45:34  jbd.c(128) jbd_verify: status: 0
+2022-04-03 10:45:34  jbd.c(133) jbd_verify: data_length: 27, len - 7: 27
+2022-04-03 10:45:34  jbd.c(102) jbd_crc: len: 29
+2022-04-03 10:45:34  jbd.c(103) jbd_crc: crc: 0
+2022-04-03 10:45:34  jbd.c(105) jbd_crc: crc: fca6
+2022-04-03 10:45:34  jbd.c(140) jbd_verify: my_crc: fca6, pkt_crc: fca6
+2022-04-03 10:45:34  jbd.c(148) jbd_verify: stop bit: 77
+2022-04-03 10:45:34  jbd.c(151) jbd_verify: good data!
+2022-04-03 10:45:34  jbd.c(271) jbd_rw: returning: 27
+2022-04-03 10:45:34  info.c(29) _std_get_hwinfo: year: 2021, mon: 10, day: 11
+2022-04-03 10:45:34  info.c(31) _std_get_hwinfo: mfgdate: 20211011
+2022-04-03 10:45:34  jbd.c(279) jbd_eeprom_open: opening...
+2022-04-03 10:45:34  jbd.c(243) jbd_rw: action: 5a, reg: 0, data: 0x7fe1604868, datasz: 2
+2022-04-03 10:45:34  jbd.c(162) jbd_cmd: action: 5a, reg: 0, data: 0x7fe1604868, len: 2
+2022-04-03 10:45:34  jbd.c(170) jbd_cmd: idx: 4, data_len: 2, pkt_size: 256
+2022-04-03 10:45:34  jbd.c(102) jbd_crc: len: 4
+2022-04-03 10:45:34  jbd.c(103) jbd_crc: crc: 0
+2022-04-03 10:45:34  jbd.c(105) jbd_crc: crc: ff30
+2022-04-03 10:45:34  jbd.c(179) jbd_cmd: returning: 9
+2022-04-03 10:45:34  jbd.c(246) jbd_rw: cmdlen: 9, min: 7
+2022-04-03 10:45:34  cmd(9):
+2022-04-03 10:45:34  0000: DD 5A 00 02 56 78 FF 30 77                         .Z..Vx.0w       
+2022-04-03 10:45:34  jbd.c(255) jbd_rw: retries: 3
+2022-04-03 10:45:34  jbd.c(260) jbd_rw: writing...
+2022-04-03 10:45:34  jbd.c(262) jbd_rw: bytes: 9
+2022-04-03 10:45:35  jbd.c(265) jbd_rw: bytes: 7
+2022-04-03 10:45:35  jbd.c(114) jbd_verify: len: 7
+2022-04-03 10:45:35  verify(7):
+2022-04-03 10:45:35  0000: DD 00 00 00 00 00 77                               ......w         
+2022-04-03 10:45:35  jbd.c(122) jbd_verify: start bit: dd
+2022-04-03 10:45:35  jbd.c(125) jbd_verify: register: 0
+2022-04-03 10:45:35  jbd.c(128) jbd_verify: status: 0
+2022-04-03 10:45:35  jbd.c(133) jbd_verify: data_length: 0, len - 7: 0
+2022-04-03 10:45:35  jbd.c(102) jbd_crc: len: 2
+2022-04-03 10:45:35  jbd.c(103) jbd_crc: crc: 0
+2022-04-03 10:45:35  jbd.c(105) jbd_crc: crc: 0
+2022-04-03 10:45:35  jbd.c(140) jbd_verify: my_crc: 0, pkt_crc: 0
+2022-04-03 10:45:35  jbd.c(148) jbd_verify: stop bit: 77
+2022-04-03 10:45:35  jbd.c(151) jbd_verify: good data!
+2022-04-03 10:45:35  jbd.c(271) jbd_rw: returning: 0
+2022-04-03 10:45:35  jbd.c(243) jbd_rw: action: a5, reg: a0, data: 0x7fe1604898, datasz: 128
+2022-04-03 10:45:35  jbd.c(162) jbd_cmd: action: a5, reg: a0, data: 0x7fe1604898, len: 0
+2022-04-03 10:45:35  jbd.c(170) jbd_cmd: idx: 4, data_len: 0, pkt_size: 256
+2022-04-03 10:45:35  jbd.c(102) jbd_crc: len: 2
+2022-04-03 10:45:35  jbd.c(103) jbd_crc: crc: 0
+2022-04-03 10:45:35  jbd.c(105) jbd_crc: crc: ff60
+2022-04-03 10:45:35  jbd.c(179) jbd_cmd: returning: 7
+2022-04-03 10:45:35  jbd.c(246) jbd_rw: cmdlen: 7, min: 7
+2022-04-03 10:45:35  cmd(7):
+2022-04-03 10:45:35  0000: DD A5 A0 00 FF 60 77                               .....`w         
+2022-04-03 10:45:35  jbd.c(255) jbd_rw: retries: 3
+2022-04-03 10:45:35  jbd.c(260) jbd_rw: writing...
+2022-04-03 10:45:35  jbd.c(262) jbd_rw: bytes: 7
+2022-04-03 10:45:36  jbd.c(265) jbd_rw: bytes: 13
+2022-04-03 10:45:36  jbd.c(114) jbd_verify: len: 13
+2022-04-03 10:45:36  verify(13):
+2022-04-03 10:45:36  0000: DD A0 00 06 05 44 47 4A 42 44 FE 9A 77             .....DGJBD..w   
+2022-04-03 10:45:36  jbd.c(122) jbd_verify: start bit: dd
+2022-04-03 10:45:36  jbd.c(125) jbd_verify: register: a0
+2022-04-03 10:45:36  jbd.c(128) jbd_verify: status: 0
+2022-04-03 10:45:36  jbd.c(133) jbd_verify: data_length: 6, len - 7: 6
+2022-04-03 10:45:36  jbd.c(102) jbd_crc: len: 8
+2022-04-03 10:45:36  jbd.c(103) jbd_crc: crc: 0
+2022-04-03 10:45:36  jbd.c(105) jbd_crc: crc: fe9a
+2022-04-03 10:45:36  jbd.c(140) jbd_verify: my_crc: fe9a, pkt_crc: fe9a
+2022-04-03 10:45:36  jbd.c(148) jbd_verify: stop bit: 77
+2022-04-03 10:45:36  jbd.c(151) jbd_verify: good data!
+2022-04-03 10:45:36  jbd.c(271) jbd_rw: returning: 6
+2022-04-03 10:45:36  info.c(38) _std_get_hwinfo: mfgname: DGJBD
+2022-04-03 10:45:36  jbd.c(243) jbd_rw: action: a5, reg: a1, data: 0x7fe1604898, datasz: 128
+2022-04-03 10:45:36  jbd.c(162) jbd_cmd: action: a5, reg: a1, data: 0x7fe1604898, len: 0
+2022-04-03 10:45:36  jbd.c(170) jbd_cmd: idx: 4, data_len: 0, pkt_size: 256
+2022-04-03 10:45:36  jbd.c(102) jbd_crc: len: 2
+2022-04-03 10:45:36  jbd.c(103) jbd_crc: crc: 0
+2022-04-03 10:45:36  jbd.c(105) jbd_crc: crc: ff5f
+2022-04-03 10:45:36  jbd.c(179) jbd_cmd: returning: 7
+2022-04-03 10:45:36  jbd.c(246) jbd_rw: cmdlen: 7, min: 7
+2022-04-03 10:45:36  cmd(7):
+2022-04-03 10:45:36  0000: DD A5 A1 00 FF 5F 77                               ....._w         
+2022-04-03 10:45:36  jbd.c(255) jbd_rw: retries: 3
+2022-04-03 10:45:36  jbd.c(260) jbd_rw: writing...
+2022-04-03 10:45:36  jbd.c(262) jbd_rw: bytes: 7
+2022-04-03 10:45:37  jbd.c(265) jbd_rw: bytes: 36
+2022-04-03 10:45:37  jbd.c(114) jbd_verify: len: 36
+2022-04-03 10:45:37  verify(36):
+2022-04-03 10:45:37  0000: DD A1 00 1D 1C 31 35 33 35 30 30 32 31 2D 53 50    .....15350021-SP
+2022-04-03 10:45:37  0010: 31 35 53 30 30 38 43 2D 50 31 34 53 2D 31 30 30    15S008C-P14S-100
+2022-04-03 10:45:37  0020: 41 F9 9E 77                                        A..w            
+2022-04-03 10:45:37  jbd.c(122) jbd_verify: start bit: dd
+2022-04-03 10:45:37  jbd.c(125) jbd_verify: register: a1
+2022-04-03 10:45:37  jbd.c(128) jbd_verify: status: 0
+2022-04-03 10:45:37  jbd.c(133) jbd_verify: data_length: 29, len - 7: 29
+2022-04-03 10:45:37  jbd.c(102) jbd_crc: len: 31
+2022-04-03 10:45:37  jbd.c(103) jbd_crc: crc: 0
+2022-04-03 10:45:37  jbd.c(105) jbd_crc: crc: f99e
+2022-04-03 10:45:37  jbd.c(140) jbd_verify: my_crc: f99e, pkt_crc: f99e
+2022-04-03 10:45:37  jbd.c(148) jbd_verify: stop bit: 77
+2022-04-03 10:45:37  jbd.c(151) jbd_verify: good data!
+2022-04-03 10:45:37  jbd.c(271) jbd_rw: returning: 29
+2022-04-03 10:45:37  info.c(42) _std_get_hwinfo: model: 15350021-SP15S008C-P14S-100A
+2022-04-03 10:45:37  jbd.c(289) jbd_eeprom_close: closing...
+2022-04-03 10:45:37  jbd.c(243) jbd_rw: action: 5a, reg: 1, data: 0x7fe1604868, datasz: 2
+2022-04-03 10:45:37  jbd.c(162) jbd_cmd: action: 5a, reg: 1, data: 0x7fe1604868, len: 2
+2022-04-03 10:45:37  jbd.c(170) jbd_cmd: idx: 4, data_len: 2, pkt_size: 256
+2022-04-03 10:45:37  jbd.c(102) jbd_crc: len: 4
+2022-04-03 10:45:37  jbd.c(103) jbd_crc: crc: 0
+2022-04-03 10:45:37  jbd.c(105) jbd_crc: crc: fffd
+2022-04-03 10:45:37  jbd.c(179) jbd_cmd: returning: 9
+2022-04-03 10:45:37  jbd.c(246) jbd_rw: cmdlen: 9, min: 7
+2022-04-03 10:45:37  cmd(9):
+2022-04-03 10:45:37  0000: DD 5A 01 02 00 00 FF FD 77                         .Z......w       
+2022-04-03 10:45:37  jbd.c(255) jbd_rw: retries: 3
+2022-04-03 10:45:37  jbd.c(260) jbd_rw: writing...
+2022-04-03 10:45:37  jbd.c(262) jbd_rw: bytes: 9
+2022-04-03 10:45:38  jbd.c(265) jbd_rw: bytes: 7
+2022-04-03 10:45:38  jbd.c(114) jbd_verify: len: 7
+2022-04-03 10:45:38  verify(7):
+2022-04-03 10:45:38  0000: DD 01 00 00 00 00 77                               ......w         
+2022-04-03 10:45:38  jbd.c(122) jbd_verify: start bit: dd
+2022-04-03 10:45:38  jbd.c(125) jbd_verify: register: 1
+2022-04-03 10:45:38  jbd.c(128) jbd_verify: status: 0
+2022-04-03 10:45:38  jbd.c(133) jbd_verify: data_length: 0, len - 7: 0
+2022-04-03 10:45:38  jbd.c(102) jbd_crc: len: 2
+2022-04-03 10:45:38  jbd.c(103) jbd_crc: crc: 0
+2022-04-03 10:45:38  jbd.c(105) jbd_crc: crc: 0
+2022-04-03 10:45:38  jbd.c(140) jbd_verify: my_crc: 0, pkt_crc: 0
+2022-04-03 10:45:38  jbd.c(148) jbd_verify: stop bit: 77
+2022-04-03 10:45:38  jbd.c(151) jbd_verify: good data!
+2022-04-03 10:45:38  jbd.c(271) jbd_rw: returning: 0
+2022-04-03 10:45:38  jbd.c(279) jbd_eeprom_open: opening...
+2022-04-03 10:45:38  jbd.c(243) jbd_rw: action: 5a, reg: 0, data: 0x7fe1604958, datasz: 2
+2022-04-03 10:45:38  jbd.c(162) jbd_cmd: action: 5a, reg: 0, data: 0x7fe1604958, len: 2
+2022-04-03 10:45:38  jbd.c(170) jbd_cmd: idx: 4, data_len: 2, pkt_size: 256
+2022-04-03 10:45:38  jbd.c(102) jbd_crc: len: 4
+2022-04-03 10:45:38  jbd.c(103) jbd_crc: crc: 0
+2022-04-03 10:45:38  jbd.c(105) jbd_crc: crc: ff30
+2022-04-03 10:45:38  jbd.c(179) jbd_cmd: returning: 9
+2022-04-03 10:45:38  jbd.c(246) jbd_rw: cmdlen: 9, min: 7
+2022-04-03 10:45:38  cmd(9):
+2022-04-03 10:45:38  0000: DD 5A 00 02 56 78 FF 30 77                         .Z..Vx.0w       
+2022-04-03 10:45:38  jbd.c(255) jbd_rw: retries: 3
+2022-04-03 10:45:38  jbd.c(260) jbd_rw: writing...
+2022-04-03 10:45:38  jbd.c(262) jbd_rw: bytes: 9
+2022-04-03 10:45:39  jbd.c(265) jbd_rw: bytes: 7
+2022-04-03 10:45:39  jbd.c(114) jbd_verify: len: 7
+2022-04-03 10:45:39  verify(7):
+2022-04-03 10:45:39  0000: DD 00 00 00 00 00 77                               ......w         
+2022-04-03 10:45:39  jbd.c(122) jbd_verify: start bit: dd
+2022-04-03 10:45:39  jbd.c(125) jbd_verify: register: 0
+2022-04-03 10:45:39  jbd.c(128) jbd_verify: status: 0
+2022-04-03 10:45:39  jbd.c(133) jbd_verify: data_length: 0, len - 7: 0
+2022-04-03 10:45:39  jbd.c(102) jbd_crc: len: 2
+2022-04-03 10:45:39  jbd.c(103) jbd_crc: crc: 0
+2022-04-03 10:45:39  jbd.c(105) jbd_crc: crc: 0
+2022-04-03 10:45:39  jbd.c(140) jbd_verify: my_crc: 0, pkt_crc: 0
+2022-04-03 10:45:39  jbd.c(148) jbd_verify: stop bit: 77
+2022-04-03 10:45:39  jbd.c(151) jbd_verify: good data!
+2022-04-03 10:45:39  jbd.c(271) jbd_rw: returning: 0
+2022-04-03 10:45:39  jbd.c(243) jbd_rw: action: a5, reg: 2d, data: 0x7fe1604a08, datasz: 8
+2022-04-03 10:45:39  jbd.c(162) jbd_cmd: action: a5, reg: 2d, data: 0x7fe1604a08, len: 0
+2022-04-03 10:45:39  jbd.c(170) jbd_cmd: idx: 4, data_len: 0, pkt_size: 256
+2022-04-03 10:45:39  jbd.c(102) jbd_crc: len: 2
+2022-04-03 10:45:39  jbd.c(103) jbd_crc: crc: 0
+2022-04-03 10:45:39  jbd.c(105) jbd_crc: crc: ffd3
+2022-04-03 10:45:39  jbd.c(179) jbd_cmd: returning: 7
+2022-04-03 10:45:39  jbd.c(246) jbd_rw: cmdlen: 7, min: 7
+2022-04-03 10:45:39  cmd(7):
+2022-04-03 10:45:39  0000: DD A5 2D 00 FF D3 77                               ..-...w         
+2022-04-03 10:45:39  jbd.c(255) jbd_rw: retries: 3
+2022-04-03 10:45:39  jbd.c(260) jbd_rw: writing...
+2022-04-03 10:45:39  jbd.c(262) jbd_rw: bytes: 7
+2022-04-03 10:45:40  jbd.c(265) jbd_rw: bytes: 9
+2022-04-03 10:45:40  jbd.c(114) jbd_verify: len: 9
+2022-04-03 10:45:40  verify(9):
+2022-04-03 10:45:40  0000: DD 2D 00 02 00 0E FF F0 77                         .-......w       
+2022-04-03 10:45:40  jbd.c(122) jbd_verify: start bit: dd
+2022-04-03 10:45:40  jbd.c(125) jbd_verify: register: 2d
+2022-04-03 10:45:40  jbd.c(128) jbd_verify: status: 0
+2022-04-03 10:45:40  jbd.c(133) jbd_verify: data_length: 2, len - 7: 2
+2022-04-03 10:45:40  jbd.c(102) jbd_crc: len: 4
+2022-04-03 10:45:40  jbd.c(103) jbd_crc: crc: 0
+2022-04-03 10:45:40  jbd.c(105) jbd_crc: crc: fff0
+2022-04-03 10:45:40  jbd.c(140) jbd_verify: my_crc: fff0, pkt_crc: fff0
+2022-04-03 10:45:40  jbd.c(148) jbd_verify: stop bit: 77
+2022-04-03 10:45:40  jbd.c(151) jbd_verify: good data!
+2022-04-03 10:45:40  jbd.c(271) jbd_rw: returning: 2
+2022-04-03 10:45:40  info.c(83) jbd_get_info: val: 14
+2022-04-03 10:45:40  jbd.c(289) jbd_eeprom_close: closing...
+2022-04-03 10:45:40  jbd.c(243) jbd_rw: action: 5a, reg: 1, data: 0x7fe1604958, datasz: 2
+2022-04-03 10:45:40  jbd.c(162) jbd_cmd: action: 5a, reg: 1, data: 0x7fe1604958, len: 2
+2022-04-03 10:45:40  jbd.c(170) jbd_cmd: idx: 4, data_len: 2, pkt_size: 256
+2022-04-03 10:45:40  jbd.c(102) jbd_crc: len: 4
+2022-04-03 10:45:40  jbd.c(103) jbd_crc: crc: 0
+2022-04-03 10:45:40  jbd.c(105) jbd_crc: crc: fffd
+2022-04-03 10:45:40  jbd.c(179) jbd_cmd: returning: 9
+2022-04-03 10:45:40  jbd.c(246) jbd_rw: cmdlen: 9, min: 7
+2022-04-03 10:45:40  cmd(9):
+2022-04-03 10:45:40  0000: DD 5A 01 02 00 00 FF FD 77                         .Z......w       
+2022-04-03 10:45:40  jbd.c(255) jbd_rw: retries: 3
+2022-04-03 10:45:40  jbd.c(260) jbd_rw: writing...
+2022-04-03 10:45:40  jbd.c(262) jbd_rw: bytes: 9
+2022-04-03 10:45:41  jbd.c(265) jbd_rw: bytes: 7
+2022-04-03 10:45:41  jbd.c(114) jbd_verify: len: 7
+2022-04-03 10:45:41  verify(7):
+2022-04-03 10:45:41  0000: DD 01 00 00 00 00 77                               ......w         
+2022-04-03 10:45:41  jbd.c(122) jbd_verify: start bit: dd
+2022-04-03 10:45:41  jbd.c(125) jbd_verify: register: 1
+2022-04-03 10:45:41  jbd.c(128) jbd_verify: status: 0
+2022-04-03 10:45:41  jbd.c(133) jbd_verify: data_length: 0, len - 7: 0
+2022-04-03 10:45:41  jbd.c(102) jbd_crc: len: 2
+2022-04-03 10:45:41  jbd.c(103) jbd_crc: crc: 0
+2022-04-03 10:45:41  jbd.c(105) jbd_crc: crc: 0
+2022-04-03 10:45:41  jbd.c(140) jbd_verify: my_crc: 0, pkt_crc: 0
+2022-04-03 10:45:41  jbd.c(148) jbd_verify: stop bit: 77
+2022-04-03 10:45:41  jbd.c(151) jbd_verify: good data!
+2022-04-03 10:45:41  jbd.c(271) jbd_rw: returning: 0
+2022-04-03 10:45:41  info.c(94) jbd_get_info: mem_start: 64957
+2022-04-03 10:45:41  info.c(116) jbd_get_info: mem_used: 140908
+2022-04-03 10:45:41  config.c(1033) jbd_config: returning: 0
+2022-04-03 10:45:41  agent.c(68) agent_pub: func: Info, message: {
+    "agent_name": "jbd",
+    , retain: 1
+2022-04-03 10:45:41  agent.c(45) agent_mktopic: name: pack_01, func: Info
+2022-04-03 10:45:41  agent.c(71) agent_pub: topic: SolarD/Agents/pack_01/Info
+2022-04-03 10:45:41  mqtt.c(322) mqtt_pub: topic: SolarD/Agents/pack_01/Info, msglen: 40694, retain: 1
+2022-04-03 10:45:41  mqtt.c(346) mqtt_pub: publishing...
+2022-04-03 10:45:41  mqtt.c(349) mqtt_pub: rc: 0
+2022-04-03 10:45:41  mqtt.c(362) mqtt_pub: waiting...
+2022-04-03 10:45:41  mqtt.c(364) mqtt_pub: rc: 0
+2022-04-03 10:45:41  mqtt.c(367) mqtt_pub: delivered message... token: 3
+2022-04-03 10:45:41  agent.c(117) agent_pubconfig: publishing config...
+2022-04-03 10:45:41  agent.c(68) agent_pub: func: Config, message: {
+    "jbd": {
+        "transpo, retain: 1
+2022-04-03 10:45:41  agent.c(45) agent_mktopic: name: pack_01, func: Config
+2022-04-03 10:45:41  agent.c(71) agent_pub: topic: SolarD/Agents/pack_01/Config
+2022-04-03 10:45:41  mqtt.c(322) mqtt_pub: topic: SolarD/Agents/pack_01/Config, msglen: 1266, retain: 1
+2022-04-03 10:45:41  mqtt.c(346) mqtt_pub: publishing...
+2022-04-03 10:45:41  mqtt.c(349) mqtt_pub: rc: 0
+2022-04-03 10:45:41  mqtt.c(362) mqtt_pub: waiting...
+2022-04-03 10:45:41  mqtt.c(364) mqtt_pub: rc: 0
+2022-04-03 10:45:41  mqtt.c(367) mqtt_pub: delivered message... token: 4
+2022-04-03 10:45:41  agent.c(461) agent_init: agent_init mem usage: 206536
+2022-04-03 10:45:41  agent.c(466) agent_init: returning: 0x55a1d63d48
+2022-04-03 10:45:41  config.c(792) jbd_agent_init: ap: 0x55a1d63d48
+2022-04-03 10:45:41  agent.c(481) agent_run: ap: 0x55a1d63d48
+2022-04-03 10:45:41  agent.c(484) agent_run: start_script: start.js
+2022-04-03 10:45:41  agent.c(187) agent_start_script: name: start.js, script_dir: .
+2022-04-03 10:45:41  agent.c(192) agent_start_script: script: ./start.js
+2022-04-03 10:45:41  agent.c(499) agent_run: diff: 1649000741, read_interval: 30
+2022-04-03 10:45:41  agent.c(502) agent_run: open_before_read: 0, open: 0x55825f7e1c
+2022-04-03 10:45:41  agent.c(511) agent_run: read: 0x55825f78c0
+2022-04-03 10:45:41  jbd.c(568) jbd_read: reader: (nil)
+2022-04-03 10:45:41  jbd.c(574) jbd_read: transport: ip
+2022-04-03 10:45:41  jbd.c(491) jbd_std_read: getting HWINFO...
+2022-04-03 10:45:41  jbd.c(243) jbd_rw: action: a5, reg: 3, data: 0x7fe1606868, datasz: 128
+2022-04-03 10:45:41  jbd.c(162) jbd_cmd: action: a5, reg: 3, data: 0x7fe1606868, len: 0
+2022-04-03 10:45:41  jbd.c(170) jbd_cmd: idx: 4, data_len: 0, pkt_size: 256
+2022-04-03 10:45:41  jbd.c(102) jbd_crc: len: 2
+2022-04-03 10:45:41  jbd.c(103) jbd_crc: crc: 0
+2022-04-03 10:45:41  jbd.c(105) jbd_crc: crc: fffd
+2022-04-03 10:45:41  jbd.c(179) jbd_cmd: returning: 7
+2022-04-03 10:45:41  jbd.c(246) jbd_rw: cmdlen: 7, min: 7
+2022-04-03 10:45:41  cmd(7):
+2022-04-03 10:45:41  0000: DD A5 03 00 FF FD 77                               ......w         
+2022-04-03 10:45:41  jbd.c(255) jbd_rw: retries: 3
+2022-04-03 10:45:41  jbd.c(260) jbd_rw: writing...
+2022-04-03 10:45:41  jbd.c(262) jbd_rw: bytes: 7
+2022-04-03 10:45:42  jbd.c(265) jbd_rw: bytes: 34
+2022-04-03 10:45:42  jbd.c(114) jbd_verify: len: 34
+2022-04-03 10:45:42  verify(34):
+2022-04-03 10:45:42  0000: DD 03 00 1B 15 0D 04 2D 0B 39 1D 4C 00 53 2B 4B    .......-.9.L.S+K
+2022-04-03 10:45:42  0010: 00 00 00 00 00 00 19 26 03 0E 02 0B 9E 0B 9F FC    .......&........
+2022-04-03 10:45:42  0020: 77 77                                              ww              
+2022-04-03 10:45:42  jbd.c(122) jbd_verify: start bit: dd
+2022-04-03 10:45:42  jbd.c(125) jbd_verify: register: 3
+2022-04-03 10:45:42  jbd.c(128) jbd_verify: status: 0
+2022-04-03 10:45:42  jbd.c(133) jbd_verify: data_length: 27, len - 7: 27
+2022-04-03 10:45:42  jbd.c(102) jbd_crc: len: 29
+2022-04-03 10:45:42  jbd.c(103) jbd_crc: crc: 0
+2022-04-03 10:45:42  jbd.c(105) jbd_crc: crc: fc77
+2022-04-03 10:45:42  jbd.c(140) jbd_verify: my_crc: fc77, pkt_crc: fc77
+2022-04-03 10:45:42  jbd.c(148) jbd_verify: stop bit: 77
+2022-04-03 10:45:42  jbd.c(151) jbd_verify: good data!
+2022-04-03 10:45:42  jbd.c(271) jbd_rw: returning: 27
+2022-04-03 10:45:42  jbd.c(500) jbd_std_read: voltage: 53.89
+2022-04-03 10:45:42  jbd.c(501) jbd_std_read: current: 10.69
+2022-04-03 10:45:42  jbd.c(502) jbd_std_read: capacity: 75.00
+2022-04-03 10:45:42  jbd.c(517) jbd_std_read: balancebits: 0000000000000000
+2022-04-03 10:45:42  jbd.c(349) jbd_get_protect: protect: 0000000000000000
+2022-04-03 10:45:42  jbd.c(525) jbd_std_read: s->fetstate: 03
+2022-04-03 10:45:42  jbd.c(532) jbd_std_read: cells: 14
+2022-04-03 10:45:42  jbd.c(243) jbd_rw: action: a5, reg: 4, data: 0x7fe1606868, datasz: 128
+2022-04-03 10:45:42  jbd.c(162) jbd_cmd: action: a5, reg: 4, data: 0x7fe1606868, len: 0
+2022-04-03 10:45:42  jbd.c(170) jbd_cmd: idx: 4, data_len: 0, pkt_size: 256
+2022-04-03 10:45:42  jbd.c(102) jbd_crc: len: 2
+2022-04-03 10:45:42  jbd.c(103) jbd_crc: crc: 0
+2022-04-03 10:45:42  jbd.c(105) jbd_crc: crc: fffc
+2022-04-03 10:45:42  jbd.c(179) jbd_cmd: returning: 7
+2022-04-03 10:45:42  jbd.c(246) jbd_rw: cmdlen: 7, min: 7
+2022-04-03 10:45:42  cmd(7):
+2022-04-03 10:45:42  0000: DD A5 04 00 FF FC 77                               ......w         
+2022-04-03 10:45:42  jbd.c(255) jbd_rw: retries: 3
+2022-04-03 10:45:42  jbd.c(260) jbd_rw: writing...
+2022-04-03 10:45:42  jbd.c(262) jbd_rw: bytes: 7
+2022-04-03 10:45:43  jbd.c(265) jbd_rw: bytes: 35
+2022-04-03 10:45:43  jbd.c(114) jbd_verify: len: 35
+2022-04-03 10:45:43  verify(35):
+2022-04-03 10:45:43  0000: DD 04 00 1C 0F 07 0F 05 0F 06 0F 06 0F 0D 0F 0B    ................
+2022-04-03 10:45:43  0010: 0F 0C 0F 0D 0F 08 0F 08 0F 09 0F 0D 0F 0C 0F 0C    ................
+2022-04-03 10:45:43  0020: FE 8B 77                                           ..w             
+2022-04-03 10:45:43  jbd.c(122) jbd_verify: start bit: dd
+2022-04-03 10:45:43  jbd.c(125) jbd_verify: register: 4
+2022-04-03 10:45:43  jbd.c(128) jbd_verify: status: 0
+2022-04-03 10:45:43  jbd.c(133) jbd_verify: data_length: 28, len - 7: 28
+2022-04-03 10:45:43  jbd.c(102) jbd_crc: len: 30
+2022-04-03 10:45:43  jbd.c(103) jbd_crc: crc: 0
+2022-04-03 10:45:43  jbd.c(105) jbd_crc: crc: fe8b
+2022-04-03 10:45:43  jbd.c(140) jbd_verify: my_crc: fe8b, pkt_crc: fe8b
+2022-04-03 10:45:43  jbd.c(148) jbd_verify: stop bit: 77
+2022-04-03 10:45:43  jbd.c(151) jbd_verify: good data!
+2022-04-03 10:45:43  jbd.c(271) jbd_rw: returning: 28
+2022-04-03 10:45:43  jbd.c(546) jbd_std_read: cell[0]: 3.847
+2022-04-03 10:45:43  jbd.c(546) jbd_std_read: cell[1]: 3.845
+2022-04-03 10:45:43  jbd.c(546) jbd_std_read: cell[2]: 3.846
+2022-04-03 10:45:43  jbd.c(546) jbd_std_read: cell[3]: 3.846
+2022-04-03 10:45:43  jbd.c(546) jbd_std_read: cell[4]: 3.853
+2022-04-03 10:45:43  jbd.c(546) jbd_std_read: cell[5]: 3.851
+2022-04-03 10:45:43  jbd.c(546) jbd_std_read: cell[6]: 3.852
+2022-04-03 10:45:43  jbd.c(546) jbd_std_read: cell[7]: 3.853
+2022-04-03 10:45:43  jbd.c(546) jbd_std_read: cell[8]: 3.848
+2022-04-03 10:45:43  jbd.c(546) jbd_std_read: cell[9]: 3.848
+2022-04-03 10:45:43  jbd.c(546) jbd_std_read: cell[10]: 3.849
+2022-04-03 10:45:43  jbd.c(546) jbd_std_read: cell[11]: 3.853
+2022-04-03 10:45:43  jbd.c(546) jbd_std_read: cell[12]: 3.852
+2022-04-03 10:45:43  jbd.c(546) jbd_std_read: cell[13]: 3.852
+2022-04-03 10:45:43  agent.c(178) agent_script_exists: path: ./pub.js
+2022-04-03 10:45:43  agent.c(180) agent_script_exists: returning: 0
+2022-04-03 10:45:43  agent.c(513) agent_run: read_script: read.js
+2022-04-03 10:45:43  agent.c(178) agent_script_exists: path: ./read.js
+2022-04-03 10:45:43  agent.c(180) agent_script_exists: returning: 0
+2022-04-03 10:45:43  agent.c(515) agent_run: close_after_read: 0, close: 0x55825f7f20
+2022-04-03 10:45:43  agent.c(519) agent_run: used: 206536
+2022-04-03 10:45:43  agent.c(524) agent_run: mq count: 0
+2022-04-03 10:45:43  agent.c(532) agent_run: read_status: 0
+2022-04-03 10:45:43  agent.c(539) agent_run: func: (nil)
+2022-04-03 10:45:43  agent.c(178) agent_script_exists: path: ./run.js
+2022-04-03 10:45:43  agent.c(180) agent_script_exists: returning: 0
+2022-04-03 10:45:43  agent.c(546) agent_run: used: 206536
+2022-04-03 10:45:43  agent.c(552) agent_run: diff: 1649000743, write_interval: 30
+2022-04-03 10:45:43  agent.c(554) agent_run: writing...
+2022-04-03 10:45:43  agent.c(563) agent_run: write: (nil)
+2022-04-03 10:45:43  agent.c(565) agent_run: write_status: 0
+2022-04-03 10:45:43  agent.c(566) agent_run: write_script: write.js
+2022-04-03 10:45:43  agent.c(178) agent_script_exists: path: ./write.js
+2022-04-03 10:45:43  agent.c(180) agent_script_exists: returning: 0
+2022-04-03 10:45:43  agent.c(568) agent_run: write_status: 0
+2022-04-03 10:45:43  agent.c(569) agent_run: close_after_write: 0, close: 0x55825f7f20
+2022-04-03 10:45:43  agent.c(573) agent_run: used: 206536
+2022-04-03 10:45:44  agent.c(499) agent_run: diff: 1, read_interval: 30
+2022-04-03 10:45:44  agent.c(524) agent_run: mq count: 0
+2022-04-03 10:45:44  agent.c(532) agent_run: read_status: 0
+2022-04-03 10:45:44  agent.c(539) agent_run: func: (nil)
+2022-04-03 10:45:44  agent.c(178) agent_script_exists: path: ./run.js
+2022-04-03 10:45:44  agent.c(180) agent_script_exists: returning: 0
+2022-04-03 10:45:44  agent.c(546) agent_run: used: 206536
+2022-04-03 10:45:44  agent.c(552) agent_run: diff: 1, write_interval: 30
+2022-04-03 10:45:45  agent.c(499) agent_run: diff: 2, read_interval: 30
+2022-04-03 10:45:45  agent.c(524) agent_run: mq count: 0
+2022-04-03 10:45:45  agent.c(532) agent_run: read_status: 0
+2022-04-03 10:45:45  agent.c(539) agent_run: func: (nil)
+2022-04-03 10:45:45  agent.c(178) agent_script_exists: path: ./run.js
+2022-04-03 10:45:45  agent.c(180) agent_script_exists: returning: 0
+2022-04-03 10:45:45  agent.c(546) agent_run: used: 206536
+2022-04-03 10:45:45  agent.c(552) agent_run: diff: 2, write_interval: 30
+2022-04-03 10:45:46  agent.c(499) agent_run: diff: 3, read_interval: 30
+2022-04-03 10:45:46  agent.c(524) agent_run: mq count: 0
+2022-04-03 10:45:46  agent.c(532) agent_run: read_status: 0
+2022-04-03 10:45:46  agent.c(539) agent_run: func: (nil)
+2022-04-03 10:45:46  agent.c(178) agent_script_exists: path: ./run.js
+2022-04-03 10:45:46  agent.c(180) agent_script_exists: returning: 0
+2022-04-03 10:45:46  agent.c(546) agent_run: used: 206536
+2022-04-03 10:45:46  agent.c(552) agent_run: diff: 3, write_interval: 30
+2022-04-03 10:45:47  agent.c(499) agent_run: diff: 4, read_interval: 30
+2022-04-03 10:45:47  agent.c(524) agent_run: mq count: 0
+2022-04-03 10:45:47  agent.c(532) agent_run: read_status: 0
+2022-04-03 10:45:47  agent.c(539) agent_run: func: (nil)
+2022-04-03 10:45:47  agent.c(178) agent_script_exists: path: ./run.js
+2022-04-03 10:45:47  agent.c(180) agent_script_exists: returning: 0
+2022-04-03 10:45:47  agent.c(546) agent_run: used: 206536
+2022-04-03 10:45:47  agent.c(552) agent_run: diff: 4, write_interval: 30
+2022-04-03 10:45:48  agent.c(499) agent_run: diff: 5, read_interval: 30
+2022-04-03 10:45:48  agent.c(524) agent_run: mq count: 0
+2022-04-03 10:45:48  agent.c(532) agent_run: read_status: 0
+2022-04-03 10:45:48  agent.c(539) agent_run: func: (nil)
+2022-04-03 10:45:48  agent.c(178) agent_script_exists: path: ./run.js
+2022-04-03 10:45:48  agent.c(180) agent_script_exists: returning: 0
+2022-04-03 10:45:48  agent.c(546) agent_run: used: 206536
+2022-04-03 10:45:48  agent.c(552) agent_run: diff: 5, write_interval: 30
+2022-04-03 10:45:49  agent.c(499) agent_run: diff: 6, read_interval: 30
+2022-04-03 10:45:49  agent.c(524) agent_run: mq count: 0
+2022-04-03 10:45:49  agent.c(532) agent_run: read_status: 0
+2022-04-03 10:45:49  agent.c(539) agent_run: func: (nil)
+2022-04-03 10:45:49  agent.c(178) agent_script_exists: path: ./run.js
+2022-04-03 10:45:49  agent.c(180) agent_script_exists: returning: 0
+2022-04-03 10:45:49  agent.c(546) agent_run: used: 206536
+2022-04-03 10:45:49  agent.c(552) agent_run: diff: 6, write_interval: 30
+2022-04-03 10:45:50  agent.c(499) agent_run: diff: 7, read_interval: 30
+2022-04-03 10:45:50  agent.c(524) agent_run: mq count: 0
+2022-04-03 10:45:50  agent.c(532) agent_run: read_status: 0
+2022-04-03 10:45:50  agent.c(539) agent_run: func: (nil)
+2022-04-03 10:45:50  agent.c(178) agent_script_exists: path: ./run.js
+2022-04-03 10:45:50  agent.c(180) agent_script_exists: returning: 0
+2022-04-03 10:45:50  agent.c(546) agent_run: used: 206536
+2022-04-03 10:45:50  agent.c(552) agent_run: diff: 7, write_interval: 30
+2022-04-03 10:45:51  agent.c(499) agent_run: diff: 8, read_interval: 30
+2022-04-03 10:45:51  agent.c(524) agent_run: mq count: 0
+2022-04-03 10:45:51  agent.c(532) agent_run: read_status: 0
+2022-04-03 10:45:51  agent.c(539) agent_run: func: (nil)
+2022-04-03 10:45:51  agent.c(178) agent_script_exists: path: ./run.js
+2022-04-03 10:45:51  agent.c(180) agent_script_exists: returning: 0
+2022-04-03 10:45:51  agent.c(546) agent_run: used: 206536
+2022-04-03 10:45:51  agent.c(552) agent_run: diff: 8, write_interval: 30
+2022-04-03 10:45:52  agent.c(499) agent_run: diff: 9, read_interval: 30
+2022-04-03 10:45:52  agent.c(524) agent_run: mq count: 0
+2022-04-03 10:45:52  agent.c(532) agent_run: read_status: 0
+2022-04-03 10:45:52  agent.c(539) agent_run: func: (nil)
+2022-04-03 10:45:52  agent.c(178) agent_script_exists: path: ./run.js
+2022-04-03 10:45:52  agent.c(180) agent_script_exists: returning: 0
+2022-04-03 10:45:52  agent.c(546) agent_run: used: 206536
+2022-04-03 10:45:52  agent.c(552) agent_run: diff: 9, write_interval: 30
+2022-04-03 10:45:53  agent.c(499) agent_run: diff: 10, read_interval: 30
+2022-04-03 10:45:53  agent.c(524) agent_run: mq count: 0
+2022-04-03 10:45:53  agent.c(532) agent_run: read_status: 0
+2022-04-03 10:45:53  agent.c(539) agent_run: func: (nil)
+2022-04-03 10:45:53  agent.c(178) agent_script_exists: path: ./run.js
+2022-04-03 10:45:53  agent.c(180) agent_script_exists: returning: 0
+2022-04-03 10:45:53  agent.c(546) agent_run: used: 206536
+2022-04-03 10:45:53  agent.c(552) agent_run: diff: 10, write_interval: 30
+2022-04-03 10:45:54  agent.c(499) agent_run: diff: 11, read_interval: 30
+2022-04-03 10:45:54  agent.c(524) agent_run: mq count: 0
+2022-04-03 10:45:54  agent.c(532) agent_run: read_status: 0
+2022-04-03 10:45:54  agent.c(539) agent_run: func: (nil)
+2022-04-03 10:45:54  agent.c(178) agent_script_exists: path: ./run.js
+2022-04-03 10:45:54  agent.c(180) agent_script_exists: returning: 0
+2022-04-03 10:45:54  agent.c(546) agent_run: used: 206536
+2022-04-03 10:45:54  agent.c(552) agent_run: diff: 11, write_interval: 30
+2022-04-03 10:45:55  agent.c(499) agent_run: diff: 12, read_interval: 30
+2022-04-03 10:45:55  agent.c(524) agent_run: mq count: 0
+2022-04-03 10:45:55  agent.c(532) agent_run: read_status: 0
+2022-04-03 10:45:55  agent.c(539) agent_run: func: (nil)
+2022-04-03 10:45:55  agent.c(178) agent_script_exists: path: ./run.js
+2022-04-03 10:45:55  agent.c(180) agent_script_exists: returning: 0
+2022-04-03 10:45:55  agent.c(546) agent_run: used: 206536
+2022-04-03 10:45:55  agent.c(552) agent_run: diff: 12, write_interval: 30
+2022-04-03 10:45:56  agent.c(499) agent_run: diff: 13, read_interval: 30
+2022-04-03 10:45:56  agent.c(524) agent_run: mq count: 0
+2022-04-03 10:45:56  agent.c(532) agent_run: read_status: 0
+2022-04-03 10:45:56  agent.c(539) agent_run: func: (nil)
+2022-04-03 10:45:56  agent.c(178) agent_script_exists: path: ./run.js
+2022-04-03 10:45:56  agent.c(180) agent_script_exists: returning: 0
+2022-04-03 10:45:56  agent.c(546) agent_run: used: 206536
+2022-04-03 10:45:56  agent.c(552) agent_run: diff: 13, write_interval: 30
+2022-04-03 10:45:57  agent.c(499) agent_run: diff: 14, read_interval: 30
+2022-04-03 10:45:57  agent.c(524) agent_run: mq count: 0
+2022-04-03 10:45:57  agent.c(532) agent_run: read_status: 0
+2022-04-03 10:45:57  agent.c(539) agent_run: func: (nil)
+2022-04-03 10:45:57  agent.c(178) agent_script_exists: path: ./run.js
+2022-04-03 10:45:57  agent.c(180) agent_script_exists: returning: 0
+2022-04-03 10:45:57  agent.c(546) agent_run: used: 206536
+2022-04-03 10:45:57  agent.c(552) agent_run: diff: 14, write_interval: 30
+2022-04-03 10:45:58  agent.c(499) agent_run: diff: 15, read_interval: 30
+2022-04-03 10:45:58  agent.c(524) agent_run: mq count: 0
+2022-04-03 10:45:58  agent.c(532) agent_run: read_status: 0
+2022-04-03 10:45:58  agent.c(539) agent_run: func: (nil)
+2022-04-03 10:45:58  agent.c(178) agent_script_exists: path: ./run.js
+2022-04-03 10:45:58  agent.c(180) agent_script_exists: returning: 0
+2022-04-03 10:45:58  agent.c(546) agent_run: used: 206536
+2022-04-03 10:45:58  agent.c(552) agent_run: diff: 15, write_interval: 30
+2022-04-03 10:45:59  agent.c(499) agent_run: diff: 16, read_interval: 30
+2022-04-03 10:45:59  agent.c(524) agent_run: mq count: 0
+2022-04-03 10:45:59  agent.c(532) agent_run: read_status: 0
+2022-04-03 10:45:59  agent.c(539) agent_run: func: (nil)
+2022-04-03 10:45:59  agent.c(178) agent_script_exists: path: ./run.js
+2022-04-03 10:45:59  agent.c(180) agent_script_exists: returning: 0
+2022-04-03 10:45:59  agent.c(546) agent_run: used: 206536
+2022-04-03 10:45:59  agent.c(552) agent_run: diff: 16, write_interval: 30

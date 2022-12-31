@@ -1,0 +1,96 @@
+[6800_08811F00] Status -> System -> Initialisation performed: Yes Initialisation performed
+[6800_10821E00] Type Label -> Type Label -> Device name: SB6.0-1SP-US-41 679 Device name
+[6800_08821F00] Type Label -> Type Label -> Device class: Solar Inverters Device class
+[6800_08822000] Type Label -> Type Label -> Device type: Sunny Boy 6.0-US Device type
+[6800_08822100] Type Label -> Type Label -> AvalGrpUsr: AvalGrpMet1,AvalGrpMet3,AvalGrpMet5,AvalGrpMet6,AvalGrpMet10,AvalGrpMet11,AvalGrpMet18,AvalGrpMet23,AvalGrpPara2,AvalGrpPara3,AvalGrpPara4,AvalGrpPara5,AvalGrpPara6,AvalGrpPara7,AvalGrpPara10,AvalGrpPara11,AvalGrpPara17,AvalGrpPara18 AvalGrpUsr
+[6800_00822500] Type Label -> Type Label -> Nominal current: 25.0 Nominal current
+[6800_08822800] Type Label -> Type Label -> Software package update version available: ------- Software package update version available
+[6800_08822B00] Type Label -> Type Label -> Manufacturer: SMA Manufacturer
+[6800_00823400] Type Label -> Type Label -> Software package: 50466052.0 Software package
+[6800_08831E00] Device -> Operation -> General operating mode: MPP General operating mode
+[6800_00832A00] Device -> Inverter -> Maximum active power: 6000.0 Maximum active power
+[6800_08834300] Device -> Operation -> Dynamic power display via green LED: On Dynamic power display via green LED
+[6800_08836E00] Device -> Time settings -> Automatic time synchronization: Yes Automatic time synchronization
+[6800_08836F00] Device -> Time settings -> Synchronize time with time server: 
+[6800_08837800] Device -> Country settings -> Language: English Language
+[6800_08838B00] Device -> Time settings -> Standard/Daylight Saving Time conversion on: Yes Standard/Daylight Saving Time conversion on
+[6800_08838C00] Device -> Time settings -> Current time is daylight savings time: No Current time is daylight savings time
+[6800_08838D00] Device -> Time settings -> Time zone: (UTC-06:00) Chicago, Dallas, Kansas City, Winnipeg Time zone
+[6800_10838F00] Device -> Time settings -> NTP server: ntp.sunny-portal.com NTP server
+[6800_08839500] Device -> Update -> Automatic update: Yes Automatic update
+[6800_08839700] Device -> Update -> Check for update and install it: 
+[6800_0883AA00] Device -> Multifunction relay -> Operating mode: Fault indication Operating mode
+[6800_0083AB00] Device -> Multifunction relay -> Self-consumption -> Minimum On time: 120.0 Minimum On time
+[6800_0083AC00] Device -> Multifunction relay -> Self-consumption -> Minimum On power: 1500.0 Minimum On power
+[6800_0083AD00] Device -> Multifunction relay -> Self-consumption -> Minimum power On time: 30.0 Minimum power On time
+[6800_0883AE00] Device -> Multifunction relay -> Control via communication -> Status: Off Status
+[6800_0083AF00] Device -> Multifunction relay -> Battery bank -> Minimum On power: 1500.0 Minimum On power
+[6800_0083B000] Device -> Multifunction relay -> Battery bank -> Minimum time before reconnection: 30.0 Minimum time before reconnection
+[6800_10841E00] User Rights -> Access Control -> Set user password: 
+[6800_00852A00] DC Side -> PV system -> Nominal power: 6000.0 Nominal power
+[6800_08852C00] DC Side -> Operation -> Rapid Shutdown Mode: Off Rapid Shutdown Mode
+[6800_08855C00] DC Side -> DC settings -> SMA ShadeFix -> Activated: Yes Activated
+[6800_0086A300] AC Side -> PV generation -> Set PV generation meter: 0.0 Set PV generation meter
+[6800_08871E00] Grid Monitoring -> Grid monitoring -> Country standard: SMA Island mode 60 Hz Country standard
+[6800_088A2900] System communication -> Measured values -> Energy meter used: SMA Energy Meter Energy meter used
+[6800_008A2A00] System communication -> Measured values -> Nominal CT current [Amps]: 100.0 Nominal CT current [Amps]
+[6800_108A2B00] System communication -> Measured values -> Modbus -> Energy counter serial number: 
+[6800_108A3200] System communication -> Measured values -> Modbus -> Software version: 
+[6800_088A3300] System communication -> Operation -> Smart Inverter Screen -> Activated: Yes Activated
+[6800_088A4C00] System communication -> WLAN -> Activated: Yes Activated
+[6800_088A4D00] System communication -> WLAN -> Soft-access-point is turned on: Yes Soft-access-point is turned on
+[6800_088A5100] System communication -> WLAN -> Activate WPS: 
+[6800_088A5200] System communication -> WLAN -> Automatic configuration switched on: Yes Automatic configuration switched on
+[6800_108A5300] System communication -> WLAN -> IP address: 192.168.0.173 IP address
+[6800_108A5400] System communication -> WLAN -> Subnet mask: 255.255.255.0 Subnet mask
+[6800_108A5500] System communication -> WLAN -> Gateway IP: 192.168.0.1 Gateway IP
+[6800_108A5600] System communication -> WLAN -> DNS server IP: 192.168.0.1 DNS server IP
+[6800_088A5800] System communication -> WLAN -> Antenna switching: Automatic Antenna switching
+[6800_108A5900] System communication -> WLAN -> Security -> SSID: Solar SSID
+[6800_108A5A00] System communication -> WLAN -> Security -> Password: 
+[6800_088A5B00] System communication -> WLAN -> Security -> Encryption: WPA2 Encryption
+[6800_088A7700] System communication -> Speedwire -> Encryption: Unencrypted Encryption
+[6800_088A8A00] System communication -> Speedwire -> Automatic configuration switched on: Yes Automatic configuration switched on
+[6800_008AA200] System communication -> Measured values -> Meter on Speedwire -> Serial Number: 0.0 Serial Number
+[6800_008AA300] System communication -> Measured values -> Meter on Speedwire -> Serial numbers for usable meters: 
+[6800_108AA400] System communication -> WLAN -> Networks found: [A] XTZ454 Networks found
+[6800_108AA400] System communication -> WLAN -> Networks found: [B] Solar Networks found
+[6800_108AA400] System communication -> WLAN -> Networks found: [C]  Networks found
+[6800_108AA400] System communication -> WLAN -> Networks found: [D] SMA3010394617 Networks found
+[6800_108AA400] System communication -> WLAN -> Networks found: [E] SMA3010394658 Networks found
+[6800_108AA400] System communication -> WLAN -> Networks found: [F] XTZ454_N Networks found
+[6800_108AA400] System communication -> WLAN -> Networks found: [G] ORBI02 Networks found
+[6800_108AA400] System communication -> WLAN -> Networks found: [H] NETGEAR-Guest Networks found
+[6800_088AA500] System communication -> WLAN -> Perform scan: 
+[6800_088B1E00] External Communication -> Ethernet -> Proxy settings -> Activated: No Activated
+[6800_008B1F00] External Communication -> Ethernet -> Proxy settings -> Port: 80.0 Port
+[6800_108B2000] External Communication -> Ethernet -> Proxy settings -> Server: 255.255.255.255 Server
+[6800_108B2100] External Communication -> Ethernet -> Proxy settings -> Login: 
+[6800_108B2200] External Communication -> Ethernet -> Proxy settings -> Password: 
+[6800_008B2E00] External Communication -> Webconnect -> Software version: 17105924.0 Software version
+[6800_088B3800] External Communication -> Sunny Portal -> EnnexOS -> Parameter change via SunnyPortal: On Parameter change via SunnyPortal
+[6800_088B5200] External Communication -> Webconnect -> Activated: Yes Activated
+[6800_088B7000] External Communication -> Modbus -> TCP server -> Activated: No Activated
+[6800_008B7100] External Communication -> Modbus -> TCP server -> Port: 502.0 Port
+[6800_088B7200] External Communication -> Modbus -> UDP server -> Activated: No Activated
+[6800_008B7300] External Communication -> Modbus -> UDP server -> Port: 502.0 Port
+[6800_008B7400] External Communication -> Modbus -> Unit ID: 3.0 Unit ID
+[6800_088E7B00] Further Applications -> Operation -> Active special functionality: CndRemUpd,Optimized BU process,Automatic time synchronisation,Set parameters 2.0 Active special functionality
+[6800_00912100] Device Components -> Type Label -> Main processor -> Software version: 33826052.0 Software version
+[6800_00922500] System and device control -> Grid connection point -> Fallback for inverter -> Maximum active power output: 6000.0 Maximum active power output
+[6800_00922600] System and device control -> Grid connection point -> Fallback for inverter -> Set active power limit: 100.0 Set active power limit
+[6800_0892AE00] System and device control -> Power control module -> Operating mode: Active power limitation Operating mode
+[6800_0892D600] System and device control -> Grid connection point -> Operating mode of active power limitation: Off Operating mode of active power limitation
+[6800_0092D700] System and device control -> Grid connection point -> Maximum active power output: 6000.0 Maximum active power output
+[6800_0092D800] System and device control -> Grid connection point -> Set active power limit: 100.0 Set active power limit
+[6800_00A21E00] Type Label -> Type Label -> Serial number: 3.0e+09 Serial number
+[6800_10A22F00] Type Label -> Type Label -> MAC address: 00:40:AD:B0:D3:97 MAC address
+[6800_10A23000] Type Label -> Type Label -> WLAN-MAC address: F8:33:31:F8:0D:13 WLAN-MAC address
+[6800_00A63500] AC Side -> Measured values -> Set total yield: 0.0 Set total yield
+[6800_40A63A00] AC Side -> Measured values -> Grid measurements -> Set offset of the supplied energy: 0.0 Set offset of the supplied energy
+[6800_40A63B00] AC Side -> Measured values -> Grid measurements -> Set offset of the absorbed energy: 0.0 Set offset of the absorbed energy
+[6800_10AA6100] System communication -> Speedwire -> IP address: 192.168.0.170 IP address
+[6800_10AA6200] System communication -> Speedwire -> Subnet mask: 255.255.255.0 Subnet mask
+[6800_10AA6300] System communication -> Speedwire -> Gateway IP: 192.168.0.1 Gateway IP
+[6800_10AA6400] System communication -> Speedwire -> DNS server IP: 192.168.0.1 DNS server IP
+error: agent_init: unable to execute script: ./dump_parms.js

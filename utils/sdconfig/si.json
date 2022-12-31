@@ -1,0 +1,43 @@
+{
+    "si": {
+        "bms_mode": true,
+        "readonly": false,
+        "charge_mode": 1,
+        "grid_charge_amps": 4,
+        "gen_charge_amps": 375,
+        "solar_charge_amps": 280,
+        "min_voltage": 41,
+        "max_voltage": 58.099998474121094,
+        "min_charge_amps": 2,
+        "max_charge_amps": 280,
+        "can_transport": "can",
+        "can_target": "can0",
+        "can_topts": "500000",
+        "smanet_transport": "serial",
+        "smanet_target": "\/dev\/ttyS0",
+        "smanet_topts": "19200,N,8,1",
+        "smanet_channels_path": "\/opt\/sd\/lib\/si_channels.json",
+        "input_current_source": "calculated",
+        "discharge_amps": 1120,
+        "gen_hold_soc": -1,
+        "debug": 0,
+        "influx_database": "power",
+        "dynfeed": true,
+        "charge_start_voltage": 44.900001525878906,
+        "charge_end_voltage": 56,
+        "cv_cutoff": 33.600000000000001,
+        "cv_feed": true,
+        "cv_method": 1,
+        "cv_time": 45,
+        "cv_samples": 12,
+        "dyngrid": false,
+        "grid_max_power": 2500,
+        "dyngen": true,
+        "gen_max_power": 12100,
+        "feed_timeout": 900,
+        "feed_timeout_after": 18
+    },
+    "smanet": {
+        "GdManStr": "Start"
+    }
+}

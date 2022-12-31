@@ -1,0 +1,5 @@
+#!/bin/bash
+if test -z "$1"; then dest=/opt/sd/lib/agents/si/battcp.dat
+else dest="$1"
+fi
+scp 192.168.1.164:/opt/sd/lib/agents/si/battcp.dat $dest

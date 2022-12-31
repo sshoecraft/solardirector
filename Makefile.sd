@@ -1,0 +1,115 @@
+
+#TARGET=pi3
+#TARGET=win64
+
+ID:=$(shell id -u)
+
+ifneq "$(findstring win,$(TARGET))" ""
+ISWIN=yes
+endif
+
+ifeq ($(ID),0)
+INSTALL_USER=-o root -g root
+PREFIX?=/opt/sd
+else
+PREFIX?=$(shell echo $$HOME)
+endif
+
+# Define SRC_ROOT
+current_makefile := $(lastword $(MAKEFILE_LIST))
+SRC_ROOT=$(shell echo $$(dirname $(current_makefile)))
+
+include $(SRC_ROOT)/make.opts
+
+
+TOOLS?=$(SRC_ROOT)/tools
+
+CFLAGS+=-I.
+
+ifeq ($(SHARED),yes)
+	ifeq ($(ISWIN),yes)
+		LIBEXT=.dll
+	else
+		LIBEXT=.so
+	endif
+else
+	LIBEXT=.a
+endif
+
+# Uses libsmanet? must be included before sdcore as it refs
+ifeq ($(SMANET),yes)
+	CFLAGS+=-I$(SRC_ROOT)/smanet -DSMANET
+	LIBS+=-L$(SRC_ROOT)/smanet -lsmanet
+	DEPS+=$(SRC_ROOT)/smanet/libsmanet$(LIBEXT)
+endif
+
+ifneq ($(LIBNAME),core)
+	CFLAGS+=-I$(SRC_ROOT)/core
+	LIBS+=-L$(SRC_ROOT)/core -lcore
+	DEPS+=$(SRC_ROOT)/core/libcore$(LIBEXT)
+endif
+
+ifneq ($(LIBNAME),transports)
+	CFLAGS+=-I$(SRC_ROOT)/transports
+	LIBS+=-L$(SRC_ROOT)/transports -ltransports
+	DEPS+=$(SRC_ROOT)/transports/libtransports$(LIBEXT)
+endif
+
+ifeq ($(JS),yes)
+	CFLAGS+=-I$(SRC_ROOT)/js -DJS
+	ifeq ($(ISWIN),yes)
+		CFLAGS+=-DXP_WIN
+	else
+		CFLAGS+=-DXP_UNIX
+	endif
+	LIBS+=-L$(SRC_ROOT)/js -ljs -lm 
+	DEPS+=$(SRC_ROOT)/js/libjs$(LIBEXT)
+endif
+
+ifneq ($(LIBNAME),transports)
+	LIBS+=-L$(SRC_ROOT)/transports -ltransports
+endif
+
+ifneq ($(LIBNAME),core)
+	LIBS+=-L$(SRC_ROOT)/core -lcore -lm
+endif
+
+ifneq ($(LIBNAME),transports)
+	LIBS+=-L$(SRC_ROOT)/transports -ltransports
+endif
+
+# Paho MQTT
+ifeq ($(MQTT),yes)
+	CFLAGS+=-DMQTT
+	ifeq ($(STATIC),yes)
+		_PAHOLDADD=-lssl -lcrypto -lz -ldl
+		ifeq ($(TARGET),win32)
+			_PAHOSTATIC=-static
+			_PAHOLDADD+=-lgdi32 -lcrypt32 -lrpcrt4 -lkernel32
+		else ifeq ($(TARGET),win64)
+			_PAHOSTATIC=-static
+			_PAHOLDADD+=-lgdi32 -lcrypt32 -lrpcrt4
+		endif
+	endif
+	ifeq ($(MQTTSSL),yes)
+		_PAHOSSL=s
+	endif
+	LIBS+=-lpaho-mqtt3c$(_PAHOSSL)$(_PAHOSTATIC) $(_PAHOLDADD)
+endif
+
+ifeq ($(INFLUX),yes)
+	CURL=yes
+	CFLAGS+=-DINFLUX
+endif
+
+# Bluetooth
+ifeq ($(BLUETOOTH),yes)
+	ifneq ($(ISWIN),yes)
+		CFLAGS+=-DBLUETOOTH
+		LIBS+=-lgattlib -lglib-2.0 -lgobject-2.0 -lgio-2.0 -lbluetooth
+	endif
+endif
+
+PTHREADS=yes
+
+include $(SRC_ROOT)/Makefile.inc

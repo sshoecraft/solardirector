@@ -1,0 +1,239 @@
+#!/opt/sd/bin/sdjs
+
+include("../../core/utils.js");
+
+SDCONFIG = SOLARD_BINDIR + "/sdconfig -t 5 ";
+var dlevel = 0;
+
+function get_input(name,spec,def) {
+	var ps = name;
+	if (def !== null) ps += "[" + spec + "]";
+	ps += ": ";
+//	printf("ps: %s\n", ps);
+	printf(ps,def);
+	var input = readline();
+	return input.length ? input : def;
+}
+
+// Get info from agent
+name = "si";
+if (argv.length) name = argv[0];
+printf("Contacting Sunny Island Agent...\n");
+var cmd = SDCONFIG + name + " get configfile config";
+//dprintf(0,"cmd: %s\n", cmd);
+var result = run_command(cmd);
+var siconf,configfile;
+//dprintf(0,"result[0]: %s, indexOf: %d\n", typeof(result[0]), result[0].indexOf("not found"));
+if (typeof(result[0]) == "string" && result[0].indexOf("not found") >= 0) result = undefined;
+if (result) {
+	for(i=0; i < result.length; i++) {
+		j = result[i].indexOf(":");
+		if (j < 0) continue;
+		t = result[i].substring(j+2);
+//		dprintf(0,"t: %s\n", t);
+		j = t.indexOf("=");
+		if (j < 0) continue;
+		key = t.substring(0,j);
+//		dprintf(0,"key: %s\n", key);
+		data = t.substring(j+1);
+//		dprintf(0,"data: %s\n", data);
+		if (key == 'configfile') {
+			configfile = data;
+		} else if (key == 'config') {
+			c = JSON.parse(data);
+//			dprintf(0,"c: %s\n", c);
+			if (c) siconf = c.si;
+		}
+	}
+} else {
+	printf("Error: unable to get results from SI agent using sdconfig. Check agent and sdconfig configuration\n");
+	exit(0);
+}
+if (!configfile) configfile = SOLARD_ETCDIR + "/" + name + ".json";
+dprintf(0,"configfile: %s\n", configfile);
+dprintf(0,"siconf: %s\n", siconf);
+dumpobj(siconf);
+if (!siconf) {
+siconf = {
+	min_charge_amps: 2,
+	max_charge_amps: 560,
+	input_current_source: "calculated",
+	discharge_amps: 1120,
+	charge_method: 1,
+	cv_method: 0,
+	cv_time: 90,
+};
+}
+
+dprintf(dlevel,"charge_start_level: %d, charge_start_voltage: %.1f\n", siconf.charge_start_level, siconf.charge_start_voltage);
+if ((!siconf.charge_start_level && !siconf.charge_start_voltage)
+	|| (!siconf.charge_end_level && !siconf.charge_end_voltage)) {
+	var done = false;
+	while(!done) {
+		done = true;
+		type = get_input("battery type","%s","li");
+		switch(type) {
+		case "sdi":
+			cells = 14;
+			cell_min = 2.7;
+			cell_max = 4.15;
+			start = 3.24;
+			end = 3.93;
+			break;
+		default:
+		case "li":
+			cells = 14;
+			cell_min = 2.5;
+			cell_max = 4.2;
+			start = 3.2;
+			end = 3.95;
+			break;
+		case "lfp":
+			cells = 16;
+			cell_min = 2.5;
+			cell_max = 3.65;
+			start = 3.15;
+			end = 3.54;
+			break;
+		case "lto":
+			cells = 22;
+			cell_min = 1.5;
+			cell_max = 2.8;
+			start = 2.0;
+			end = 2.5;
+			break;
+		case "?":
+		case "help":
+			printf("supported types: sdi,li,lfp,lto,none\n");
+			done = false;
+			break;
+		case "none":
+			cells = null;
+			cell_min = null;
+			cell_max = null;
+			start = null;
+			end = null;
+			break;
+		}
+	}
+	cell_min = parseFloat(get_input("cell_min","%.3f",cell_min));
+	cell_max = parseFloat(get_input("cell_max","%.3f",cell_max));
+	cells = parseInt(get_input("# of cells","%d",cells));
+	start = parseFloat(get_input("charge start","%.3f",start));
+	end = parseFloat(get_input("charge end","%.3f",end));
+
+	// spread = max - min
+	// vtg = min + (spread * pct)
+	// pct = (vgt - min) / spread
+	min = cell_min * cells;
+	if (min < 41) min = 41;
+	max = cell_max * cells;
+	if (max > 63) max = 63;
+	if (!siconf.min_voltage) siconf.min_voltage = min;
+	if (!siconf.max_voltage) siconf.max_voltage = max;
+	spread = max - min;
+	//printf("min: %.1f, max: %.1f, spread: %.1f\n", min, max, spread);
+	if (!siconf.charge_start_level && !siconf.charge_start_voltage) {
+		csv = start * cells;
+		csl = parseInt(((csv - min) / spread) * 100.0);
+		siconf.charge_start_level = csl;
+		// siconf.charge_start_voltage = min + (spread * (csl / 100.0));
+	}
+	if (!siconf.charge_end_level && !siconf.charge_end_voltage) {
+		cev = (end * cells) + .2;
+		cel = parseInt(((cev - min) / spread) * 100.0);
+		siconf.charge_end_level = cel;
+		//siconf.charge_end_voltage = min + (spread * (cel / 100.0));
+	}
+}
+
+dprintf(1,"battery_capacity: %d\n", siconf.battery_capacity);
+if (!siconf.battery_capacity) {
+	cap = parseInt(get_input("battery capacity (AH)","%s",""));
+	if (!isNaN(cap)) {
+		siconf.battery_capacity = cap;
+		siconf.charge_method = 1;
+	}
+}
+
+dprintf(1,"location: %s\n",siconf.location);
+if (!siconf.location) {
+	var loc = get_input("gps location (lat,lon)","%s","auto");
+	if (loc == 'auto') {
+		var geo = run_command("curl -N -n -s https://geolocation-db.com/json/");
+		dprintf(0,"geo: %s\n", geo);
+		if (geo) {
+			var info = JSON.parse(geo);
+			if (info) siconf.location = info.latitude + "," + info.longitude;
+		}
+	} else {
+		siconf.location = loc;
+	}
+}
+dprintf(1,"location: %s\n",siconf.location);
+if (siconf.location) {
+	if (!siconf.charge_start_time) {
+		var t = get_input("charge auto start time","%s","sunrise");
+		if (t.length && t != "none") siconf.charge_start_time = t;
+	}
+	if (!siconf.charge_stop_time) {
+		var t = get_input("charge auto stop time","%s","sunset");
+		if (t.length && t != "none") siconf.charge_stop_time = t;
+	}
+}
+
+dprintf(1,"mqtt_host: %s\n",siconf.mqtt_host);
+if (!siconf.mqtt_host) {
+	mqtt_host = get_input("MQTT Host","%s","localhost");
+	siconf.mqtt_host = mqtt_host;
+}
+
+if (!siconf.influx_database) {
+	influx_db = get_input("InfluxDB Database","%s","");
+	if (influx_db.length) {
+		siconf.influx_database = influx_db;
+		if (!siconf.influx_endpoint) {
+			influx_url = get_input("InfluxDB Host","%s","http://localhost:8086");
+			siconf.influx_endpoint = influx_url;
+		}
+	}
+}
+
+if (!siconf.can_transport) {
+	siconf.can_transport = get_input("CAN transport","%s","can");
+	siconf.can_target = get_input("CAN target","%s","can0");
+	siconf.can_topts = get_input("CAN opts","%s","500000");
+}
+
+if (!siconf.smanet_transport) {
+	siconf.smanet_transport = get_input("SMANET transport","%s","serial");
+	siconf.smanet_target = get_input("SMANET target","%s","/dev/ttyS0");
+	siconf.smanet_topts = get_input("SMANET opts","%s","19200,N,8,1");
+}
+
+dumpobj(siconf);
+si = {};
+si.si = siconf;
+j = JSON.stringify(si,null,4)
+printf("sending config:\n%s\n", j);
+if (!siconf.configfile) {
+	var cmd = SDCONFIG + name + " set configfile " + configfile;
+	dprintf(0,"cmd: %s\n", cmd);
+	system(cmd);
+}
+system(SDCONFIG + name + " load \'" + j + "\'");
+exit(0);
+
+
+//printf("GdSocTm1Str %d\n", csl);
+//printf("GdSocTm1Stp %d\n", csl + ((cel - csl) / 2));
+//printf("GnSocTm1Str %d\n", csl);
+//printf("GnSocTm1Stp %d\n", cel);
+l1 = parseInt((((csv - .5) - siconf.min_voltage) / spread) * 100.0);
+l2 = parseInt((((csv - 1) - siconf.min_voltage) / spread) * 100.0);
+l3 = parseInt((((csv - 1.5) - siconf.min_voltage) / spread) * 100.0);
+//printf("l1: %d, l2: %d, l3: %d\n", l1, l2, l3);
+printf("BatPro1Soc %d\n", l1);
+printf("BatPro2Soc %d\n", l2);
+printf("BatPro3Soc %d\n", l3);
+

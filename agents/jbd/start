@@ -1,0 +1,8 @@
+#!/bin/bash
+for i in $(seq 1 14)
+do
+	n=$(printf "pack_%02d" $i)
+	cmd="./jbd -c /opt/sd/etc/battery.conf -n ${n} -d 2 -r 20 -l /home/steve/log/${n}.log -b"
+	echo "$cmd"
+	$cmd
+done

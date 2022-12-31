@@ -1,0 +1,167 @@
+
+
+
+        // factor in efficiecy for estimation
+//      dprintf(0,"remain: %f, efficiency: %f\n", remain, si.efficiency);
+//      if (amps > 0) remain *= (si.efficiency / 100.0);
+//      else remain /= (si.efficiency / 100.0);
+//      dprintf(0,"NEW remain: %f\n", remain);
+
+        // Auto start/stop
+        var ct = new Date().getTime();
+        if (si.charge_start_date) dprintf(dlevel,"charge_start_date: %s\n", si.charge_start_date.toString());
+        var cst = (si.charge_start_date ? si.charge_start_date.getTime() : 0);
+        if (si.charge_stop_date) dprintf(dlevel,"charge_stop_date: %s\n", si.charge_stop_date.toString());
+        var cet = (si.charge_stop_date ? si.charge_stop_date.getTime() : 0);
+        dprintf(dlevel,"cm: %d, ct: %s, cst: %s, cet: %s\n", si.charge_mode, ct, cst, cet);
+        if (cst && ct >= cst && ct < cet) {
+                if (!si.charge_mode) charge_start(true);
+                set_charge_start_date();
+        } else if (cet && ct >= cet) {
+                if (si.charge_mode) charge_stop(true);
+                set_charge_stop_date();
+        }
+
+        if (0) {
+                sdi = new INFLUX();
+                sdi.endpoint = "http://solardirector:8086";
+                sdi.database = "power";
+                var q = "select time,status from inverter where time > now() - 24h and battery_voltage <= " + si.charge_start_voltage.toString();
+                dprintf(0,"q: %s\n", q);
+                var val = sdi.query(q);
+                dumpobj(val[0]);
+                abort(0);
+        }
+
+//      var val = sdi.query("select last(status) from inverter");
+//      if (val[0]) var status = val[0].values[0][1];
+//      if (typeof(status) == "string" && status.search("charge") >= 0) si.charge_mode = 1;
+
+        // XXX this is an example If SMANET connected, get current info
+        if (smanet.connected && 0 == 1) {
+                var vals = smanet.get([ "ExtCur","ExtCurSlv1","ExtCurSlv2","ExtCurSlv3","TotExtCur","InvCur","InvCurSlv1","InvCurSlv2","InvCurSlv3","TotInvCur" ]);
+                if (typeof(vals) == "undefined") log_error("unable to get currents: %s\n", smanet.errmsg);
+                else influx.write("current",vals);
+        }
+
+
+        if (typeof(last_memused) == "undefined") last_memused = -1;
+        if (memused() != last_memused) {
+                printf("mem: %d\n", memused());
+                last_memused = memused();
+        }
+        if (typeof(last_sysmemused) == "undefined") last_sysmemused = -1;
+        if (sysmemused() != last_sysmemused) {
+                printf("sysmem: %d\n", sysmemused());
+                last_sysmemused = sysmemused();
+        }
+
+
+        var csv = si.charge_start_voltage;
+        var cev = si.charge_end_voltage;
+        data.battery_level = ( ( data.battery_voltage - csv) / (cev - csv) ) * 100.0;
+        if (data.battery_level < 0) data.battery_level = 0;
+
+Math.log10 = Math.log10 || function(x) {
+  return Math.log(x) * Math.LOG10E;
+};
+
+	si.can_input = si.input_current_source.startsWith("can");
+
+        if (smanet.connected) {
+                var names = [ "ExtCur","ExtCurSlv1","ExtCurSlv2","ExtCurSlv3","TotExtCur","InvCur","InvCurSlv1","InvCurSlv2","InvCurSlv3","TotInvCur" ];
+                var vals = smanet.get(names);
+                printf("vals type: %s\n", vals);
+                dumpobj(vals);
+                influx.write("current",vals);
+        }
+
+        if (0) {
+        include(script_dir+"/../../core/influx.js");
+//      influx.convert_time = 1;
+        var r = influx.query("select last(value) from solar");
+        if (!r) printf("influx error: %s\n", influx.errmsg);
+        influx_dump_results(r);
+        }
+
+        if (typeof(last_memused) == "undefined") last_memused = -1;
+        if (memused() != last_memused) {
+                printf("JS mem: %d\n", memused());
+                last_memused = memused();
+        }
+
+function write_init() {
+        dprintf(1,"disable_si_write: %s\n", si.disable_si_write);
+        if (!si.disable_si_write) {
+                log_warning("disabling si_write!\n");
+                si.disable_si_write = true;
+        }
+}
+
+include("../../core/utils.js");
+function display_results(results) {
+	for(i=0; i < results.length; i++) {
+		var series = results[i];
+		var columns = series.columns;
+	//	dprintf(0,"columns.length: %d\n", columns.length);
+		for(j=0; j < columns.length; j++) printf("column[%d]: %s\n", j, columns[j]);
+		var values = series.values;
+	//	dprintf(0,"values.length: %d\n", values.length);
+		for(j=0; j < values.length; j++) {
+			for(k=0; k < columns.length; k++) {
+	//			printf("values[%d][%d] type: %s\n", j,k,typeof(values[j][k]));
+				printf("values[%d][%d]: %s\n", j,k,values[j][k]);
+			}
+		}
+	}
+}
+//influx.endpoint = "http://localhost:8086"
+//influx.verbose = true;
+//var results = influx.query("CREATE DATABASE \"power\"");
+r1 = influx.query("select value from solar limit 10");
+if (!r1) printf("influx error: %s\n", influx.errmsg);
+rsave = clone(r1);
+influx.convert_time = true;
+r2 = influx.query("select last(value) from solar");
+if (!r2) printf("influx error: %s\n", influx.errmsg);
+display_results(rsave);
+display_results(r2);
+//dprintf(0,"results.length: %d\n", results.length);
+//printf("solar output: %d\n", results[0].values[0][1]);
+exit(0);
+/*
+Copyright (c) 2022, Stephen P. Shoecraft
+All rights reserved.
+
+This source code is licensed under the BSD-style license found in the
+LICENSE file in the root directory of this source tree.
+*/
+
+var rec = { color:"blue", another:"gold" };
+//si.agent.influx.write("test",rec);
+si.agent.influx.write("test",JSON.stringify(rec));
+//si.smanet.connect();
+//si.smanet.load_channels("/opt/sd/lib/si_channels.json");
+//var vals = si.smanet.get("GdManStr","GnManStr");
+//for(i=0; i < vals.length; i++) printf("%s: %s\n", vals[i][0], vals[i][1]);
+exit(0);
+
+printf("connected: %s\n", si.smanet.connected);
+si.smanet.connect();
+printf("connected: %s\n", si.smanet.connected);
+if (!si.smanet.connected) exit(1);
+si.smanet.load_channels("/opt/sd/lib/si_channels.json");
+                var names = [ "ExtCur","ExtCurSlv1","ExtCurSlv2","ExtCurSlv3","TotExtCur","InvCur","InvCurSlv1","InvCurSlv2","InvCurSlv3","TotInvCur" ];
+                var vals = si.smanet.get(names);
+                var data = {};
+                for(i=0; i < vals.length; i++) {
+                        printf("%-20.20s: %s\n", names[i], vals[i]);
+			data[names[i]] = vals[i];
+                }
+//              si.agent.influx.write("current");
+                printf("data: %s\n", data);
+		for(key in data) {
+			printf("data[%d]: name: %s, value: %s\n", i, key, data[key]);
+		}
+		si.agent.influx.write("current",data);
+exit(0);

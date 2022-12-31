@@ -1,0 +1,3 @@
+file=eff.dat
+cols=$(head -1 $file | sed 's:mm,::')
+python3 ~/csv-to-influxdb.py --timezone America/Chicago --dbname dev --metricname si_efficiency --input $file --timecolumn time --timeformat %Y-%m-%dT%H:%M:%S --fieldcolumns $cols

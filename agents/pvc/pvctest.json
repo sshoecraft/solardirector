@@ -1,0 +1,7 @@
+{
+    "pvc": {
+        "log_power": false,
+        "interval": 10,
+        "influx_database": "power"
+    }
+}

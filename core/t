@@ -1,0 +1,8 @@
+
+include("kalman.js");
+kf = new KalmanFilter();
+f = new File("/tmp/l2");
+while(line = f.readln()) {
+	p = parseFloat(line);
+	printf("p: %f, f: %f\n", p, kf.filter(p));
+}

@@ -1,0 +1,2 @@
+#!/bin/bash
+for i in *.js; do diff -c $i /tmp/$i; done

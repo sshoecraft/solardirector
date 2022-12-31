@@ -1,0 +1,12 @@
+[Unit]
+Description=+DESC+
+After=network-online.target network.target +AFTER+
+
+[Service]
+Type=simple
+EnvironmentFile=/etc/sd.env
+ExecStart=+BINDIR+/+PROG+ -c +ETCDIR+/+NAME+.json -l +LOGDIR+/+NAME+.log -a
+Restart=on-failure
+
+[Install]
+WantedBy=multi-user.target

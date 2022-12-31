@@ -1,0 +1,17 @@
+
+# Build options
+DEBUG?=yes
+DEBUG_MEM?=no
+MEMWATCH?=no
+STATIC?=no
+SHARED?=no
+
+# Components
+JS?=yes
+MQTT?=yes
+INFLUX?=yes
+BLUETOOTH?=no
+
+# Wait for these services (used when creating service templates)
+AFTER+=mosquitto.service
+AFTER+=influxdb.service

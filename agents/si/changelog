@@ -1,0 +1,8 @@
+
+vers	date		what
+1.00	20211016	inital version
+2.00	20220327	version 2 - javascript - pub and charge in js
+2.01	20220402	write direct to influx
+2.02	20220412	dynamic feed - dynamically change charge amps to not use grid while charging and feeding
+2.03	20220413	gen_hold_soc - hold the SOC at a % to keep gen from turning off until charge done
+2.04	20220427	add feed.js, modify siconfig to call feed_start/feed_stop, add cv_feed to start feeding when cc ends cv starts, add gen.js and grid.js to dynamically change charge amps to keep usage below a specific value

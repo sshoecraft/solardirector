@@ -1,0 +1,12 @@
+
+var f = File("t2.dat",0644);
+f.open("write,create,replace");
+f.write("var lut = [");
+step = 1.6;
+for(i=100; i >= 0; i -= step) {
+	f.writeln(i);
+	if (i < 40) step = .8;
+	else if (i < 60) step = 1.0;
+}
+f.writeln("];");
+f.close();

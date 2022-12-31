@@ -1,0 +1,8 @@
+                        if (!("WebSocket" in global && global.WebSocket !== null)) {
+                                throw new Error(format(ERROR.UNSUPPORTED, ["WebSocket"]));
+                        }
+                        if (!("ArrayBuffer" in global && global.ArrayBuffer !== null)) {
+                                throw new Error(format(ERROR.UNSUPPORTED, ["ArrayBuffer"]));
+                        }
+                        this._trace("Paho.Client", uri, host, port, path, clientId);
+

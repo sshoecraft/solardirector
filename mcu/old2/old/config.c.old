@@ -1,0 +1,451 @@
+
+/*
+Copyright (c) 2021, Stephen P. Shoecraft
+All rights reserved.
+
+This source code is licensed under the BSD-style license found in the
+LICENSE file in the root directory of this source tree.
+*/
+
+#include "solard.h"
+
+/* We will only read/write these config items from/to mqtt */
+#define MQTT_CONFIG \
+		{ "interval", DATA_TYPE_INT, &conf->interval, 0 }, \
+		JSON_PROCTAB_END
+
+int solard_read_config(solard_config_t *conf) {
+	solard_agentinfo_t newinfo;
+	char temp[1024], *sname, *p;
+	int i,count;
+	cfg_proctab_t mytab[] = {
+		{ "solard", "agent_notify", 0, DATA_TYPE_INT, &conf->agent_notify, 0, "600" },
+		{ "solard", "agent_error", 0, DATA_TYPE_INT, &conf->agent_error, 0, "300" },
+		{ "solard", "agent_warning", 0, DATA_TYPE_INT, &conf->agent_warning, 0, "120" },
+		{ "solard", "interval", "Agent check interval", DATA_TYPE_INT, &conf->interval, 0, "15" },
+		{ "solard", "notify", "Notification script", DATA_TYPE_STRING, &conf->notify_path, sizeof(conf->notify_path), "" },
+		CFG_PROCTAB_END
+	};
+	char topic[SOLARD_TOPIC_SIZE];
+	solard_message_t *msg;
+
+	cfg_get_tab(conf->ap->cfg,mytab);
+	if (debug) cfg_disp_tab(mytab,"info",0);
+	if (!strlen(conf->notify_path)) sprintf(conf->notify_path,"%s/notify",SOLARD_BINDIR);
+
+	/* Get agent count */
+	p = cfg_get_item(conf->ap->cfg, "agents", "count");
+	if (p) {
+		/* Get agents */
+		count = atoi(p);
+		for(i=0; i < count; i++) {
+			sprintf(temp,"A%02d",i);
+			dprintf(1,"num temp: %s\n",temp);
+			sname = cfg_get_item(conf->ap->cfg,"agents",temp);
+			if (sname) {
+				memset(&newinfo,0,sizeof(newinfo));
+				agentinfo_getcfg(conf->ap->cfg, sname, &newinfo);
+				strcpy(newinfo.index,temp);
+				agentinfo_add(conf,&newinfo);
+			}
+		}
+	}
+	if (conf->ap->cfg->filename) return 0;
+
+	/* NO CONFIG FILE - READ CONFIG FROM MQTT */
+	return 0;
+
+	/* Sub to our settings topic */
+	agent_mktopic(topic,sizeof(topic)-1,conf->ap,conf->ap->instance_name,SOLARD_FUNC_CONFIG);
+	if (mqtt_sub(conf->ap->m,topic)) return 1;
+
+	/* Ingest any config messages */
+	dprintf(1,"ingesting...\n");
+	solard_ingest(conf->ap->mq,2);
+	dprintf(1,"back from ingest...\n");
+
+	/* Process messages as config requests */
+	dprintf(1,"mq count: %d\n", list_count(conf->ap->mq));
+	list_reset(conf->ap->mq);
+	while((msg = list_get_next(conf->ap->mq)) != 0) {
+		agentinfo_get(conf,msg->data);
+		list_delete(conf->ap->mq,msg);
+	}
+	mqtt_unsub(conf->ap->m,topic);
+
+	dprintf(1,"done\n");
+	return 0;
+}
+
+int solard_write_config(solard_config_t *conf) {
+	solard_agentinfo_t *info;
+	char temp[16];
+	int i;
+
+	dprintf(1,"writing config...\n");
+
+#if 0
+	if (!conf->ap->cfg) {
+		char configfile[256];
+		sprintf(configfile,"%s/solard.conf",SOLARD_ETCDIR);
+		dprintf(1,"configfile: %s\n", configfile);
+		conf->ap->cfg = cfg_create(configfile);
+		if (!conf->ap->cfg) return 1;
+	}
+#endif
+
+
+	dprintf(1,"conf->ap->cfg: %p\n", conf->ap->cfg);
+	if (conf->ap->cfg) {
+		sprintf(temp,"%d",list_count(conf->agents));
+		dprintf(1,"count temp: %s\n",temp);
+		cfg_set_item(conf->ap->cfg, "agents", "count", 0, temp);
+		i = 0;
+		list_reset(conf->agents);
+		while((info = list_get_next(conf->agents)) != 0) {
+			agentinfo_setcfg(conf->ap->cfg,info->id,info);
+			sprintf(info->index,"A%02d",i++);
+			dprintf(1,"info->index: %s\n",info->index);
+			cfg_set_item(conf->ap->cfg, "agents", info->index, 0, info->id);
+//			agentinfo_pub(conf,info);
+		}
+		dprintf(1,"filename: %s\n", conf->ap->cfg->filename);
+		cfg_write(conf->ap->cfg);
+
+	/* NO CONFIG FILE - WRITE CONFIG TO MQTT */
+	} else {
+		json_proctab_t params[] = { MQTT_CONFIG },*p;
+
+		/* Publish the agent info */
+		while((info = list_get_next(conf->agents)) != 0) agentinfo_pub(conf,info);
+
+		/* Publish the param info */
+		for(p=params; p->field; p++) {
+			dprintf(1,"pub: %s\n", p->field);
+		}
+	}
+	return 0;
+}
+
+static struct parmdir {
+	char *name;
+	json_descriptor_t *parms;
+	int count;
+} allparms[] = {
+};
+#define NALL (sizeof(allparms)/sizeof(struct parmdir))
+
+int solard_config_add_info(solard_config_t *s, json_value_t *j) {
+	int x,y;
+	json_value_t *ca,*o,*a;
+	struct parmdir *dp;
+
+	/* Configuration array */
+	ca = json_create_array();
+
+	for(x=0; x < NALL; x++) {
+		o = json_create_object();
+		dp = &allparms[x];
+		if (dp->count > 1) {
+			a = json_create_array();
+			for(y=0; y < dp->count; y++) json_array_add_descriptor(a,dp->parms[y]);
+			json_add_value(o,dp->name,a);
+		} else if (dp->count == 1) {
+			json_add_descriptor(o,dp->name,dp->parms[0]);
+		}
+		json_array_add_value(ca,o);
+	}
+
+	json_add_value(j,"configuration",ca);
+	return 0;
+}
+
+static int solard_set_config(solard_config_t *conf, char *label, char *value, char *errmsg) {
+	char name[SOLARD_NAME_LEN],*p,*str;
+	solard_agentinfo_t *info;
+//	int name_changed;
+	list lp;
+
+	dprintf(1,"label: %s, value: %s\n", label, value);
+	info = agent_find(conf,label);
+	dprintf(1,"info: %p\n", info);
+	if (!info) {
+		strcpy(errmsg,"agent not found");
+		return 1;
+	}
+
+	conv_type(DATA_TYPE_LIST,&lp,0,DATA_TYPE_STRING,value,strlen(value));
+	dprintf(1,"lp: %p\n", lp);
+	if (!lp) {
+		strcpy(errmsg,"key/value pairs must be comma seperated");
+		return 1;
+	}
+	dprintf(1,"count: %d\n", list_count(lp));
+//	name_changed = 0;
+	dprintf(1,"resetting list...\n");
+	list_reset(lp);
+	dprintf(1,"reading list...\n");
+	while((str = list_get_next(lp)) != 0) {
+		dprintf(1,"str: %s\n", str);
+		strncpy(name,strele(0,"=",str),sizeof(name)-1);
+		p = strele(1,"=",str);
+		dprintf(1,"name: %s, value: %s\n", name, p);
+		if (!strlen(name) || !strlen(p)) {
+			strcpy(errmsg,"format is keyword=value");
+			return 1;
+		}
+		cfg_set_item(conf->ap->cfg,info->id,name,0,p);
+//		if (strcmp(name,"name")==0) name_changed = 1;
+	}
+#if 0
+	dprintf(1,"name_changed: %d\n", name_changed);
+	if (name_changed) {
+		/* if we dont manage it, then cant change the name */
+		if (!info->managed) {
+			strcpy(errmsg,"agent is not managed, unable to change name");
+			return 1;
+		}
+		if (info->pid > 0) {
+			log_info("Killing %s/%s due to name change\n", info->role, info->name);
+			solard_kill(info->pid);
+		}
+	}
+#endif
+	if (cfg_is_dirty(conf->ap->cfg)) {
+		/* Kill the agent so it gets new config */
+		if (info->managed && info->pid > 0) {
+			log_info("Killing %s/%s due to config change\n", info->role, info->name);
+			solard_kill(info->pid);
+		}
+		/* getcfg writes sname into id, get a local copy */
+		strncpy(name,info->id,sizeof(name)-1);
+		agentinfo_getcfg(conf->ap->cfg,name,info);
+		solard_write_config(conf);
+	}
+	return 0;
+}
+
+static int solard_get_config(solard_config_t *conf, char *label, char *value, char *errmsg) {
+	solard_agentinfo_t *info;
+
+	dprintf(1,"label: %s, value: %s\n", label, value);
+	info = agent_find(conf,label);
+	if (!info) {
+		strcpy(errmsg,"agent not found");
+		return 1;
+	}
+	agentinfo_pub(conf,info);
+
+	return 1;
+}
+
+static int solard_add_config(solard_config_t *conf, char *label, char *value, char *errmsg) {
+	solard_agentinfo_t newinfo,*info;
+	char name[64],key[64],*str;
+	register char *p;
+	list lp;
+	int have_managed;
+
+	dprintf(1,"label: %s, value: %s\n", label, value);
+
+	strcpy(errmsg,"unable to add agent");
+
+	strncpy(name,label,sizeof(name)-1);
+	info = agent_find(conf,name);
+	if (info) {
+		strcpy(errmsg,"agent already exists");
+		return 1;
+	}
+
+	conv_type(DATA_TYPE_LIST,&lp,0,DATA_TYPE_STRING,value,strlen(value));
+	dprintf(1,"lp: %p\n", lp);
+	if (!lp) {
+		strcpy(errmsg,"invalid format (agent_name:agnet_parm[,agent_parm,...]");
+		return 1;
+	}
+	dprintf(1,"count: %d\n", list_count(lp));
+	memset(&newinfo,0,sizeof(newinfo));
+	strncpy(newinfo.agent,name,sizeof(newinfo.agent)-1);
+	have_managed = 0;
+	list_reset(lp);
+	while((str = list_get_next(lp)) != 0) {
+		p = strchr(str,'=');
+		if (!p) continue;
+		*p++ = 0;
+		strncpy(key,str,sizeof(key)-1);
+//		dprintf(1,"key: %s, value: %s\n", key, p);
+		if (strcmp(key,"managed")==0) have_managed = 1;
+		agentinfo_set(&newinfo,key,p);
+	}
+	list_destroy(lp);
+	if (!strlen(newinfo.name)) strncpy(newinfo.name,name,sizeof(newinfo.name)-1);
+	/* Default to managed if not specified */
+	if (!have_managed) newinfo.managed = 1;
+	agentinfo_newid(&newinfo);
+	if (agentinfo_add(conf,&newinfo)) return 1;
+	solard_write_config(conf);
+	return 0;
+}
+
+static int solard_del_config(solard_config_t *conf, char *label, char *value, char *errmsg) {
+	solard_agentinfo_t *info;
+
+	dprintf(1,"label: %s, value: %s\n", label, value);
+
+	/* Remove from our list */
+	list_reset(conf->agents);
+	while((info = list_get_next(conf->agents)) != 0) {
+		dprintf(1,"info->name: %s, index: %s, id: %s\n",info->name, info->index, info->id);
+		if (strcmp(info->name,label)==0) {
+			agent_stop(conf,info);
+			dprintf(1,"deleting index\n");
+			dprintf(1,"info->name: %s, index: %s, id: %s\n",info->name, info->index, info->id);
+			cfg_delete_item(conf->ap->cfg, "agents", info->index);
+			dprintf(1,"deleting section...\n");
+			dprintf(1,"info->name: %s, index: %s, id: %s\n",info->name, info->index, info->id);
+			cfg_delete_section(conf->ap->cfg, info->id);
+			dprintf(1,"writing config\n");
+			log_info("Removing agent: %s\n",label);
+			list_delete(conf->agents,info);
+			solard_write_config(conf);
+			return 0;
+		}
+	}
+
+	strcpy(errmsg,"agent not found");
+	return 1;
+}
+
+static int solard_doconfig(void *ctx, char *action, char *label, char *value, char *errmsg) {
+	solard_config_t *conf = ctx;
+	int status;
+
+	dprintf(1,"action: %s, label: %s, value: %s\n", action, label, value);
+	*errmsg = 0;
+
+	if (strcmp(action,"Add") == 0) status = solard_add_config(conf,label,value,errmsg);
+	else if (strcmp(action,"Del") == 0) status = solard_del_config(conf,label,value,errmsg);
+	else if (strcmp(action,"Get") == 0) status = solard_get_config(conf,label,value,errmsg);
+	else if (strcmp(action,"Set") == 0) status = solard_set_config(conf,label,value,errmsg);
+	else {
+		strcpy(errmsg,"Invalid request");
+		status = 1;
+	}
+	dprintf(1,"status: %d, errmsg: %s\n", status, errmsg);
+	if (status) goto solard_doconfig_error;
+
+	strcpy(errmsg,"success");
+
+solard_doconfig_error:
+	dprintf(1,"returning: %d\n",status);
+	return status;
+}
+
+static int solard_config_getmsg(solard_config_t *conf, solard_message_t *msg) {
+	char errmsg[SOLARD_ERRMSG_LEN];
+	int status;
+	long start;
+
+	start = mem_used();
+	status = agent_config_process(msg,solard_doconfig,conf,errmsg);
+	if (status) goto si_config_error;
+
+	status = 0;
+	strcpy(errmsg,"success");
+
+si_config_error:
+	dprintf(1,"msg->replyto: %s", msg->replyto);
+	if (msg->replyto) agent_reply(conf->ap, msg->replyto, status, errmsg);
+	dprintf(1,"used: %ld\n", mem_used() - start);
+	return status;
+}
+
+static int solard_cb(void *ctx) {
+	solard_config_t *conf = ctx;
+	time_t cur,diff;
+
+	/* Check agents */
+	time(&cur);
+	diff = cur - conf->last_check;
+	dprintf(3,"diff: %d, interval: %d\n", (int)diff, conf->interval);
+	if (diff >= conf->interval) {
+		check_agents(conf);
+		solard_monitor(conf);
+		agent_start_script(conf->ap,"monitor.js");
+		time(&conf->last_check);
+	}
+	dprintf(1,"mem used: %ld\n", mem_used() - conf->start);
+	return 0;
+}
+
+static int solard_mh(void *ctx, solard_message_t *msg) {
+	solard_config_t *conf = ctx;
+
+	dprintf(1,"called!\n");
+	dprintf(1,"role: %s\n", msg->role);
+	if (strcmp(msg->role,conf->ap->mqtt_config.clientid)==0) solard_config(conf,SOLARD_CONFIG_MESSAGE,msg);
+	else if (strcmp(msg->func,SOLARD_FUNC_DATA)==0) {
+		if (strcmp(msg->role,SOLARD_ROLE_INVERTER)==0) getinv(conf,msg->name,msg->data);
+		else if (strcmp(msg->role,SOLARD_ROLE_BATTERY)==0) getpack(conf,msg->name,msg->data);
+//		else if (strcmp(msg->role,SOLARD_ROLE_CONSUMER)==0) getcon(conf,msg->name,msg->data);
+//		else if (strcmp(msg->role,SOLARD_ROLE_PRODUCER)==0) getpro(conf,msg->name,msg->data);
+	}
+	dprintf(1,"mem used: %ld\n", mem_used() - conf->start);
+	return 0;
+}
+
+int solard_config(void *h, int request, ...) {
+	solard_config_t *conf = h;
+	int r;
+	va_list ap;
+
+	r = 1;
+	dprintf(1,"request: %d\n", request);
+	va_start(ap,request);
+	switch(request) {
+	case SOLARD_CONFIG_INIT:
+		conf->agents = list_create();
+		conf->batteries = list_create();
+		conf->inverters = list_create();
+		conf->producers = list_create();
+		conf->consumers = list_create();
+
+		solard_read_config(conf);
+		if (conf->ap->cfg && cfg_is_dirty(conf->ap->cfg)) solard_write_config(conf);
+
+		if (mqtt_sub(conf->ap->m,SOLARD_TOPIC_ROOT"/"SOLARD_ROLE_INVERTER"/+/"SOLARD_FUNC_DATA)) return 1;
+		if (mqtt_sub(conf->ap->m,SOLARD_TOPIC_ROOT"/"SOLARD_ROLE_BATTERY"/+/"SOLARD_FUNC_DATA)) return 1;
+		if (mqtt_sub(conf->ap->m,SOLARD_TOPIC_ROOT"/"SOLARD_ROLE_PRODUCER"/+/"SOLARD_FUNC_DATA)) return 1;
+		if (mqtt_sub(conf->ap->m,SOLARD_TOPIC_ROOT"/"SOLARD_ROLE_CONSUMER"/+/"SOLARD_FUNC_DATA)) return 1;
+
+		conf->start = mem_used();
+
+		/* Set callback */
+		agent_set_callback(conf->ap,solard_cb,conf);
+
+		/* Add our message processor to the stack */
+		agent_add_msghandler(conf->ap,solard_mh,conf);
+
+		/* Add our JS class */
+		solard_jsinit(conf);
+		break;
+	case SOLARD_CONFIG_MESSAGE:
+		r = solard_config_getmsg(conf,va_arg(ap,solard_message_t *));
+		break;
+	case SOLARD_CONFIG_GET_INFO:
+		{
+			json_value_t **vp;
+
+			vp = va_arg(ap,json_value_t **);
+			dprintf(1,"vp: %p\n", vp);
+			if (vp) {
+				*vp = solard_info(conf);
+				dprintf(1,"*vp: %p\n", *vp);
+				if (*vp) r = 0;
+			}
+		}
+		break;
+	}
+	dprintf(1,"r: %d\n", r);
+	return r;
+}
