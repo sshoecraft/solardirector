@@ -59,7 +59,7 @@ struct solard_agent {
 		bool run_scripts;
 		JSPropertySpec *props;
 		JSFunctionSpec *funcs;
-		JSObject *myobj;
+		JSObject *agent_obj;
 		jsval agent_val;
 		jsval config_val;
 		jsval mqtt_val;
@@ -113,6 +113,9 @@ struct js_agent_rootinfo {
 #define SOLARD_AGENT_FLAG_CAWRITE       0x0800          /* Close after wrtiing */
 #define AGENT_FLAG_NOALL		AGENT_FLAG_NOMQTT | AGENT_FLAG_NOINFLUX | AGENT_FLAG_NOJS | AGENT_FLAG_NOEVENT
 
+/* Special config func */
+#define AGENT_CONFIG_GETJS		0x1000		/* Get JSEngine ptr from driver */
+
 solard_agent_t *agent_new(void);
 solard_agent_t *agent_init(int, char **, char *, opt_proctab_t *,
 		solard_driver_t *, void *, int flags, config_property_t *, config_function_t *);
@@ -140,7 +143,6 @@ void agent_event(solard_agent_t *ap, char *action, char *reason);
 
 #ifdef JS
 JSObject *js_InitAgentClass(JSContext *cx, JSObject *global_object);
-int agent_jsinit(JSEngine *e);
 int agent_start_script(solard_agent_t *ap, char *name);
 int agent_start_jsfunc(solard_agent_t *ap, char *name, char *func, int argc, jsval *argv);
 int agent_script_exists(solard_agent_t *ap, char *name);

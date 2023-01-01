@@ -57,7 +57,7 @@ int main(int argc, char **argv) {
 	dummy.name = "dummy";
 	dummy.config = dummy_config;
 	s = calloc(sizeof(*s),1);
-	agent_init(argc,argv,"1.0",0,&dummy,s,0,dummy_props,0);
+	s->ap = agent_init(argc,argv,"1.0",0,&dummy,s,0,dummy_props,0);
 	if (!s->ap) return 1;
 #ifdef JS
 	strcpy(s->ap->js.script_dir,".");

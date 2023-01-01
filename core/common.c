@@ -224,7 +224,10 @@ int solard_common_init(int argc,char **argv,char *version,opt_proctab_t *add_opt
 	log_debug("common_init: error: %d, help_flag: %d\n",error,help_flag);
 	if (!error && help_flag) {
 		opt_usage((argv ? argv[0] : ""),opts);
-		error = 1;
+		free(opts);
+		/* XXX */
+//		error = 1;
+		exit(0);
 	}
 
 	/* If add_opts, free malloc'd opts */
@@ -395,7 +398,10 @@ int solard_common_startup(config_t **cp, char *sname, char *configfile, config_p
 		mqtt_init_done = 0;
 		if (config_from_mqtt) {
 			/* init mqtt */
-			if (mqtt_init(*m)) return 1;
+			if (mqtt_init(*m)) {
+				log_error("mqtt_init: %s\n",(*m)->errmsg);
+				return 1;
+			}
 			mqtt_init_done = 1;
 
 			/* read the config */
@@ -430,7 +436,10 @@ int solard_common_startup(config_t **cp, char *sname, char *configfile, config_p
 #ifdef MQTT
 	if (m) {
 		/* If MQTT not init, do it now */
-		if (!mqtt_init_done && mqtt_init(*m)) return 1;
+		if (!mqtt_init_done && mqtt_init(*m)) {
+			log_error("mqtt_init: %s\n",(*m)->errmsg);
+			return 1;
+		}
 
 		/* Subscribe to our clientid */
 		sprintf(mqtt_info,"%s/%s/%s/#",SOLARD_TOPIC_ROOT,SOLARD_TOPIC_CLIENTS,(*m)->clientid);

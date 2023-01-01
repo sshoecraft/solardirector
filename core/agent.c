@@ -87,7 +87,11 @@ int agent_pub(solard_agent_t *ap, char *func, char *message, int retain) {
 	*topic = 0;
 	agent_mktopic(topic,sizeof(topic)-1,ap->instance_name,func);
         dprintf(dlevel,"topic: %s\n", topic);
-        return mqtt_pub(ap->m,topic,message,1,retain);
+	if (mqtt_pub(ap->m,topic,message,1,retain)) {
+		log_error("agent_pub: mqtt_pub: %s\n", ap->m->errmsg);
+		return 1;
+	}
+	return 0;
 }
 
 int agent_pubinfo(solard_agent_t *ap, int disp) {
@@ -234,7 +238,7 @@ int agent_get_info(solard_agent_t *ap, int info_flag, int pub) {
 
 #ifdef MQTT
 	/* Publish the info */
-	if (pub) agent_pubinfo(ap, info_flag);
+	if (pub && agent_pubinfo(ap, info_flag)) return 1;
 #endif
 	if (info_flag) exit(0);
 	return 0;
@@ -569,15 +573,21 @@ static int agent_startup(solard_agent_t *ap, char *mqtt_info, char *influx_info,
 		,jptr, ap->js.rtsize, ap->js.stksize, (js_outputfunc_t *)log_info
 #endif
 	)) return 1;
-	if (props) free(props);
-	if (funcs) free(funcs);
+//	if (props) free(props);
+//	if (funcs) free(funcs);
 
 #ifdef JS
-	/* Add JS init funcs (define classes) */
-	JS_EngineAddInitClass(ap->js.e, "agent_jsinit", js_InitAgentClass);
-	JS_EngineAddInitClass(ap->js.e, "config_jsinit", js_InitConfigClass);
-	JS_EngineAddInitClass(ap->js.e, "mqtt_jsinit", js_InitMQTTClass);
-	JS_EngineAddInitClass(ap->js.e, "influx_jsinit", js_InitInfluxClass);
+	dprintf(dlevel,"nojs: %d\n", check_bit(ap->flags, AGENT_FLAG_NOJS));
+	if (!check_bit(ap->flags, AGENT_FLAG_NOJS)) {
+		/* Add JS init funcs (define classes) */
+		JS_EngineAddInitClass(ap->js.e, "agent_jsinit", js_InitAgentClass);
+		JS_EngineAddInitClass(ap->js.e, "config_jsinit", js_InitConfigClass);
+		JS_EngineAddInitClass(ap->js.e, "mqtt_jsinit", js_InitMQTTClass);
+		JS_EngineAddInitClass(ap->js.e, "influx_jsinit", js_InitInfluxClass);
+	} else {
+		/* See if the driver has an engine ptr */
+//		if (ap->driver && ap->driver->config) ap->driver->config(ap->handle, AGENT_CONFIG_GETJS, &ap->js.e);
+	}
 #endif
 
 #ifdef MQTT
@@ -701,7 +711,9 @@ solard_agent_t *agent_init(int argc, char **argv, char *agent_version, opt_proct
 #ifdef JS
 	*jsexec = *script = *script_dir = 0;
 #endif
-//	dprintf(dlevel,"argc: %d, argv: %p\n", argc, argv);
+#if DEBUG_STARTUP
+	printf("argc: %d, argv: %p\n", argc, argv);
+#endif
 	if (solard_common_init(argc,argv,agent_version,opts,logopts)) {
 		dprintf(dlevel,"common init failed!\n");
 		return 0;
@@ -792,6 +804,7 @@ solard_agent_t *agent_init(int argc, char **argv, char *agent_version, opt_proct
 //	if (interval > 0) ap->interval = interval;
 
 #ifdef JS
+	dprintf(dlevel,"e: %p\n", ap->js.e);
 	if (ap->js.e) {
 		/* script_dir from commanline overrides config */
 		if (strlen(script_dir)) strcpy(ap->js.script_dir,script_dir);
@@ -856,6 +869,7 @@ int agent_run(solard_agent_t *ap) {
 	last_read = 0;
 #ifdef JS
 	/* Do a GC before we start */
+	dprintf(0,"===> e: %p\n", ap->js.e);
 	JS_EngineCleanup(ap->js.e);
 #endif
 	peak = last_peak = last_used = 0;
@@ -1199,7 +1213,6 @@ static JSBool js_agent_pubinfo(JSContext *cx, uintN argc, jsval *vp) {
 		JS_ReportError(cx,"agent private is null!\n");
 		return JS_FALSE;
 	}
-//	if (ap->info) agent_pubinfo(ap,false);
 	agent_get_info(ap,false,true);
 	return JS_TRUE;
 }
@@ -1344,20 +1357,20 @@ static JSBool js_agent_callfunc(JSContext *cx, uintN argc, jsval *vp) {
 	return js_config_callfunc(ap->cp, cx, argc, vp);
 }
 
-static solard_driver_t js_agent_driver = { 0,0,0,0,0,0,0,0 };
-
 static JSBool js_agent_ctor(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rval) {
 	solard_agent_t *ap;
 	char **args, *name, *vers;
         unsigned int count;
 	JSObject *aobj, *dobj, *pobj,*fobj;
-        JSObject *newobj;
+//        JSObject *newobj;
 	int i,sz;
 	jsval val;
 	JSString *jstr;
-	JSBool ok;
+//	JSBool ok;
 	solard_driver_t *driver;
 	void *driver_handle;
+	config_property_t *props;
+	config_function_t *funcs;
 
 	name = vers = 0;
 	aobj = dobj = pobj = fobj = 0;
@@ -1405,21 +1418,42 @@ static JSBool js_agent_ctor(JSContext *cx, JSObject *obj, uintN argc, jsval *arg
 	driver = js_driver_get_driver(name);
 	driver_handle = JS_GetPrivate(cx,dobj);
 
+	/* Convert props array to config_property_t array */
+	if (pobj) {
+		props = js_config_obj2props(cx, pobj, 0);
+		dprintf(dlevel,"props: %p\n", props);
+		if (!props) return JS_FALSE;
+	} else {
+		props = 0;
+	}
+
+	/* Convert funcs array to config_function_t array */
+	if (0 && fobj) {
+		funcs = js_config_obj2funcs(cx, fobj);
+		dprintf(dlevel,"funcs: %p\n", funcs);
+		if (!funcs) return JS_FALSE;
+	} else {
+		funcs = 0;
+	}
+
 	/* init */
-	js_agent_driver.name = name;
-	ap = agent_init(count,args,vers,0,driver,driver_handle,AGENT_FLAG_NOJS,0,0);
+	ap = agent_init(count,args,vers,0,driver,driver_handle,AGENT_FLAG_NOJS,props,funcs);
 	if (args) {
-		for(i=0; i < count; i++)
-			JS_free(cx, args[i]);
+		for(i=0; i < count; i++) JS_free(cx, args[i]);
 		JS_free(cx,args);
 	}
 	JS_free(cx,name);
 	dprintf(dlevel,"ap: %p\n", ap);
 	if (!ap) {
-		JS_ReportError(cx, "internal error: agent_init returned null");
+		JS_ReportError(cx, "agent_init returned null");
+		return JS_FALSE;
+	}
+	if (!ap->js.agent_obj) {
+		JS_ReportError(cx, "agent did not create object");
 		return JS_FALSE;
 	}
 
+#if 0
 	/* Create our object */
 	newobj = js_agent_new(cx,obj,ap);
 
@@ -1453,9 +1487,11 @@ static JSBool js_agent_ctor(JSContext *cx, JSObject *obj, uintN argc, jsval *arg
 			if (ap->m) agent_pubconfig(ap);
 		}
 	}
+#endif
 
 	dprintf(dlevel,"returning newobj!\n");
-	*rval = OBJECT_TO_JSVAL(newobj);
+//	*rval = OBJECT_TO_JSVAL(newobj);
+	*rval = OBJECT_TO_JSVAL(ap->js.agent_obj);
 	return JS_TRUE;
 }
 
@@ -1502,8 +1538,8 @@ JSObject *js_InitAgentClass(JSContext *cx, JSObject *global_object) {
 JSObject *js_agent_new(JSContext *cx, JSObject *parent, solard_agent_t *ap) {
 	JSObject *newobj;
 
-//	dprintf(dlevel,"myobj: %p\n", ap->js.myobj);
-//	if (ap->js.myobj) return ap->js.myobj;
+	dprintf(dlevel,"agent_obj: %p\n", ap->js.agent_obj);
+	if (ap->js.agent_obj) return ap->js.agent_obj;
 
 	/* Create the new object */
 	newobj = JS_NewObject(cx, &agent_class, 0, parent);
@@ -1561,8 +1597,7 @@ JSObject *js_agent_new(JSContext *cx, JSObject *parent, solard_agent_t *ap) {
 	JS_DefineProperty(cx, parent, "influx", ap->js.influx_val, 0, 0, JSPROP_ENUMERATE);
 #endif
 
-//	ap->js.myobj = newobj;
+	ap->js.agent_obj = newobj;
 	return newobj;
 }
-
 #endif

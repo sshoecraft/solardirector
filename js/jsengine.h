@@ -32,7 +32,7 @@ struct JSEngine {
 	list initfuncs;
 	js_outputfunc_t *output;
 	list scripts;
-	char errmsg[1024];
+//	char errmsg[1024];
 	void *private;
 };
 typedef struct JSEngine JSEngine;
@@ -50,7 +50,7 @@ JSContext *JS_EngineNewContext(JSEngine *e);
 //int JS_EngineExecFunc(JSEngine *e, char *filename, char *funcname, int argc, jsval **argv);
 typedef JSObject *(jsobjinit_t)(JSContext *cx, void *priv);
 int JS_EngineAddObject(JSEngine *e, jsobjinit_t *func, void *priv);
-char *JS_EngineGetErrmsg(JSEngine *e);
+//char *JS_EngineGetErrmsg(JSEngine *e);
 void JS_EngineCleanup(JSEngine *e);
 JSContext *JS_EngineGetCX(JSEngine *e);
 

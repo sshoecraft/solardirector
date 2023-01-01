@@ -619,21 +619,42 @@ static int client_startup(solard_client_t *c, char *configfile, char *mqtt_info,
 	config_function_t client_funcs[] = {
 		{ 0 }
 	};
+	void *eptr;
+#ifdef MQTT
+	void *mptr;
+#endif
+#ifdef INFLUX
+	void *iptr;
+#endif
+#ifdef JS
+	void *jptr;
+#endif
 
 	props = config_combine_props(prog_props,client_props);
 	funcs = config_combine_funcs(prog_funcs,client_funcs);
 
-        /* Call common startup */
-	if (solard_common_startup(&c->cp, c->section_name, configfile, props, funcs,
-		&c->e
+	eptr = (c->flags & AGENT_FLAG_NOEVENT ? 0 : &c->e);
 #ifdef MQTT
-		,&c->m, 0, client_getmsg, c, mqtt_info, c->config_from_mqtt
-#endif
+	/* Create LWT topic */
+mptr = (c->flags & AGENT_FLAG_NOMQTT ? 0 : &c->m);
+	#endif
 #ifdef INFLUX
-		,&c->i, influx_info
+	iptr = (c->flags & AGENT_FLAG_NOINFLUX ? 0 : &c->i);
 #endif
 #ifdef JS
-		,&c->js, c->rtsize, c->stacksize, (js_outputfunc_t *)log_info
+	jptr = (c->flags & AGENT_FLAG_NOJS ? 0 : &c->js);
+#endif
+
+        /* Call common startup */
+	if (solard_common_startup(&c->cp, c->section_name, configfile, props, funcs, eptr
+#ifdef MQTT
+		,mptr, 0, client_getmsg, c, mqtt_info, c->config_from_mqtt
+#endif
+#ifdef INFLUX
+		,iptr, influx_info
+#endif
+#ifdef JS
+		,jptr, c->rtsize, c->stacksize, (js_outputfunc_t *)log_info
 #endif
 	)) return 1;
         if (props) free(props);
@@ -1198,19 +1219,19 @@ JSObject *js_client_new(JSContext *cx, JSObject *parent, void *priv) {
 	if (c) {
 		JS_SetPrivate(cx,obj,c);
 
-#if 0
-		/* Create our child objects */
-		c->config_val = OBJECT_TO_JSVAL(js_config_new(cx,obj,c->cp));
-		JS_DefineProperty(cx, parent, "config", c->config_val, 0, 0, JSPROP_ENUMERATE);
+		if (check_bit(c->flags,CLIENT_FLAG_JSGLOBAL)) {
+			/* Create our child objects */
+			c->config_val = OBJECT_TO_JSVAL(js_config_new(cx,obj,c->cp));
+			JS_DefineProperty(cx, parent, "config", c->config_val, 0, 0, JSPROP_ENUMERATE);
 #ifdef MQTT
 
-		c->mqtt_val = OBJECT_TO_JSVAL(js_mqtt_new(cx,obj,c->m));
-		JS_DefineProperty(cx, parent, "mqtt", c->mqtt_val, 0, 0, JSPROP_ENUMERATE);
+			c->mqtt_val = OBJECT_TO_JSVAL(js_mqtt_new(cx,obj,c->m));
+			JS_DefineProperty(cx, parent, "mqtt", c->mqtt_val, 0, 0, JSPROP_ENUMERATE);
 #endif
 #ifdef INFLUX
-		c->influx_val = OBJECT_TO_JSVAL(js_influx_new(cx,obj,c->i));
-		JS_DefineProperty(cx, parent, "influx", c->influx_val, 0, 0, JSPROP_ENUMERATE);
-#endif
+			c->influx_val = OBJECT_TO_JSVAL(js_influx_new(cx,obj,c->i));
+			JS_DefineProperty(cx, parent, "influx", c->influx_val, 0, 0, JSPROP_ENUMERATE);
+		}
 #endif
 	}
 

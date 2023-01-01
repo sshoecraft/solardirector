@@ -129,8 +129,6 @@ typedef struct config config_t;
 
 config_t *config_init(char *, config_property_t *,config_function_t *);
 char *config_get_errmsg(config_t *);
-void config_dump(config_t *cp);
-void config_dump_props(config_property_t *props);
 config_property_t *config_combine_props(config_property_t *p1, config_property_t *p2);
 void config_add_props(config_t *, char *, config_property_t *, int flags);
 config_property_t *config_get_props(config_t *, char *);
@@ -184,6 +182,8 @@ int config_process_request(config_t *cp, char *req, json_object_t *res);
 
 void config_build_propmap(config_t *cp);
 void config_dump_property(config_property_t *p, int level);
+void config_dump(config_t *cp);
+void config_dump_props(config_property_t *props);
 void config_dump_function(config_function_t *f, int level);
 
 void config_destroy_props(config_property_t *);

@@ -161,7 +161,7 @@ int main(int argc, char **argv) {
 	char script[256],func[128];
 	opt_proctab_t opts[] = {
 		{ "%|script",&script,DATA_TYPE_STRING,sizeof(script)-1,0,"" },
-		{ "-f:|func",&func,DATA_TYPE_STRING,sizeof(func)-1,0,"" },
+		{ "-f:|function name (default: <script_name>_main)",&func,DATA_TYPE_STRING,sizeof(func)-1,0,"" },
 		{ 0 }
 	};
 #if TESTING
@@ -173,7 +173,7 @@ int main(int argc, char **argv) {
 	sdjs_private_t *priv;
 
 	*script = *func = 0;
-	c = client_init(argc,argv,"1.0",opts,"sdjs",0,0,0);
+	c = client_init(argc,argv,"1.0",opts,"sdjs",CLIENT_FLAG_JSGLOBAL,0,0);
 	if (!c) {
 		log_error("unable to initialize client\n");
 		return 1;
@@ -193,16 +193,16 @@ int main(int argc, char **argv) {
 	JS_EngineAddInitFunc(c->js, "sdjs_jsinit", sdjs_jsinit, priv);
         JS_EngineAddInitClass(c->js, "InitAgentClass", js_InitAgentClass);
 
-//	printf("==> SCRIPT: %s, func: %s\n", script, func);
-	dprintf(1,"script: %s\n", script);
+	dprintf(1,"script: %s, func: %s\n", script, func);
 	if (*script) {
 		if (access(script,0) < 0) {
 			printf("%s: %s\n",script,strerror(errno));
 		} else {
 			strcpy(c->name,basename(script));
 			if (JS_EngineExec(c->js,script,func,0,0,1)) {
-				char *msg = JS_EngineGetErrmsg(c->js);
-				printf("%s: %s\n",script,strlen(msg) ? msg : "error executing script");
+//				char *msg = JS_EngineGetErrmsg(c->js);
+//				printf("%s: %s\n",script,strlen(msg) ? msg : "error executing script");
+				return 1;
 			}
 		}
 	} else {

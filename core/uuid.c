@@ -288,6 +288,7 @@ static int win32_getseed(void) {
 
 	if (!QueryPerformanceCounter(&ticks)) seed = time(0);
 	else seed = ticks.u.LowPart;
+//	dprintf(0,"seed: %x\n", seed);
 	return seed;
 }
 #endif

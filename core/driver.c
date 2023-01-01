@@ -22,18 +22,18 @@ LICENSE file in the root directory of this source tree.
 solard_driver_t *find_driver(solard_driver_t **transports, char *name) {
 	register int i;
 
-	dprintf(2,"name: %s\n", name);
+	dprintf(dlevel,"name: %s\n", name);
 
 	if (!transports || !name) return 0;
 
 	if (strcmp(name,"null") == 0) return &null_driver;
 	for(i=0; transports[i]; i++) {
-		dprintf(2,"transports[%d]: %p\n", i, transports[i]);
-		dprintf(2,"name[%d]: %s\n", i, transports[i]->name);
+		dprintf(dlevel,"transports[%d]: %p\n", i, transports[i]);
+		dprintf(dlevel,"name[%d]: %s\n", i, transports[i]->name);
 		if (strcmp(transports[i]->name,name)==0) break;
 	}
 
-	dprintf(2,"tp: %p\n", transports[i]);
+	dprintf(dlevel,"tp: %p\n", transports[i]);
 	return transports[i];
 }
 
@@ -46,8 +46,10 @@ solard_driver_t *find_driver(solard_driver_t **transports, char *name) {
 
 typedef struct driver_private {
 	char *name;
+	JSEngine *e;
 	jsval cpval;
 	JSContext *cx;
+	JSObject *parent;
 	JSObject *obj;
 	solard_agent_t *ap;
 	config_t *cp;
@@ -69,12 +71,12 @@ static int _callfunc(driver_private_t *p, char *name, int argc, jsval *argv, jsv
 }
 
 static int driver_open(void *h) {
-	dprintf(0,"h: %p\n",h);
+	dprintf(dlevel,"h: %p\n",h);
 	return 1;
 }
 
 static int driver_close(void *h) {
-	dprintf(0,"h: %p\n",h);
+	dprintf(dlevel,"h: %p\n",h);
 	return 1;
 }
 
@@ -82,7 +84,7 @@ static int driver_read(void *h, uint32_t *control, void *buf, int buflen) {
 	driver_private_t *p = h;
 	jsval rval,argv[2] = { INT_TO_JSVAL(control ? *control : 0), INT_TO_JSVAL(buflen) };
 
-//	dprintf(0,"h: %p\n",h);
+//	dprintf(dlevel,"h: %p\n",h);
 	_callfunc(p,"read",2,argv,&rval);
 	return 0;
 }
@@ -91,7 +93,7 @@ static int driver_write(void *h, uint32_t *control, void *buf, int buflen) {
 	driver_private_t *p = h;
 
 	jsval rval,argv[2] = { INT_TO_JSVAL(control ? *control : 0), INT_TO_JSVAL(buflen) };
-//	dprintf(0,"h: %p\n",h);
+//	dprintf(dlevel,"h: %p\n",h);
 	_callfunc(p,"write",2,argv,&rval);
 	return 0;
 }
@@ -121,7 +123,7 @@ int driver_config(void *h, int req, ...) {
 
 			dprintf(dlevel,"**** CONFIG INIT *******\n");
 			ap = va_arg(va,solard_agent_t *);
-			/* Only call init func when agent object created */
+			js_agent_new(p->cx,p->parent,ap);
 			dprintf(dlevel,"agent_val: %x\n", ap->js.agent_val);
 			if (ap->js.agent_val) {
  				jsval argv[1] = { ap->js.agent_val };
@@ -132,8 +134,10 @@ int driver_config(void *h, int req, ...) {
 			}
 		}
 		break;
+exit(0);
 	case SOLARD_CONFIG_GET_INFO:
 		/* Call info func, get return val and turn into a json_object */
+		dprintf(dlevel,"ap: %p\n", p->ap);
 		if (p->ap) {
 			json_value_t **vp = va_arg(va,json_value_t **);
 			jsval rval;
@@ -149,10 +153,17 @@ int driver_config(void *h, int req, ...) {
 				bytes = (char *)js_GetStringBytes(p->cx, str);
 //				printf("value: %s\n", bytes);
 				v = json_parse(bytes);
-//				dprintf(0,"v: %p\n", v);
+//				dprintf(dlevel,"v: %p\n", v);
 				config_add_info(p->ap->cp,json_value_object(v));
 				*vp = v;
 			}
+		}
+		break;
+	case AGENT_CONFIG_GETJS:
+		{
+			JSEngine **ep = va_arg(va,JSEngine **);
+			dprintf(dlevel,"ep: %p, p->e: %p\n", ep, p->e);
+			if (ep) *ep = p->e;
 		}
 		break;
 	default:
@@ -224,7 +235,7 @@ static JSBool driver_getprop(JSContext *cx, JSObject *obj, jsval id, jsval *rval
 
 			sname = (char *)driverp->name;
 			name = JS_EncodeString(cx, JSVAL_TO_STRING(id));
-			dprintf(0,"sname: %s, name: %s\n", sname, name);
+			dprintf(dlevel,"sname: %s, name: %s\n", sname, name);
 			if (name) JS_free(cx, name);
 		}
 #endif
@@ -288,7 +299,7 @@ static JSClass driver_class = {
 	JSCLASS_NO_OPTIONAL_MEMBERS
 };
 
-static JSBool driver_ctor(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rval) {
+static JSBool driver_ctor(JSContext *cx, JSObject *parent, uintN argc, jsval *argv, jsval *rval) {
 	driver_private_t *p;
 	JSObject *newobj;
 	JSClass *newdriverp,*ccp = &driver_class;
@@ -317,6 +328,7 @@ static JSBool driver_ctor(JSContext *cx, JSObject *obj, uintN argc, jsval *argv,
 	memset(p,0,sizeof(*p));
 	p->name = JS_strdup(cx,namep);
 //	strncpy(p->name,namep,sizeof(p->name)-1);
+	p->e = JS_GetPrivate(cx,JS_GetGlobalObject(cx));
 
 	/* Create a new instance of Class */
 	newdriverp = JS_malloc(cx,sizeof(JSClass));
@@ -324,7 +336,7 @@ static JSBool driver_ctor(JSContext *cx, JSObject *obj, uintN argc, jsval *argv,
 	*newdriverp = *ccp;
 	newdriverp->name = p->name;
 
-	newobj = JS_InitClass(cx, obj, 0, newdriverp, 0, 0, props, funcs, 0, 0);
+	newobj = JS_InitClass(cx, parent, 0, newdriverp, 0, 0, props, funcs, 0, 0);
 	if (!newobj) {
 		JS_ReportError(cx,"error allocating memory");
 		return JS_FALSE;
@@ -333,6 +345,7 @@ static JSBool driver_ctor(JSContext *cx, JSObject *obj, uintN argc, jsval *argv,
 	
 	/* make sure private has cx and obj */
 	p->cx = cx;
+	p->parent = parent;
 	p->obj = newobj;
 	*rval = OBJECT_TO_JSVAL(newobj);
 	return JS_TRUE;

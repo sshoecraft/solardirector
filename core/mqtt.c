@@ -57,7 +57,7 @@ int mqtt_init(mqtt_session_t *s) {
 	if (mqtt_newclient(s)) return 1;
 
 	/* Connect to the server */
-	if (mqtt_connect(s,20)) return 1;
+	if (mqtt_connect(s,20)) s->connected = false;
 
 	return 0;
 }
@@ -175,7 +175,7 @@ int mqtt_newclient(mqtt_session_t *s) {
 	rc = MQTTClient_setCallbacks(s->c, s, mqtt_conlost, mqtt_getmsg, 0);
 	dprintf(dlevel,"setcb rc: %d\n", rc);
 	if (rc != MQTTCLIENT_SUCCESS) {
-		log_error("MQTTClient_setCallbacks failed");
+		strcpy(s->errmsg,"MQTTClient_setCallbacks failed");
 		return 1;
 	}
 
@@ -292,17 +292,21 @@ int mqtt_connect(mqtt_session_t *s, int interval) {
 	dprintf(dlevel,"rc: %d\n", rc);
 	if (rc != MQTTCLIENT_SUCCESS) {
 		if (rc == 5) {
-			log_error("MQTT: bad username or password\n");
+			strcpy(s->errmsg,"MQTT: bad username or password");
 			return 1;
 		} else {
 			char *p = (char *)MQTTReasonCode_toString(rc);
-			log_error("MQTTClient_connect: %s\n",p ? p : "cant connect");
+			sprintf(s->errmsg,"MQTTClient_connect: %s",p ? p : "cant connect");
 		}
 		return 1;
 	} else if (strlen(s->lwt_topic)) {
 		mqtt_pub(s,s->lwt_topic,"Online",1,1);
 	}
 	s->connected = true;
+
+	/* If we have a list of subs, resub */
+	dprintf(dlevel,"count: %d\n", list_count(s->subs));
+	if (list_count(s->subs)) mqtt_resub(s);
 	return 0;
 }
 
@@ -334,6 +338,7 @@ int mqtt_resub(mqtt_session_t *s) {
 
 	if (!s) return 1;
 
+	dprintf(dlevel,"count: %d\n", list_count(s->subs));
 	list_reset(s->subs);
 	while((topic = list_get_next(s->subs)) != 0) mqtt_sub(s,topic);
 	return 0;
@@ -348,7 +353,7 @@ int mqtt_reconnect(mqtt_session_t *s) {
 	dprintf(dlevel,"reconnecting...\n");
 	if (mqtt_disconnect(s,5)) return 1;
 	if (mqtt_connect(s,20)) return 1;
-	if (mqtt_resub(s)) return 1;
+//	if (mqtt_resub(s)) return 1;
 	dprintf(dlevel,"reconnect done!\n");
 	return 0;
 }
@@ -407,7 +412,6 @@ int mqtt_pub(mqtt_session_t *s, char *topic, char *message, int wait, int retain
 	MQTTClient_deliveryToken token;
 	MQTTProperty property;
 	MQTTResponse response = MQTTResponse_initializer;
-//	options.WriteTimeout
 	int rc,rt,retry;
 
 	if (!s) return 1;
@@ -500,6 +504,11 @@ int mqtt_sub(mqtt_session_t *s, char *topic) {
 	dprintf(dlevel,"enabled: %d\n", s->enabled);
 	if (!s->enabled) return 0;
 
+	/* If we're not connected, add the sub so we sub when we do connect */
+	if (!s->connected) {
+		mqtt_addsub(s,topic);
+		return 0;
+	}
 	opts.noLocal = 1;
 	dprintf(dlevel,"topic: %s\n", topic);
 	if (s->v3) {
@@ -610,7 +619,7 @@ void mqtt_add_props(mqtt_session_t *s, config_t *cp, char *name) {
 
 		s = config_get_section(cp, name);
 		if (!s) {
-			log_error("%s section does not exist?!?\n", name);
+			sprintf(s->errmsg,"%s section does not exist?!?", name);
 			return;
 		}
 		for(i=0; names[i]; i++) {
@@ -826,7 +835,6 @@ static JSBool js_mqtt_con(JSContext *cx, JSObject *obj, uintN argc, jsval *argv,
 
 static JSBool js_mqtt_rs(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rval) {
 	mqtt_session_t *s;
-	char *topic;
 
 	s = JS_GetPrivate(cx, obj);
 	dprintf(dlevel,"s: %p\n", s);
@@ -834,8 +842,7 @@ static JSBool js_mqtt_rs(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, 
 		JS_ReportError(cx, "private is null!");
 		return JS_FALSE;
 	}
-	list_reset(s->subs);
-	while((topic = list_get_next(s->subs)) != 0) mqtt_sub(s,topic);
+	mqtt_resub(s);
 	return JS_TRUE;
 }
 

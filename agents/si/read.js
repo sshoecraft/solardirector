@@ -9,7 +9,7 @@ LICENSE file in the root directory of this source tree.
 
 function read_main() {
 
-	var dlevel = 0;
+	var dlevel = 1;
 
 	// If not running, leave now
 	if (!data.Run) return;

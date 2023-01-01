@@ -56,10 +56,11 @@ struct solard_client {
 };
 typedef struct solard_client solard_client_t;
 
-#define CLIENT_FLAG_NOMQTT               0x0001          /* Dont't init MQTT */
-#define CLIENT_FLAG_NOINFLUX             0x0020          /* Don't init influx */
-#define CLIENT_FLAG_NOJS                 0x0040          /* Don't init JSEngine */
-#define CLIENT_FLAG_NOEVENT              0x0080          /* Don't init Event subsystem */
+#define CLIENT_FLAG_NOMQTT		0x0001		/* Dont't init MQTT */
+#define CLIENT_FLAG_NOINFLUX		0x0020		/* Don't init influx */
+#define CLIENT_FLAG_NOJS		0x0040		/* Don't init JSEngine */
+#define CLIENT_FLAG_NOEVENT		0x0080		/* Don't init Event subsystem */
+#define CLIENT_FLAG_JSGLOBAL		0x1000		/* Create global config/mqtt/influx objects */
 
 solard_client_t *client_init(int argc,char **argv,char *version,opt_proctab_t *client_opts,char *Cname,int flags,config_property_t *props,config_function_t *funcs);
 void client_destroy(solard_client_t *);

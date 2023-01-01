@@ -175,14 +175,6 @@ static void script_error(JSContext *cx, const char *message, JSErrorReport *repo
 		log_info("%-20.20s: %s\n", "ucmessage", report->ucmessage ? js_DeflateString(cx, report->ucmessage, js_strlen(report->ucmessage)) : "(null)");
 	}
 
-	if (0) {
-		JSClass *classp;
-
-		classp = OBJ_GET_CLASS(cx, JS_GetGlobalObject(cx));
-		dprintf(dlevel,"classp: %p\n", classp);
-		if (classp) dprintf(dlevel,"name: %s, flags: %02x\n", classp->name, classp->flags);
-	}
-
 	/* Get output func */
 	dprintf(dlevel,"cx: %p, global: %p\n", cx, JS_GetGlobalObject(cx));
 	e = JS_GetPrivate(cx, JS_GetGlobalObject(cx));
@@ -190,13 +182,14 @@ static void script_error(JSContext *cx, const char *message, JSErrorReport *repo
 		JS_ReportError(cx, "global private is null!");
 		return;
 	}
+	dprintf(dlevel,"output: %p\n", e->output);
 	output = e->output;
 	if (!output) output = printf;
 
 	if (report->filename) sprintf(prefix, "%s(%d): ", report->filename, report->lineno);
 	else *prefix = 0;
 	output("%s%s\n", prefix, message);
-	snprintf(e->errmsg,sizeof(e->errmsg),"%s%s", prefix, message);
+//	snprintf(e->errmsg,sizeof(e->errmsg),"%s%s", prefix, message);
 
 	if (report->linebuf) {
 		output("%s%s",prefix,(char *)report->linebuf);
@@ -555,10 +548,12 @@ int JS_EngineExecString(JSEngine *e, char *string) {
 	return (ok ? 0 : 1);
 }
 
+#if 0
 char *JS_EngineGetErrmsg(JSEngine *e) {
 	if (!e) return "";
 	return e->errmsg;
 }
+#endif
 
 void JS_EngineCleanup(JSEngine *e) {
 	JSContext *cx;

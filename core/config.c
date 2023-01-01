@@ -41,6 +41,7 @@ char *config_get_errmsg(config_t *cp) { return cp->errmsg; }
 void config_dump_property(config_property_t *p, int level) {
 	char value[1024];
 
+	dprintf(level,"p: %p\n", p);
 	if (!p) return;
 	if (level > debug) return;
 	printf("%-20.20s: %s\n", "name", p->name);
@@ -114,7 +115,6 @@ void config_dump(config_t *cp) {
 	list_reset(cp->sections);
 	while((section = list_get_next(cp->sections)) != 0) {
 		printf("section: %s\n", section->name);
-//		list_sort(section->items,_cmpprop,0);
 		list_reset(section->items);
 		while((p = list_get_next(section->items)) != 0) _config_dump_prop(p);
 	}
@@ -337,16 +337,6 @@ config_property_t *config_combine_props(config_property_t *p1, config_property_t
 	return newp;
 };
 
-static char *_newstr(char *src) {
-	char *dest;
-
-	if (!src) return 0;
-	dest = malloc(strlen(src)+1);
-	if (!dest) return 0;
-	strcpy(dest,src);
-	return dest;
-}
-
 void config_destroy_property(config_property_t *p) {
 
 	if (p->dest && (p->flags & CONFIG_FLAG_ALLOCDEST)) {
@@ -379,7 +369,7 @@ config_property_t *config_new_property(config_t *cp, char *name, int type, void 
 	memset(newp,0,sizeof(*newp));
 	newp->cp = cp;
 	newp->flags = CONFIG_FLAG_ALLOC;
-	newp->name = _newstr(name);
+	newp->name = strdup(name);
 	if (!newp->name) goto _newp_error;
 	newp->type = type;
 	if (dest) {
@@ -392,29 +382,28 @@ config_property_t *config_new_property(config_t *cp, char *name, int type, void 
 		config_property_set_value(newp,type,dest,dsize,true,(cp ? cp->triggers : false));
 	}
 	if (def) {
-		newp->def = _newstr(def);
+		newp->def = strdup(def);
 		dprintf(dlevel,"newp->def: %p\n", newp->def);
 		if (!newp->def) goto _newp_error;
 	}
 	newp->flags |= flags;
 	if (scope) {
-		newp->scope = _newstr(scope);
+		newp->scope = strdup(scope);
 		dprintf(dlevel,"newp->scope: %p\n", newp->scope);
 		if (!newp->scope) goto _newp_error;
 	}
 	if (values) {
-//		newp->values = _newstr(values);
 		newp->values = strdup(values);
 		dprintf(dlevel,"newp->values: %p\n", newp->values);
 		if (!newp->values) goto _newp_error;
 	}
 	if (labels) {
-		newp->labels = _newstr(labels);
+		newp->labels = strdup(labels);
 		dprintf(dlevel,"newp->labels: %p\n", newp->labels);
 		if (!newp->labels) goto _newp_error;
 	}
 	if (units) {
-		newp->units = _newstr(units);
+		newp->units = strdup(units);
 		dprintf(dlevel,"newp->units: %p\n", newp->units);
 		if (!newp->units) goto _newp_error;
 	}
@@ -566,9 +555,27 @@ void config_add_props(config_t *cp, char *section_name, config_property_t *props
 	if (!section) return;
 	dprintf(dlevel,"props->name: %s\n",  props->name)
 	for(pp = props; pp->name; pp++) {
-//		dprintf(dlevel,"pp->name: %s, flags: %x\n", pp->name, flags);
+//		dprintf(0,"pp->name: %s, flags: %x\n", pp->name, flags);
 		config_section_add_property(cp, section, pp, flags);
 	}
+	if (0) {
+		config_property_t *p;
+		config_section_t *s;
+		char *t;
+		int i;
+
+		list_reset(cp->sections);
+		while((s = list_get_next(cp->sections)) != 0) {
+			list_reset(s->items);
+			i = 0;
+			while((p = list_get_next(s->items)) != 0) {
+				t = typestr(p->type);
+				dprintf(dlevel,"%02d: s->name: %s, p->name(%p): %s, id: %d, type: %s, flags: %x\n", i++, s->name, p->name, p->name, p->id, typestr(p->type), p->flags);
+				if (strcmp(t,"*BAD TYPE*") == 0) exit(1);
+			}
+		}
+	}
+
 }
 
 config_function_t *config_combine_funcs(config_function_t *f1, config_function_t *f2) {
@@ -2735,9 +2742,8 @@ _js_config_get_prop_error:
 	return r;
 }
 
-
 config_property_t *js_config_obj2props(JSContext *cx, JSObject *obj, JSObject *dobj) {
-	config_property_t *props,*p;
+	config_property_t *props,*pp,*p;
 	unsigned int count;
 	int sz,i,flags;
 	jsval val;
@@ -2746,7 +2752,7 @@ config_property_t *js_config_obj2props(JSContext *cx, JSObject *obj, JSObject *d
 	/* get array count and alloc props */
 	if (!js_GetLengthProperty(cx, obj, &count)) {
 		JS_ReportError(cx,"unable to get array length");
-		return JS_FALSE;
+		return 0;
 	}
 	dprintf(dlevel,"count: %d\n", count);
 	sz = sizeof(config_property_t) * (count + 1);
@@ -2754,35 +2760,39 @@ config_property_t *js_config_obj2props(JSContext *cx, JSObject *obj, JSObject *d
 	props = JS_malloc(cx,sz);
 	if (!props) {
 		JS_ReportError(cx,"unable to malloc props");
-		return JS_FALSE;
+		return 0;
 	}
 	memset(props,0,sz);
+	pp = props;
 
-	/* Must be array of arrays */
 	for(i=0; i < count; i++) {
 		JS_GetElement(cx, obj, i, &val);
 		dprintf(dlevel,"obj[%d] type: %s\n", i, jstypestr(cx,val));
 		if (!JSVAL_IS_OBJECT(val) || !OBJ_IS_ARRAY(cx,JSVAL_TO_OBJECT(val))) {
 			JS_ReportError(cx, "element %d is not an array", i);
-			return JS_FALSE;
+			log_error("ob2props: element %d is not an array", i);
+			JS_free(cx,props);
+			return 0;
 		}
 		if (_js_config_get_prop(0,cx,JSVAL_TO_OBJECT(val),&p)) {
 			JS_free(cx,props);
 			return 0;
 		}
-//		memcpy(&props[i],p,sizeof(*p));
-		props[i] = *p;
+		*pp++ = *p;
 
 		/* Define the prop in JS */
-		dprintf(dlevel,"dest: %p\n", p->dest);
-		if (p->dest) val = type_to_jsval(cx,p->type,p->dest,p->len);
-		else val = JSVAL_VOID;
-		dprintf(dlevel,"val: %x, void: %x\n", val, JSVAL_VOID);
-		flags = JSPROP_ENUMERATE;
-		if (p->flags & CONFIG_FLAG_READONLY) flags |= JSPROP_READONLY;
-		ok = JS_DefinePropertyWithTinyId(cx,dobj,p->name,p->id,val,0,0,flags);
-		dprintf(dlevel,"define ok: %d\n", ok);
+		if (dobj) {
+			dprintf(dlevel,"dest: %p\n", p->dest);
+			if (p->dest) val = type_to_jsval(cx,p->type,p->dest,p->len);
+			else val = JSVAL_VOID;
+			dprintf(dlevel,"val: %x, void: %x\n", val, JSVAL_VOID);
+			flags = JSPROP_ENUMERATE;
+			if (p->flags & CONFIG_FLAG_READONLY) flags |= JSPROP_READONLY;
+			ok = JS_DefinePropertyWithTinyId(cx,dobj,p->name,p->id,val,0,0,flags);
+			dprintf(dlevel,"define ok: %d\n", ok);
+		}
 	}
+	pp->name = 0;
 	return props;
 }
 

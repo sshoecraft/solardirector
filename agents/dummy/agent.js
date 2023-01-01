@@ -4,9 +4,10 @@ include(dirname(script_name)+"/../../core/utils.js");
 
 function agent_main() {
 	var dummy = new Driver("dummy");
-	dummy.init = function(agent_val) {
-		// This agent object ~temporary
-	//	dumpobj(agent_val);
+	dummy.init = function(tempagent) {
+		dprintf(0,"*** INIT ***\n");
+		dprintf(0,"tempagent: %s\n", tempagent);
+	//	dumpobj(tempagent);
 	}
 	dummy.read = function(control,buflen) {
 		dprintf(0,"read: control: %s, buflen: %s\n", control, buflen);
@@ -27,7 +28,7 @@ function agent_main() {
 		return;
 	}
 	dummy.get_info = function() {
-//		dprintf(0,"*** GET_INFO ****\n");
+		dprintf(0,"*** GET_INFO ****\n");
 		var info = {};
 		info.driver_name = "dummy";
 		info.driver_type = "Example";
@@ -36,7 +37,9 @@ function agent_main() {
 		return j;
 	}
 
-	var props = [];
+	var props = [
+		[ "boolval", DATA_TYPE_BOOL, "false", 0 ],
+	];
 	var funcs = [];
 
 	agent = new Agent(argv,dummy,"1.0",props,funcs);
