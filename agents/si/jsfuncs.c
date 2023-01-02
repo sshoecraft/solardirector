@@ -221,6 +221,7 @@ static JSBool si_getprop(JSContext *cx, JSObject *obj, jsval id, jsval *rval) {
 static JSBool si_setprop(JSContext *cx, JSObject *obj, jsval id, jsval *rval) {
 	si_session_t *s;
 
+//	dprintf(0,"obj: %p\n", obj);
 	s = JS_GetPrivate(cx,obj);
 	if (!s) {
 		JS_ReportError(cx,"private is null!");
@@ -492,32 +493,35 @@ static int js_si_init(JSContext *cx, JSObject *parent, void *priv) {
 	}
 	dprintf(dlevel,"done!\n");
 	JS_SetPrivate(cx,obj,s);
-	s->si_obj = obj;
+//	s->si_obj = obj;
 
 	s->data_val = OBJECT_TO_JSVAL(jssi_data_new(cx,obj,s));
 	s->agent_val = OBJECT_TO_JSVAL(js_agent_new(cx,obj,s->ap));
+#if 0
 	s->can_obj = jscan_new(cx,parent,s->can,s->can_handle,s->can_transport,s->can_target,s->can_topts,&s->can_connected);
 	if (s->can_obj) s->can_val = OBJECT_TO_JSVAL(s->can_obj);
 #ifdef SMANET
 	s->smanet_obj = jssmanet_new(cx,parent,s->smanet,s->smanet_transport,s->smanet_target,s->smanet_topts);
 	if (s->smanet_obj) s->smanet_val = OBJECT_TO_JSVAL(s->smanet_obj);
 #endif
+#endif
+//	s->can_val = OBJECT_TO_JSVAL(js_can_new(cx,parent,s->can,s->can_handle,s->can_transport,s->can_target,s->can_topts,&s->can_connected));
+	s->can_val = OBJECT_TO_JSVAL(js_can_new(cx,parent,s->can_handle));
+#ifdef SMANET
+	s->smanet_val = OBJECT_TO_JSVAL(jssmanet_new(cx,parent,s->smanet,s->smanet_transport,s->smanet_target,s->smanet_topts));
+#endif
 
 	/* Create the global convenience objects */
 	JS_DefineProperty(cx, parent, "si", OBJECT_TO_JSVAL(obj), 0, 0, JSPROP_ENUMERATE);
 	JS_DefineProperty(cx, parent, "data", s->data_val, 0, 0, JSPROP_ENUMERATE);
-	JS_DefineProperty(cx, parent, "agent", s->agent_val, 0, 0, JSPROP_ENUMERATE);
 	JS_DefineProperty(cx, parent, "can", s->can_val, 0, 0, JSPROP_ENUMERATE);
 #ifdef SMANET
 	JS_DefineProperty(cx, parent, "smanet", s->smanet_val, 0, 0, JSPROP_ENUMERATE);
 #endif
-
-	if (s->ap) {
-		JS_DefineProperty(cx, parent, "config", s->ap->js.config_val, 0, 0, JSPROP_ENUMERATE);
-		JS_DefineProperty(cx, parent, "mqtt", s->ap->js.mqtt_val, 0, 0, JSPROP_ENUMERATE);
-		JS_DefineProperty(cx, parent, "influx", s->ap->js.influx_val, 0, 0, JSPROP_ENUMERATE);
-	}
-
+	JS_DefineProperty(cx, parent, "agent", s->agent_val, 0, 0, JSPROP_ENUMERATE);
+	JS_DefineProperty(cx, parent, "config", s->ap->js.config_val, 0, 0, JSPROP_ENUMERATE);
+	JS_DefineProperty(cx, parent, "mqtt", s->ap->js.mqtt_val, 0, 0, JSPROP_ENUMERATE);
+	JS_DefineProperty(cx, parent, "influx", s->ap->js.influx_val, 0, 0, JSPROP_ENUMERATE);
 	return 0;
 }
 

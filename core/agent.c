@@ -190,8 +190,9 @@ void agent_getmsg(void *ctx, char *topic, char *message, int msglen, char *reply
 void agent_event(solard_agent_t *ap, char *module, char *action) {
 	json_object_t *o;
 
+	dprintf(dlevel,"e: %p\n", ap->e);
 	if (!ap->e) return;
-	if (ap->e) event(ap->e, ap->instance_name, module, action);
+	event(ap->e, ap->instance_name, module, action);
 
 	o = json_create_object();
 	json_object_add_string(o,"agent",ap->instance_name);
@@ -576,18 +577,20 @@ static int agent_startup(solard_agent_t *ap, char *mqtt_info, char *influx_info,
 //	if (props) free(props);
 //	if (funcs) free(funcs);
 
+#if 0
 #ifdef JS
 	dprintf(dlevel,"nojs: %d\n", check_bit(ap->flags, AGENT_FLAG_NOJS));
 	if (!check_bit(ap->flags, AGENT_FLAG_NOJS)) {
 		/* Add JS init funcs (define classes) */
-		JS_EngineAddInitClass(ap->js.e, "agent_jsinit", js_InitAgentClass);
-		JS_EngineAddInitClass(ap->js.e, "config_jsinit", js_InitConfigClass);
-		JS_EngineAddInitClass(ap->js.e, "mqtt_jsinit", js_InitMQTTClass);
-		JS_EngineAddInitClass(ap->js.e, "influx_jsinit", js_InitInfluxClass);
+		JS_EngineAddInitClass(ap->js.e, "js_InitAgentClass", js_InitAgentClass);
+		JS_EngineAddInitClass(ap->js.e, "js_InitConfigClass", js_InitConfigClass);
+		JS_EngineAddInitClass(ap->js.e, "js_InitMQTTClass", js_InitMQTTClass);
+		JS_EngineAddInitClass(ap->js.e, "js_InitInfluxClass", js_InitInfluxClass);
 	} else {
 		/* See if the driver has an engine ptr */
 //		if (ap->driver && ap->driver->config) ap->driver->config(ap->handle, AGENT_CONFIG_GETJS, &ap->js.e);
 	}
+#endif
 #endif
 
 #ifdef MQTT
@@ -869,7 +872,6 @@ int agent_run(solard_agent_t *ap) {
 	last_read = 0;
 #ifdef JS
 	/* Do a GC before we start */
-	dprintf(0,"===> e: %p\n", ap->js.e);
 	JS_EngineCleanup(ap->js.e);
 #endif
 	peak = last_peak = last_used = 0;
@@ -1039,14 +1041,11 @@ static JSBool js_agent_getprop(JSContext *cx, JSObject *obj, jsval id, jsval *rv
 			jsval reviver = JSVAL_NULL;
 			JSBool ok;
 
-			dprintf(dlevel,"getting info..\n");
 			/* Convert from C JSON type to JS JSON type */
+			dprintf(dlevel,"ap->info: %p\n", ap->info);
 			j = json_dumps(ap->info,0);
-			if (!j) {
-				JS_ReportError(cx, "unable to stringify info\n");
-				return JS_FALSE;
-			}
-			dprintf(dlevel,"j: %p\n", j);
+			if (!j) j = strdup("{}");
+			dprintf(dlevel,"j: %s\n", j);
 			jp = js_BeginJSONParse(cx, &rootVal);
 			dprintf(dlevel,"jp: %p\n", jp);
 			if (!jp) {
@@ -1058,7 +1057,6 @@ static JSBool js_agent_getprop(JSContext *cx, JSObject *obj, jsval id, jsval *rv
         		ok = js_ConsumeJSONText(cx, jp, JS_GetStringChars(str), JS_GetStringLength(str));
 			dprintf(dlevel,"ok: %d\n", ok);
 			ok = js_FinishJSONParse(cx, jp, reviver);
-//			ok = js_FinishJSONParse(cx, jp);
 			dprintf(dlevel,"ok: %d\n", ok);
 			free(j);
 			*rval = rootVal;
@@ -1074,7 +1072,7 @@ static JSBool js_agent_getprop(JSContext *cx, JSObject *obj, jsval id, jsval *rv
 			*rval = ap->js.influx_val;
 			break;
 		case AGENT_PROPERTY_ID_MSG:
-			*rval = OBJECT_TO_JSVAL(js_messages_new(cx,obj,ap->mq));
+			*rval = OBJECT_TO_JSVAL(js_create_messages_array(cx,obj,ap->mq));
 			break;
 		case AGENT_PROPERTY_ID_ADDMQ:
 			*rval = type_to_jsval(cx,DATA_TYPE_BOOL,&ap->addmq,0);
@@ -1362,15 +1360,15 @@ static JSBool js_agent_ctor(JSContext *cx, JSObject *obj, uintN argc, jsval *arg
 	char **args, *name, *vers;
         unsigned int count;
 	JSObject *aobj, *dobj, *pobj,*fobj;
-//        JSObject *newobj;
 	int i,sz;
 	jsval val;
 	JSString *jstr;
-//	JSBool ok;
 	solard_driver_t *driver;
 	void *driver_handle;
 	config_property_t *props;
 	config_function_t *funcs;
+
+	dprintf(0,"cx: %p, obj: %p, argc: %d\n", cx, obj, argc);
 
 	name = vers = 0;
 	aobj = dobj = pobj = fobj = 0;
@@ -1448,50 +1446,10 @@ static JSBool js_agent_ctor(JSContext *cx, JSObject *obj, uintN argc, jsval *arg
 		JS_ReportError(cx, "agent_init returned null");
 		return JS_FALSE;
 	}
-	if (!ap->js.agent_obj) {
-		JS_ReportError(cx, "agent did not create object");
-		return JS_FALSE;
-	}
 
-#if 0
-	/* Create our object */
-	newobj = js_agent_new(cx,obj,ap);
-
-	/* Call driver init again */
-	if (driver->config) driver->config(driver_handle, SOLARD_CONFIG_INIT, ap);
-	agent_get_info(ap,false,true);
-
-	/* See if the name object has a DRIVER_CP property */
-	ok = JS_GetProperty(cx, dobj, DRIVER_CP, &val);
-	dprintf(dlevel,"DRIVER CP => ok: %d\n", ok);
-	if (ok) {
-		JSObject *config_obj = js_config_new(cx,newobj,ap->cp);
-		if (config_obj) {
-			dprintf(dlevel,"Setting property!\n");
-			val = OBJECT_TO_JSVAL(config_obj);
-			ok = JS_SetProperty(cx, dobj, DRIVER_CP, &val);
-			dprintf(dlevel,"SetProperty ok: %d\n", ok);
-
-			/* Add the props and funcs */
-			dprintf(dlevel,"pobj: %p\n", pobj);
-			if (pobj) {
-				jsval args[2] = { OBJECT_TO_JSVAL(dobj), OBJECT_TO_JSVAL(pobj) };
-				js_config_add_props(cx, config_obj, 2, args, &val);
-			}
-			dprintf(dlevel,"fobj: %p\n", fobj);
-			if (fobj) {
-				jsval args[2] = { OBJECT_TO_JSVAL(dobj), OBJECT_TO_JSVAL(fobj) };
-				js_config_add_funcs(cx, config_obj, 2, args, &val);
-			}
-			/* Repub */
-			if (ap->m) agent_pubconfig(ap);
-		}
-	}
-#endif
-
-	dprintf(dlevel,"returning newobj!\n");
-//	*rval = OBJECT_TO_JSVAL(newobj);
-	*rval = OBJECT_TO_JSVAL(ap->js.agent_obj);
+	/* Driver's init func must create agent object */
+	dprintf(0,"agent_val: %x\n", ap->js.agent_val);
+	*rval = ap->js.agent_val;
 	return JS_TRUE;
 }
 
@@ -1531,15 +1489,15 @@ JSObject *js_InitAgentClass(JSContext *cx, JSObject *global_object) {
 		JS_ReportError(cx,"unable to initialize %s class", agent_class.name);
 		return 0;
 	}
-	dprintf(dlevel,"obj: %p!\n", obj);
+	dprintf(dlevel,"obj: %p\n", obj);
 	return obj;
 }
 
-JSObject *js_agent_new(JSContext *cx, JSObject *parent, solard_agent_t *ap) {
+JSObject *js_agent_new(JSContext *cx, JSObject *parent, void *priv) {
+	solard_agent_t *ap = priv;
 	JSObject *newobj;
 
-	dprintf(dlevel,"agent_obj: %p\n", ap->js.agent_obj);
-	if (ap->js.agent_obj) return ap->js.agent_obj;
+//	dprintf(dlevel,"parent name: %s\n", JS_GetObjectName(cx,parent));
 
 	/* Create the new object */
 	newobj = JS_NewObject(cx, &agent_class, 0, parent);
@@ -1576,28 +1534,36 @@ JSObject *js_agent_new(JSContext *cx, JSObject *parent, solard_agent_t *ap) {
 		free(funcs);
 
 		/* Create the config object */
+		dprintf(dlevel,"Creating config_val...\n");
 		ap->js.config_val = OBJECT_TO_JSVAL(js_config_new(cx,newobj,ap->cp));
-		JS_DefineProperty(cx, parent, "config", ap->js.config_val, 0, 0, JSPROP_ENUMERATE);
+		JS_DefineProperty(cx, newobj, "config", ap->js.config_val, 0, 0, JSPROP_ENUMERATE);
 	}
 
+	dprintf(dlevel,"Setting private to: %p\n", ap);
 	JS_SetPrivate(cx,newobj,ap);
 
 	/* Only used by driver atm */
+	dprintf(dlevel,"Creating agent_val...\n");
 	ap->js.agent_val = OBJECT_TO_JSVAL(newobj);
-//	dprintf(0,"agent_val: %x\n", ap->js.agent_val);
+	dprintf(dlevel,"agent_val: %x\n", ap->js.agent_val);
 
 #ifdef MQTT
-	/* Create MQTT child object */
-	if (ap->m) ap->js.mqtt_val = OBJECT_TO_JSVAL(js_mqtt_new(cx,newobj,ap->m));
-	JS_DefineProperty(cx, parent, "mqtt", ap->js.mqtt_val, 0, 0, JSPROP_ENUMERATE);
+	if (ap->m) {
+		/* Create MQTT child object */
+		dprintf(dlevel,"Creating mqtt_val...\n");
+		if (ap->m) ap->js.mqtt_val = OBJECT_TO_JSVAL(js_mqtt_new(cx,newobj,ap->m));
+		JS_DefineProperty(cx, newobj, "mqtt", ap->js.mqtt_val, 0, 0, JSPROP_ENUMERATE);
+	}
 #endif
 #ifdef INFLUX
-	/* Create Influx child object */
-	if (ap->i) ap->js.influx_val = OBJECT_TO_JSVAL(js_influx_new(cx,newobj,ap->i));
-	JS_DefineProperty(cx, parent, "influx", ap->js.influx_val, 0, 0, JSPROP_ENUMERATE);
+	if (ap->i) {
+		/* Create Influx child object */
+		dprintf(dlevel,"Creating influx_val...\n");
+		if (ap->i) ap->js.influx_val = OBJECT_TO_JSVAL(js_influx_new(cx,newobj,ap->i));
+		JS_DefineProperty(cx, newobj, "influx", ap->js.influx_val, 0, 0, JSPROP_ENUMERATE);
+	}
 #endif
 
-	ap->js.agent_obj = newobj;
 	return newobj;
 }
 #endif

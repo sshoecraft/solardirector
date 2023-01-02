@@ -30,6 +30,8 @@ function pub_main() {
 	status = addstat(status,si.charge_mode == 2,"CV");
 	status = addstat(status,si.feed_enabled,"feed");
 	status = addstat(status,(si.input_source != CURRENT_SOURCE_NONE && si.feed_enabled && si.charge_mode && si.dynfeed && data.GdOn),"dynfeed");
+	status = addstat(status,(si.charge_mode && si.dyngrid && data.GdOn),"dyngrid");
+	status = addstat(status,(si.charge_mode && si.dyngen && data.GnOn),"dyngen");
 
 	avail = data.input_power;
 	if (avail < 0) avail = 0;

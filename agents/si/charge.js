@@ -492,7 +492,7 @@ function charge_init() {
 
 	/* Make sure all our variables are defined */
 	var flags = CONFIG_FLAG_NOPUB | CONFIG_FLAG_NOSAVE;
-	var charge_props = [
+	var old_charge_props = [
 		[ "location", DATA_TYPE_STRING, null, 0, set_location ],
 		[ "charge_start_time", DATA_TYPE_STRING, null, 0, set_charge_start_date ],
 		[ "charge_stop_time", DATA_TYPE_STRING, null, 0, set_charge_stop_date ],
@@ -528,6 +528,9 @@ function charge_init() {
 		[ "discharge_efficiency", DATA_TYPE_FLOAT, "94.5", 0 ],
 		[ "charge_efficiency_table", DATA_TYPE_STRING, "si_ceff", 0 ],
 		[ "charge_efficiency", DATA_TYPE_FLOAT, "96", 0 ],
+	];
+	var charge_props = [
+		[ "location", DATA_TYPE_STRING, null, 0, set_location ],
 	];
 	var charge_funcs = [
 		[ "battery_empty", charge_empty, 0 ],

@@ -52,6 +52,7 @@ typedef struct driver_private {
 	JSObject *parent;
 	JSObject *obj;
 	solard_agent_t *ap;
+	jsval agent_val;
 	config_t *cp;
 	jsval init;
 } driver_private_t;
@@ -63,11 +64,9 @@ static int _callfunc(driver_private_t *p, char *name, int argc, jsval *argv, jsv
 	dprintf(dlevel,"name: %s\n", name);
 	ok = JS_GetProperty(p->cx, p->obj, name, &fval);
 	dprintf(dlevel,"ok: %d, isfunc: %d\n", ok, VALUE_IS_FUNCTION(p->cx,fval));
-	if (ok && VALUE_IS_FUNCTION(p->cx,fval)) {
-		ok = JS_CallFunctionValue(p->cx, p->obj, fval, argc, argv, rval);
-		if (ok) return 0;
-	}
-	return 1;
+	if (ok && VALUE_IS_FUNCTION(p->cx,fval)) ok = JS_CallFunctionValue(p->cx, p->obj, fval, argc, argv, rval);
+	dprintf(dlevel,"ok: %d\n", ok);
+	return (ok != JS_TRUE);
 }
 
 static int driver_open(void *h) {
@@ -123,10 +122,10 @@ int driver_config(void *h, int req, ...) {
 
 			dprintf(dlevel,"**** CONFIG INIT *******\n");
 			ap = va_arg(va,solard_agent_t *);
-			js_agent_new(p->cx,p->parent,ap);
-			dprintf(dlevel,"agent_val: %x\n", ap->js.agent_val);
-			if (ap->js.agent_val) {
- 				jsval argv[1] = { ap->js.agent_val };
+			p->agent_val = OBJECT_TO_JSVAL(js_agent_new(p->cx,p->parent,ap));
+			dprintf(dlevel,"agent_val: %x\n", p->agent_val);
+			if (p->agent_val) {
+ 				jsval argv[1] = { p->agent_val };
 
 				p->ap = ap;
 				_callfunc(p,"init",1,argv,&rval);
@@ -145,15 +144,18 @@ exit(0);
 			dprintf(dlevel,"vp: %p\n", vp);
 			if (vp) {
 				JSString *str;
-				char *bytes;
+				char *j;
 				json_value_t *v;
 
-				_callfunc(p,"get_info",0,0,&rval);
-				str = JS_ValueToString(p->cx, rval);
-				bytes = (char *)js_GetStringBytes(p->cx, str);
-//				printf("value: %s\n", bytes);
-				v = json_parse(bytes);
-//				dprintf(dlevel,"v: %p\n", v);
+				if (_callfunc(p,"get_info",0,0,&rval)) {
+					str = JS_ValueToString(p->cx, rval);
+					j = (char *)js_GetStringBytes(p->cx, str);
+				} else {
+					j = "{}";
+				}
+				dprintf(dlevel,"j: %s\n", j);
+				v = json_parse(j);
+				dprintf(dlevel,"v: %p\n", v);
 				config_add_info(p->ap->cp,json_value_object(v));
 				*vp = v;
 			}
@@ -364,7 +366,9 @@ JSObject *js_InitDriverClass(JSContext *cx, JSObject *parent) {
 	return obj;
 }
 
+#if 0
 int driver_jsinit(void *e) {
         return JS_EngineAddInitClass((JSEngine *)e, "Driver", js_InitDriverClass);
 }
+#endif
 #endif

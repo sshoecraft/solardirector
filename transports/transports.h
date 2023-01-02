@@ -16,4 +16,9 @@ extern solard_driver_t http_driver;
 extern solard_driver_t https_driver;
 #endif
 
+#ifdef JS
+#include "jsengine.h"
+int transports_jsinit(JSEngine *e);
+#endif
+
 #endif

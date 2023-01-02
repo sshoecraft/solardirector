@@ -11,7 +11,7 @@ function grid_init() {
 // dynamically modify chargs amps to keep grid under max power
 function dynamic_grid() {
 
-	var dlevel = 0;
+	var dlevel = 1;
 
 	dprintf(dlevel,"ac2_power: %.1f\n", data.ac2_power);
 	if (isNaN(data.ac2_power)) return 0;

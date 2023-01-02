@@ -6,6 +6,7 @@
 #include "jspubtd.h"
 #include "jsobj.h"
 #include "jsarray.h"
+#include "utils.h"
 
 #define DEBUG_JSCONV 1
 #define dlevel 6

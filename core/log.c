@@ -160,7 +160,7 @@ LOGDEF(log_debug,LOG_DEBUG);
 #include "jsapi.h"
 #include "jsengine.h"
 #include "jsstr.h"
-static int js_log_init(JSContext *cx, JSObject *parent, void *priv) {
+int js_log_init(JSContext *cx, JSObject *parent, void *priv) {
 #if 0
 	JSObject *obj = JS_GetGlobalObject(cx);
 	char temp[64];
@@ -216,9 +216,5 @@ static int js_log_init(JSContext *cx, JSObject *parent, void *priv) {
 	}
 
 	return 0;
-}
-
-int log_jsinit(void *e) {
-	return JS_EngineAddInitFunc((JSEngine *)e, "log", js_log_init, 0);
 }
 #endif

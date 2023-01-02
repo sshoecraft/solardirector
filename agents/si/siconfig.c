@@ -515,6 +515,7 @@ void si_config_add_si_data(si_session_t *s) {
 
 // Just for information
 static void si_event(void *ctx, char *name, char *module, char *action) {
+	dprintf(dlevel,"name: %s, module: %s, action: %s\n", name, module, action);
 	if (!name && !module && action && strcmp(action,"__destroy__") == 0) return;
 	log_info("EVENT: module: %s, action: %s\n", module, action);
 }

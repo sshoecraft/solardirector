@@ -9,7 +9,7 @@ LICENSE file in the root directory of this source tree.
 
 #include "btc.h"
 
-#define dlevel 4
+#define dlevel 0
 
 extern char *btc_agent_version_string;
 
@@ -129,16 +129,30 @@ static int btc_destroy(void *handle) {
 static int btc_read(void *handle, uint32_t *control, void *buf, int buflen) {
 	btc_session_t *s = handle;
 	solard_battery_t bat,*bp;
+	solard_agent_t *ap;
 	json_value_t *v;
 	float min,max;
 	int count,i;
 	time_t cur;
+	char *p;
+	solard_message_t *msg;
+
+	dprintf(dlevel,"agent count: %d\n", list_count(s->c->agents));
+	list_reset(s->c->agents);
+	while((ap = list_get_next(s->c->agents)) != 0) {
+		p = client_getagentrole(ap);
+		dprintf(dlevel+1,"agent: %s, role: %s\n", ap->name, p);
+		if (p && strcmp(p,SOLARD_ROLE_BATTERY) == 0) {
+			dprintf(dlevel+1,"count: %d\n", list_count(ap->mq));
+			while((msg = list_get_next(ap->mq)) != 0) getbat(s,msg->name,msg->data);
+		}
+		list_purge(ap->mq);
+	}
 
 	count = list_count(s->bats);
 	dprintf(dlevel,"count: %d\n", count);
 	if (!count) return 0;
 
-	/* We only report 1 metric:  power (watts) */
 	memset(&bat,0,sizeof(bat));
 	strcpy(bat.name,"bcombiner");
 	list_reset(s->bats);
@@ -163,11 +177,14 @@ static int btc_read(void *handle, uint32_t *control, void *buf, int buflen) {
 		ADD(voltage);
 		ADD(current);
 		ADD(power);
+		dprintf(0,"%s: ntemps: %d\n", bp->name, bp->ntemps);
 		for(i=0; i < bp->ntemps; i++) {
+			dprintf(dlevel+1,"%s: temp[%d]: %f\n", bp->name, i, bp->temps[i]);
 			if (bp->temps[i] < min) min = bp->temps[i];
-			else if (bp->temps[i] > max) max = bp->temps[i];
+			if (bp->temps[i] > max) max = bp->temps[i];
 		}
 		for(i=0; i < bp->ncells; i++) {
+			dprintf(dlevel+1,"%s: cellvolt[%d]: %f\n", bp->name, i, bp->cellvolt[i]);
 			ADD(cellvolt[i]);
 			bat.cell_total += bp->cellvolt[i];
 		}
@@ -184,6 +201,7 @@ static int btc_read(void *handle, uint32_t *control, void *buf, int buflen) {
 	bat.ntemps = 2;
 	bat.temps[0] = pround(min,1);
 	bat.temps[1] = pround(max,1);
+	dprintf(0,"min: %f, max: %f\n", min, max);
 	for(i=0; i < bat.ncells; i++) {
 		bat.cellvolt[i] = pround(bat.cellvolt[i] / count, 3);
 		bat.cellres[i] = pround(bat.cellres[i] / count, 3);
@@ -268,7 +286,7 @@ static int btc_config(void *h, int req, ...) {
 		char mqtt_info[256];
 
 		s->ap = va_arg(va,solard_agent_t *);
-		agent_set_callback(s->ap,btc_cb,s);
+//		agent_set_callback(s->ap,btc_cb,s);
 		s->c = client_init(0,0,btc_agent_version_string,0,"btc",CLIENT_FLAG_NOJS,0,0);
 		if (!s->c) return 1;
 		s->c->addmq = true;

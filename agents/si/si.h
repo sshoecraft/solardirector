@@ -274,16 +274,16 @@ struct si_session {
 #ifdef JS
 	JSPropertySpec *props;
 	JSFunctionSpec *funcs;
-	JSObject *si_obj;
+//	JSObject *si_obj;
 	jsval agent_val;
 	JSPropertySpec *data_props;
 	jsval data_val;
-	JSObject *can_obj;
+//	JSObject *can_obj;
 	jsval can_val;
 	void *can_val_ptr;
-	JSObject *smanet_obj;
+//	JSObject *smanet_obj;
 	jsval smanet_val;
-	void *smanet_val_ptr;
+//	void *smanet_val_ptr;
 #endif
 };
 typedef struct si_session si_session_t;

@@ -3,7 +3,7 @@ include ../make.opts
 
 ifeq ($(JS),yes)
 LIBNAME=$(shell basename $(shell pwd))
-SRCS=jsapi.c jsarena.c jsarray.c jsatom.c jsbool.c jscntxt.c jsdate.c jsdbgapi.c jsdhash.c jsdtoa.c jsemit.c jsexn.c jsfile.c jsfun.c jsgc.c jshash.c jsinterp.c jsinvoke.c jsiter.c jslog2.c jslong.c jsmath.c jsnum.c jsobj.c jsopcode.c jsparse.c jsprf.c jsregexp.c jsscan.c jsscope.c jsscript.c jsstr.c jsutil.c jsxdrapi.c jsxml.c prmjtime.c jsdtracef.c jsglobal.c jsjson.c jsengine.c jsconv.c jsprintf.c console.c jscan.c jsinflux.c jsclass.c jsws.c jsarraybuf.c jslock.c jsnavigator.c jsdocument.c jslocation.c jswindow.c
+SRCS=jsapi.c jsarena.c jsarray.c jsatom.c jsbool.c jscntxt.c jsdate.c jsdbgapi.c jsdhash.c jsdtoa.c jsemit.c jsexn.c jsfile.c jsfun.c jsgc.c jshash.c jsinterp.c jsinvoke.c jsiter.c jslog2.c jslong.c jsmath.c jsnum.c jsobj.c jsopcode.c jsparse.c jsprf.c jsregexp.c jsscan.c jsscope.c jsscript.c jsstr.c jsutil.c jsxdrapi.c jsxml.c prmjtime.c jsdtracef.c jsglobal.c jsjson.c jsengine.c jsconv.c jsprintf.c console.c jsclass.c jsws.c jsarraybuf.c jslock.c jsnavigator.c jsdocument.c jslocation.c jswindow.c
 CFLAGS+=-DJS_THREADSAFE -DNARCISSUS
 
 CLEANFILES+=jskwgen jsautokw.h

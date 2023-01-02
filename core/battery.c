@@ -414,7 +414,7 @@ static JSBool battery_getprop(JSContext *cx, JSObject *obj, jsval id, jsval *rva
 	return JS_TRUE;
 }
 
-static JSClass battery_class = {
+static JSClass js_battery_class = {
 	"battery",
 	JSCLASS_HAS_PRIVATE,
 	JS_PropertyStub,
@@ -428,7 +428,7 @@ static JSClass battery_class = {
 	JSCLASS_NO_OPTIONAL_MEMBERS
 };
 
-JSObject *js_battery_new(JSContext *cx, JSObject *parent, solard_battery_t *bp) {
+JSObject *js_InitBatteryClass(JSContext *cx, JSObject *parent) {
 	JSPropertySpec battery_props[] = { 
 		{ "name",		BATTERY_PROPERTY_ID_NAME,	JSPROP_ENUMERATE | JSPROP_READONLY },
 		{ "capacity",		BATTERY_PROPERTY_ID_CAPACITY,	JSPROP_ENUMERATE | JSPROP_READONLY },
@@ -457,16 +457,25 @@ JSObject *js_battery_new(JSContext *cx, JSObject *parent, solard_battery_t *bp) 
 	};
 	JSObject *obj;
 
-	dprintf(dlevel,"defining %s object\n",battery_class.name);
-	obj = JS_InitClass(cx, parent, 0, &battery_class, 0, 0, battery_props, battery_funcs, 0, 0);
+	dprintf(dlevel,"defining %s object\n",js_battery_class.name);
+	obj = JS_InitClass(cx, parent, 0, &js_battery_class, 0, 0, battery_props, battery_funcs, 0, 0);
 	if (!obj) {
 		JS_ReportError(cx,"unable to initialize battery class");
 		return 0;
 	}
-
-	/* Pre-create the JSVALs */
-	JS_SetPrivate(cx,obj,bp);
 	dprintf(dlevel,"done!\n");
 	return obj;
+}
+
+JSObject *js_battery_new(JSContext *cx, JSObject *parent, solard_battery_t *bp) {
+	JSObject *newobj;
+
+	/* Create the new object */
+	newobj = JS_NewObject(cx, &js_battery_class, 0, parent);
+	if (!newobj) return 0;
+
+	JS_SetPrivate(cx,newobj,bp);
+
+	return newobj;
 }
 #endif

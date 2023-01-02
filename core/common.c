@@ -30,6 +30,9 @@ LICENSE file in the root directory of this source tree.
 #include "config.h"
 #include "mqtt.h"
 #include "influx.h"
+#include "transports.h"
+#include "battery.h"
+#include "inverter.h"
 #ifdef __WIN32
 #include <winsock2.h>
 #endif
@@ -41,10 +44,6 @@ char SOLARD_BINDIR[SOLARD_PATH_MAX];
 char SOLARD_ETCDIR[SOLARD_PATH_MAX];
 char SOLARD_LIBDIR[SOLARD_PATH_MAX];
 char SOLARD_LOGDIR[SOLARD_PATH_MAX];
-
-#ifdef JS
-static int common_jsinit(JSEngine *e);
-#endif
 
 #if defined(__WIN32) && !defined(__WIN64)
 #include <windows.h>
@@ -454,12 +453,8 @@ int solard_common_startup(config_t **cp, char *sname, char *configfile, config_p
 
 #ifdef JS
 	if (js) {
-		dprintf(2,"calling JS_EngineInit...\n");
-		*js = JS_EngineInit(rtsize, stksize, jsout);
-		common_jsinit(*js);
-		types_jsinit(*js);
-		log_jsinit(*js);
-		driver_jsinit(*js);
+		*js = common_jsinit(rtsize, stksize, jsout);
+		if (!*js) return 1;
 	}
 #endif
 
@@ -660,9 +655,33 @@ static int js_common_init(JSContext *cx, JSObject *parent, void *priv) {
 	return 0;
 }
 
-static int common_jsinit(JSEngine *e) {
-	/* Init js scripting */
-	return JS_EngineAddInitFunc(e, "common", js_common_init, 0);
-}
+JSEngine *common_jsinit(int rtsize, int stksize, js_outputfunc_t *jsout) {
+	JSEngine *e;
 
+	/* Init engine */
+	dprintf(2,"calling JS_EngineInit...\n");
+	e = JS_EngineInit(rtsize, stksize, jsout);
+	if (!e) {
+		log_error("unable to initialize JS Engine!\n");
+		return 0;
+	}
+
+	/* Add Init functions (non classes) */
+	JS_EngineAddInitFunc(e, "js_common_init", js_common_init, 0);
+	JS_EngineAddInitFunc(e, "js_types_init", js_types_init, 0);
+	JS_EngineAddInitFunc(e, "js_log_init", js_log_init, 0);
+
+	if (config_jsinit(e)) return 0;
+	if (transports_jsinit(e)) return 0;
+
+	/* Add Init classes */
+	JS_EngineAddInitClass(e, "js_InitDriverClass", js_InitDriverClass);
+	JS_EngineAddInitClass(e, "js_InitAgentClass", js_InitAgentClass);
+	JS_EngineAddInitClass(e, "js_InitClientClass", js_InitClientClass);
+	JS_EngineAddInitClass(e, "js_InitMQTTClass", js_InitMQTTClass);
+	JS_EngineAddInitClass(e, "js_InitInfluxClass", js_InitInfluxClass);
+	JS_EngineAddInitClass(e, "js_InitBatteryClass", js_InitBatteryClass);
+//	JS_EngineAddInitClass(e, "js_InitInverterClass", js_InitInverterClass);
+	return e;
+}
 #endif

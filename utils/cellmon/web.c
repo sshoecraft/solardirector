@@ -1,4 +1,5 @@
 
+#if 0
 /*
 Copyright (c) 2021, Stephen P. Shoecraft
 All rights reserved.
@@ -274,3 +275,4 @@ void web_display(cellmon_config_t *conf, int web_flag) {
 
 	if (web_flag) printf("</table>");
 }
+#endif

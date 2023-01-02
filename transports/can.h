@@ -34,4 +34,9 @@ enum CAN_CONFIG_FUNCS {
 
 #define CAN_ID_ANY 0xFFFF
 
+#ifdef JS
+#include "jsengine.h"
+JSObject *js_can_new(JSContext *cx, JSObject *parent, void *priv);
+#endif
+
 #endif

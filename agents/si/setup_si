@@ -182,10 +182,10 @@ if (siconf.location) {
 	}
 }
 
-dprintf(1,"mqtt_host: %s\n",siconf.mqtt_host);
-if (!siconf.mqtt_host) {
-	mqtt_host = get_input("MQTT Host","%s","localhost");
-	siconf.mqtt_host = mqtt_host;
+dprintf(1,"mqtt_uri: %s\n",siconf.mqtt_uri);
+if (!siconf.mqtt_uri) {
+	mqtt_uri = get_input("MQTT Host","%s","localhost");
+	siconf.mqtt_uri = mqtt_uri;
 }
 
 if (!siconf.influx_database) {

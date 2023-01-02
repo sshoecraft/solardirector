@@ -50,7 +50,8 @@ solard_driver_t *find_driver(solard_driver_t **transports, char *name);
 
 #ifdef JS
 void *js_driver_get_handle(JSContext *cx, JSObject *obj);
-int driver_jsinit(void *);
+//int driver_jsinit(void *);
+JSObject *js_InitDriverClass(JSContext *cx, JSObject *parent);
 #define DRIVER_CP "__cp__"
 solard_driver_t *js_driver_get_driver(char *name);
 #endif

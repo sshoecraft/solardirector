@@ -9,6 +9,9 @@ LICENSE file in the root directory of this source tree.
 
 #include <stdio.h>
 #include <string.h>
+#include <stdlib.h>
+
+#include "types.h"
 
 #define DEBUG_TYPES 1
 #define DLEVEL 4 
@@ -129,7 +132,7 @@ static JSBool jstypes_typestr(JSContext *cx, uintN argc, jsval *vp) {
 	return JS_TRUE;
 }
 
-static int jstypes_init(JSContext *cx, JSObject *parent, void *priv) {
+int js_types_init(JSContext *cx, JSObject *parent, void *priv) {
 	JSObject *obj = JS_GetGlobalObject(cx);
 //	char *name;
 //	int namesz;
@@ -168,8 +171,9 @@ static int jstypes_init(JSContext *cx, JSObject *parent, void *priv) {
 	free(consts);
 	return 0;
 }
-
+#if 0
 int types_jsinit(void *e) {
 	return JS_EngineAddInitFunc((JSEngine *)e, "types", jstypes_init, 0);
 }
+#endif
 #endif

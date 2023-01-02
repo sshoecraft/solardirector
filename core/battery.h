@@ -94,6 +94,7 @@ json_value_t *battery_to_flat_json(solard_battery_t *bp);
 
 #ifdef JS
 #include "jsapi.h"
+JSObject *js_InitBatteryClass(JSContext *cx, JSObject *parent);
 extern JSObject *js_battery_new(JSContext *, JSObject *, solard_battery_t *);
 #endif
 

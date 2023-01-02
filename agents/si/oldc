@@ -1,4 +1,31 @@
 
+        /* See if the name object has a DRIVER_CP property */
+        ok = JS_GetProperty(cx, dobj, DRIVER_CP, &val);
+        dprintf(dlevel,"DRIVER CP => ok: %d\n", ok);
+        if (ok) {
+                JSObject *config_obj = js_config_new(cx,newobj,ap->cp);
+                if (config_obj) {
+                        dprintf(dlevel,"Setting property!\n");
+                        val = OBJECT_TO_JSVAL(config_obj);
+                        ok = JS_SetProperty(cx, dobj, DRIVER_CP, &val);
+                        dprintf(dlevel,"SetProperty ok: %d\n", ok);
+
+                        /* Add the props and funcs */
+                        dprintf(dlevel,"pobj: %p\n", pobj);
+                        if (pobj) {
+                                jsval args[2] = { OBJECT_TO_JSVAL(dobj), OBJECT_TO_JSVAL(pobj) };
+                                js_config_add_props(cx, config_obj, 2, args, &val);
+                        }
+                        dprintf(dlevel,"fobj: %p\n", fobj);
+                        if (fobj) {
+                                jsval args[2] = { OBJECT_TO_JSVAL(dobj), OBJECT_TO_JSVAL(fobj) };
+                                js_config_add_funcs(cx, config_obj, 2, args, &val);
+                        }
+                        /* Repub */
+                        if (ap->m) agent_pubconfig(ap);
+                }
+        }
+
         /* Auto set bms_mode if BatTyp is BMS */
         if (!s->bms_mode && s->can_connected && s->smanet_connected && !strlen(s->battery_type)) {
                 char *t;
@@ -108,3 +135,105 @@
 		{ "smanet_added", DATA_TYPE_BOOL, &s->smanet_added, 0, "N", 0 },
 		{ "dynamic_charge", DATA_TYPE_BOOL, &s->dynamic_charge, 0, "N", 0 },
 #endif
+
+#if 0
+#if defined(MQTT) || defined(INFLUX)
+static void si_pub(si_session_t *s) {
+	char data[4096],out[192],status[128];
+	double charge_power;
+	json_proctab_t tab[] = {
+		{ "name",DATA_TYPE_STRING,s->ap->instance_name,sizeof(s->ap->instance_name)-1,0 },
+		{ "battery_current",DATA_TYPE_FLOAT,&s->data.battery_current,0,0 }, 
+		{ "battery_level",DATA_TYPE_FLOAT,&s->data.battery_soc,0,0 }, 
+		{ "battery_power",DATA_TYPE_FLOAT,&s->data.battery_power,0,0 }, 
+		{ "battery_temp",DATA_TYPE_FLOAT,&s->data.battery_temp,0,0 }, 
+		{ "battery_voltage",DATA_TYPE_FLOAT,&s->data.battery_voltage,0,0 }, 
+		{ "charge_mode",DATA_TYPE_INT,&s->charge_mode,0,0 }, 
+		{ "charge_current",DATA_TYPE_FLOAT,&s->charge_amps,0,0 }, 
+		{ "charge_power",DATA_TYPE_FLOAT,&charge_power,0,0 }, 
+		{ "charge_voltage",DATA_TYPE_FLOAT,&s->charge_voltage,0,0 }, 
+		{ "input_current",DATA_TYPE_FLOAT,&s->data.ac2_current,0,0 }, 
+		{ "input_frequency",DATA_TYPE_FLOAT,&s->data.ac2_frequency,0,0 }, 
+		{ "input_power",DATA_TYPE_FLOAT,&s->data.ac2_power,0,0 }, 
+		{ "input_voltage",DATA_TYPE_FLOAT,&s->data.ac2_voltage,0,0 }, 
+		{ "load_power",DATA_TYPE_FLOAT,&s->data.TotLodPwr,0,0 }, 
+		{ "output_current",DATA_TYPE_FLOAT,&s->data.ac1_current,0,0 }, 
+		{ "output_frequency",DATA_TYPE_FLOAT,&s->data.ac1_frequency,0,0 }, 
+		{ "output_power",DATA_TYPE_FLOAT,&s->data.ac1_power,0,0 }, 
+		{ "output_voltage",DATA_TYPE_FLOAT,&s->data.ac1_voltage,0,0 }, 
+		{ "status",DATA_TYPE_STRING,&status,sizeof(status),0 }, 
+		{ 0 }
+	};
+	json_value_t *v;
+	char *p;
+	char topic[SOLARD_TOPIC_SIZE];
+#ifdef JS
+	bool feed_enabled,dynfeed;
+	JSContext *cx;
+	JSBool ok;
+	jsval val;
+
+	cx = JS_EngineGetCX(s->ap->js.e);
+	if (cx) {
+//		if (js_get_property_value(cx,s->si_obj,"feed_enabled",DATA_TYPE_BOOL,&feed_enabled,0)) feed_enabled = false;
+		ok = JS_GetProperty(cx, s->si_obj, "feed_enabled", &val);
+		dprintf(dlevel,"ok: %d\n", ok);
+		if (ok) jsval_to_type(DATA_TYPE_BOOL,&feed_enabled,0,cx,val);
+		else feed_enabled = false;
+		dprintf(dlevel,"feed_enabled: %d\n", feed_enabled);
+
+		ok = JS_GetProperty(cx, s->si_obj, "dynfeed", &val);
+		dprintf(dlevel,"ok: %d\n", ok);
+		if (ok) jsval_to_type(DATA_TYPE_BOOL,&dynfeed,0,cx,val);
+		else dynfeed = false;
+		dprintf(dlevel,"dynfeed: %d\n", dynfeed);
+	}
+#endif
+
+	p = status;
+	*status = 0;
+	#define addstat(stat,cond,str) if (cond) p += sprintf(p,"[%s]",str)
+	addstat(status,s->can_connected,"can");
+	addstat(status,s->readonly,"readonly");
+	addstat(status,s->smanet_connected,"smanet");
+	addstat(status,s->data.GdOn,"grid");
+	addstat(status,s->data.GnOn,"gen");
+	addstat(status,s->charge_mode,"charge");
+        addstat(status,s->charge_mode == 1,"CC");
+        addstat(status,s->charge_mode == 2,"CV");
+#ifdef JS
+        addstat(status,feed_enabled,"feed");
+        addstat(status,(s->input.source != CURRENT_SOURCE_NONE && feed_enabled && s->charge_mode && dynfeed && s->data.GdOn),"dynfeed");
+#endif
+
+	dprintf(dlevel,"status(%d): %s\n", strlen(status), status);
+
+	p = out;
+	p += sprintf(p,"%s Battery: voltage: %.1f",status,s->data.battery_voltage);
+//	if (check_state(s,SI_HAVE_TEMP)) p += sprintf(p,", temp: %.1f", s->data.battery_temp);
+	p += sprintf(p,", level: %.1f", s->data.battery_soc);
+	if (strcmp(out,s->last_out) != 0) {
+		log_info("%s\n",out);
+		strcpy(s->last_out,out);
+	}
+
+	charge_power = (s->charge_mode ? s->charge_voltage * s->charge_amps : 0.0);
+	v = json_from_tab(tab);
+#ifdef MQTT
+//	if (json_string_from_tab(data,sizeof(data)-1,tab,1) > 0) {
+	if (!json_tostring(v,data,sizeof(data),1)) {
+		dprintf(dlevel,"data: %s\n", data);
+		agent_mktopic(topic,sizeof(topic)-1,s->ap->instance_name,SOLARD_FUNC_DATA);
+		dprintf(dlevel,"topic: %s\n", topic);
+		if (mqtt_pub(s->ap->m, topic, data, 1, 0)) log_error("si_pub: error sending mqtt message!\n");
+	}
+#endif
+#ifdef INFLUX
+	if (influx_connected(s->ap->i)) influx_write_json(s->ap->i,"inverter",v);
+#endif
+	json_destroy_value(v);
+	return;
+}
+#endif
+#endif
+

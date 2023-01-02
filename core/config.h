@@ -213,6 +213,7 @@ config_property_t *js_config_obj2props(JSContext *cx, JSObject *obj, JSObject *a
 config_function_t *js_config_obj2funcs(JSContext *cx, JSObject *obj);
 JSBool js_config_add_props(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rval);
 JSBool js_config_add_funcs(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rval);
+int config_jsinit(JSEngine *e);
 #endif
 
 #endif

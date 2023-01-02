@@ -890,7 +890,7 @@ enum CLIENT_PROPERTY_ID {
 	CLIENT_PROPERTY_ID_ADDMQ,
 };
 
-JSObject *js_agentinfo_new(JSContext *cx, JSObject *parent, list l) {
+static JSObject *js_create_agents_array(JSContext *cx, JSObject *parent, list l) {
 	JSObject *rows,*mobj;
 	jsval val;
 	solard_agent_t *ap;
@@ -938,10 +938,10 @@ static JSBool js_client_getprop(JSContext *cx, JSObject *obj, jsval id, jsval *r
 			*rval = c->influx_val;
 			break;
 		case CLIENT_PROPERTY_ID_AGENTS:
-			*rval = OBJECT_TO_JSVAL(js_agentinfo_new(cx,obj,c->agents));
+			*rval = OBJECT_TO_JSVAL(js_create_agents_array(cx,obj,c->agents));
 			break;
 		case CLIENT_PROPERTY_ID_MSG:
-			*rval = OBJECT_TO_JSVAL(js_messages_new(cx,obj,c->mq));
+			*rval = OBJECT_TO_JSVAL(js_create_messages_array(cx,obj,c->mq));
 			break;
 		case CLIENT_PROPERTY_ID_ADDMQ:
 			*rval = type_to_jsval(cx,DATA_TYPE_BOOL,&c->addmq,0);
@@ -1178,7 +1178,7 @@ static JSBool client_ctor(JSContext *cx, JSObject *obj, uintN argc, jsval *argv,
 	return JS_TRUE;
 }
 
-JSObject *js_client_new(JSContext *cx, JSObject *parent, void *priv) {
+JSObject *js_InitClientClass(JSContext *cx, JSObject *parent) {
 	JSPropertySpec client_props[] = {
 		{ "config", CLIENT_PROPERTY_ID_CONFIG, JSPROP_ENUMERATE },
 		{ "mqtt", CLIENT_PROPERTY_ID_MQTT, JSPROP_ENUMERATE },
@@ -1195,52 +1195,114 @@ JSObject *js_client_new(JSContext *cx, JSObject *parent, void *priv) {
 		{ 0 }
 	};
 	JSObject *obj;
-	solard_client_t *c = priv;
-	JSPropertySpec *props;
-
-	props = 0;
-	if (c && c->cp && !c->props) {
-		c->props = js_config_to_props(c->cp, cx, c->section_name, client_props);
-		if (!c->props) {
-			log_error("unable to create props: %s\n", config_get_errmsg(c->cp));
-			return 0;
-		}
-		props = c->props;
-	}
-	dprintf(dlevel,"client props: %p\n", props);
 
 	dprintf(dlevel,"creating %s object\n",client_class.name);
-	obj = JS_InitClass(cx, parent, 0, &client_class, client_ctor, 1, props, client_funcs, 0, 0);
+	obj = JS_InitClass(cx, parent, 0, &client_class, client_ctor, 1, client_props, client_funcs, 0, 0);
 	if (!obj) {
 		JS_ReportError(cx,"unable to initialize %s class", client_class.name);
 		return 0;
-	}
-
-	if (c) {
-		JS_SetPrivate(cx,obj,c);
-
-		if (check_bit(c->flags,CLIENT_FLAG_JSGLOBAL)) {
-			/* Create our child objects */
-			c->config_val = OBJECT_TO_JSVAL(js_config_new(cx,obj,c->cp));
-			JS_DefineProperty(cx, parent, "config", c->config_val, 0, 0, JSPROP_ENUMERATE);
-#ifdef MQTT
-
-			c->mqtt_val = OBJECT_TO_JSVAL(js_mqtt_new(cx,obj,c->m));
-			JS_DefineProperty(cx, parent, "mqtt", c->mqtt_val, 0, 0, JSPROP_ENUMERATE);
-#endif
-#ifdef INFLUX
-			c->influx_val = OBJECT_TO_JSVAL(js_influx_new(cx,obj,c->i));
-			JS_DefineProperty(cx, parent, "influx", c->influx_val, 0, 0, JSPROP_ENUMERATE);
-		}
-#endif
 	}
 
 	dprintf(dlevel,"done!\n");
 	return obj;
 }
 
-JSObject *js_InitClientClass(JSContext *cx, JSObject *global_object) {
-	return js_client_new(cx, global_object, 0);
+static JSBool js_client_callfunc(JSContext *cx, uintN argc, jsval *vp) {
+	JSObject *obj;
+	solard_client_t *c;
+
+	obj = JS_THIS_OBJECT(cx, vp);
+	if (!obj) {
+		JS_ReportError(cx, "js_client_callfunc: internal error: object is null!\n");
+		return JS_FALSE;
+	}
+	c = JS_GetPrivate(cx, obj);
+	if (!c) {
+		JS_ReportError(cx, "js_client_callfunc: internal error: private is null!\n");
+		return JS_FALSE;
+	}
+	dprintf(dlevel,"c: %p\n", c);
+	if (!c) return JS_TRUE;
+	dprintf(dlevel,"c->cp: %p\n", c->cp);
+	if (!c->cp) return JS_TRUE;
+
+	dprintf(dlevel,"argc: %d\n", argc);
+	return js_config_callfunc(c->cp, cx, argc, vp);
 }
 
+JSObject *js_client_new(JSContext *cx, JSObject *parent, void *priv) {
+	solard_client_t *c = priv;
+	JSObject *newobj;
+
+//	dprintf(dlevel,"parent name: %s\n", JS_GetObjectName(cx,parent));
+
+	/* Create the new object */
+	newobj = JS_NewObject(cx, &client_class, 0, parent);
+	if (!newobj) return 0;
+
+	/* Add config props/funcs */
+	dprintf(dlevel,"c->cp: %p\n", c->cp);
+	if (c->cp) {
+		/* Create client config props */
+		JSPropertySpec *props = js_config_to_props(c->cp, cx, "client", 0);
+		if (!props) {
+			log_error("js_client_new: unable to create config props: %s\n", config_get_errmsg(c->cp));
+			return 0;
+		}
+
+		dprintf(dlevel,"Defining client config props\n");
+		if (!JS_DefineProperties(cx, newobj, props)) {
+			JS_ReportError(cx,"unable to define props");
+			return 0;
+		}
+		free(props);
+
+		/* Create client config funcs */
+		JSFunctionSpec *funcs = js_config_to_funcs(c->cp, cx, js_client_callfunc, 0);
+		if (!funcs) {
+			log_error("unable to create funcs: %s\n", config_get_errmsg(c->cp));
+			return 0;
+		}
+		dprintf(dlevel,"Defining client config funcs\n");
+		if (!JS_DefineFunctions(cx, newobj, funcs)) {
+			JS_ReportError(cx,"unable to define funcs");
+			return 0;
+		}
+		free(funcs);
+
+		/* Create the config object */
+		dprintf(dlevel,"Creating config object...\n");
+		c->config_val = OBJECT_TO_JSVAL(js_config_new(cx,newobj,c->cp));
+		dprintf(dlevel,"config_val: %x\n", c->config_val);
+		dprintf(dlevel,"Defining config property...\n");
+		JS_DefineProperty(cx, newobj, "config", c->config_val, 0, 0, JSPROP_ENUMERATE);
+	}
+
+	dprintf(dlevel,"Setting private to: %p\n", c);
+	JS_SetPrivate(cx,newobj,c);
+
+	/* Only used by driver atm */
+	dprintf(dlevel,"Creating client_val...\n");
+	c->client_val = OBJECT_TO_JSVAL(newobj);
+	dprintf(dlevel,"client_val: %x\n", c->client_val);
+
+#ifdef MQTT
+	if (c->m) {
+		/* Create MQTT child object */
+		dprintf(dlevel,"Creating mqtt_val...\n");
+		if (c->m) c->mqtt_val = OBJECT_TO_JSVAL(js_mqtt_new(cx,newobj,c->m));
+		JS_DefineProperty(cx, newobj, "mqtt", c->mqtt_val, 0, 0, JSPROP_ENUMERATE);
+	}
+#endif
+#ifdef INFLUX
+	if (c->i) {
+		/* Create Influx child object */
+		dprintf(dlevel,"Creating influx_val...\n");
+		if (c->i) c->influx_val = OBJECT_TO_JSVAL(js_influx_new(cx,newobj,c->i));
+		JS_DefineProperty(cx, newobj, "influx", c->influx_val, 0, 0, JSPROP_ENUMERATE);
+	}
+#endif
+
+	return newobj;
+}
 #endif

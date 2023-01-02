@@ -267,7 +267,7 @@ JSObject *js_message_new(JSContext *cx, JSObject *parent, solard_message_t *msg)
 	return obj;
 }
 
-JSObject *js_messages_new(JSContext *cx, JSObject *parent, list l) {
+JSObject *js_create_messages_array(JSContext *cx, JSObject *parent, list l) {
 	JSObject *rows,*mobj;
 	jsval val;
 	solard_message_t *msg;

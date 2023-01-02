@@ -2,6 +2,7 @@
 #include "jsclass.h"
 #include "jswindow.h"
 #include "jswindow_defs.h"
+#include "jsengine.h"
 
 #define dlevel 4
 

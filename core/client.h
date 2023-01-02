@@ -12,6 +12,8 @@ LICENSE file in the root directory of this source tree.
 
 #include "agent.h"
 
+struct solard_agent;
+typedef struct solard_agent solard_agent_t;
 #define client_agentinfo_t solard_agent_t
 
 #define CLIENT_AGENTINFO_REPLY		0x0001		/* Function called, expecting a reply */
@@ -41,6 +43,7 @@ struct solard_client {
 	int rtsize;
 	int stacksize;
 	JSEngine *js;
+	jsval client_val;
 	jsval config_val;
 	jsval mqtt_val;
 	jsval influx_val;
@@ -51,7 +54,6 @@ struct solard_client {
 	char start_script[SOLARD_PATH_MAX];
 	char stop_script[SOLARD_PATH_MAX];
 #endif
-//	list eq;				/* Event queue */
 	void *private;
 };
 typedef struct solard_client solard_client_t;
@@ -78,10 +80,8 @@ int client_getagentstatus(client_agentinfo_t *info, solard_message_t *msg);
 char *client_getagentrole(client_agentinfo_t *info);
 
 #ifdef JS
-JSObject *js_InitClientClass(JSContext *cx, JSObject *global_object);
-JSObject *js_client_new(JSContext *cx, JSObject *parent, void *c);
-int jsclient_init(JSContext *cx, JSObject *parent, void *priv);
-int client_jsinit(JSEngine *e, void *priv);
+JSObject *js_InitClientClass(JSContext *cx, JSObject *parent);
+JSObject *js_client_new(JSContext *cx, JSObject *parent, void *priv);
 #endif
 
 #endif

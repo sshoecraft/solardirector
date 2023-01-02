@@ -287,7 +287,7 @@ int config_property_set_value(config_property_t *p, int type, void *src, int siz
 	_set_flag(p->flags,VALUE);
 	p->dirty = dirty;
 //	config_dump_property(p,0);
-	dprintf(ldlevel,"trigger: %d, p->dest: %p, p->trigger: %d\n", trigger, p->dest, p->trigger);
+	dprintf(dlevel,"trigger: %d, p->dest: %p, p->trigger: %p\n", trigger, p->dest, p->trigger);
 	if (trigger && p->dest && !_check_flag(p->flags,NOTRIG) && p->trigger) p->trigger(p->ctx,p);
 	if (p->dest) {
 		char value[1024];
@@ -423,6 +423,8 @@ int config_section_add_property(config_t *cp, config_section_t *s, config_proper
 	if (!cp || !s || !p) return 1;
 
 	trig = cp->triggers && ((flags & CONFIG_FLAG_NOTRIG) == 0);
+	/* Dont apply this to the property flags */
+	_clear_flag(flags,NOTRIG);
 	dprintf(dlevel,"p->name: %s, flags: %x, trig: %d\n", p->name, flags, trig);
 	p->cp = cp;
 
@@ -2131,7 +2133,7 @@ enum CONFIG_PROPERTY_PROPERTY_ID {
 	CONFIG_PROPERTY_PROPERTY_ID_ARG,
 };
 
-static JSBool config_property_getprop(JSContext *cx, JSObject *obj, jsval id, jsval *rval) {
+static JSBool js_config_property_getprop(JSContext *cx, JSObject *obj, jsval id, jsval *rval) {
 	config_property_t *p;
 	int prop_id;
 
@@ -2207,7 +2209,7 @@ static JSBool config_property_getprop(JSContext *cx, JSObject *obj, jsval id, js
 	return JS_TRUE;
 }
 
-static JSBool config_property_setprop(JSContext *cx, JSObject *obj, jsval id, jsval *vp) {
+static JSBool js_config_property_setprop(JSContext *cx, JSObject *obj, jsval id, jsval *vp) {
 	config_property_t *p;
 	int prop_id;
 
@@ -2278,13 +2280,13 @@ static JSBool config_property_setprop(JSContext *cx, JSObject *obj, jsval id, js
 	return JS_TRUE;
 }
 
-static JSClass config_property_class = {
+static JSClass js_config_property_class = {
 	"config_property",	/* Name */
 	JSCLASS_HAS_PRIVATE,	/* Flags */
 	JS_PropertyStub,	/* addProperty */
 	JS_PropertyStub,	/* delProperty */
-	config_property_getprop,	/* getProperty */
-	config_property_setprop,	/* setProperty */
+	js_config_property_getprop,	/* getProperty */
+	js_config_property_setprop,	/* setProperty */
 	JS_EnumerateStub,	/* enumerate */
 	JS_ResolveStub,		/* resolve */
 	JS_ConvertStub,		/* convert */
@@ -2305,7 +2307,7 @@ static JSBool js_config_property_dump(JSContext *cx, uintN argc, jsval *vp) {
 	return JS_TRUE;
 }
 
-JSObject *js_config_property_new(JSContext *cx, void *priv) {
+static JSObject *js_InitConfigPropertyClass(JSContext *cx, JSObject *parent) {
 	JSPropertySpec props[] = {
 		{ "name",CONFIG_PROPERTY_PROPERTY_ID_NAME,JSPROP_ENUMERATE | JSPROP_READONLY },
 		{ "type",CONFIG_PROPERTY_PROPERTY_ID_TYPE,JSPROP_ENUMERATE | JSPROP_READONLY },
@@ -2331,21 +2333,48 @@ JSObject *js_config_property_new(JSContext *cx, void *priv) {
 	};
 	JSObject *obj;
 
-	dprintf(dlevel,"defining %s object\n",config_property_class.name);
-	obj = JS_InitClass(cx, JS_GetGlobalObject(cx), 0, &config_property_class, 0, 0, props, funcs, 0, 0);
+	dprintf(dlevel,"defining %s object\n",js_config_property_class.name);
+	obj = JS_InitClass(cx, parent, 0, &js_config_property_class, 0, 0, props, funcs, 0, 0);
 	if (!obj) {
-		JS_ReportError(cx,"unable to initialize %s class", config_property_class.name);
+		JS_ReportError(cx,"unable to initialize %s class", js_config_property_class.name);
 		return 0;
 	}
-	JS_SetPrivate(cx,obj,priv);
 	dprintf(dlevel,"done!\n");
 	return obj;
+}
+
+static JSObject *js_config_property_new(JSContext *cx, JSObject *parent, config_property_t *p) {
+	JSObject *newobj;
+
+	/* Create the new object */
+	newobj = JS_NewObject(cx, &js_config_property_class, 0, parent);
+	if (!newobj) return 0;
+
+	JS_SetPrivate(cx,newobj,p);
+	return newobj;
 }
 
 enum CONFIG_SECTION_PROPERTY_ID {
 	CONFIG_SECTION_PROPERTY_ID_NAME,
 	CONFIG_SECTION_PROPERTY_ID_ITEMS,
 };
+
+static JSObject *js_create_property_array(JSContext *cx, JSObject *parent, list l) {
+	config_property_t *p;
+	JSObject *rows;
+	int i;
+
+	rows = JS_NewArrayObject(cx, list_count(l), NULL);
+	if (!rows) return 0;
+	i = 0;
+	list_reset(l);
+	while( (p = list_next(l)) != 0) {
+//		if (p->flags & CONFIG_FLAG_NOID) continue;
+		if (p->jsval == JSVAL_NULL) p->jsval = OBJECT_TO_JSVAL(js_config_property_new(cx,parent,p));
+		JS_SetElement(cx, rows, i++, &p->jsval);
+	}
+	return rows;
+}
 
 static JSBool js_config_section_getprop(JSContext *cx, JSObject *obj, jsval id, jsval *rval) {
 	config_section_t *sec;
@@ -2366,21 +2395,7 @@ static JSBool js_config_section_getprop(JSContext *cx, JSObject *obj, jsval id, 
 			*rval = STRING_TO_JSVAL(JS_NewStringCopyZ(cx,sec->name));
 			break;
 		case CONFIG_SECTION_PROPERTY_ID_ITEMS:
-			{
-				config_property_t *p;
-				JSObject *rows;
-				int i;
-
-				rows = JS_NewArrayObject(cx, list_count(sec->items), NULL);
-				i = 0;
-				list_reset(sec->items);
-				while( (p = list_next(sec->items)) != 0) {
-//					if (p->flags & CONFIG_FLAG_NOID) continue;
-					if (p->jsval == JSVAL_NULL) p->jsval = OBJECT_TO_JSVAL(js_config_property_new(cx,p));
-					JS_SetElement(cx, rows, i++, &p->jsval);
-				}
-				*rval = OBJECT_TO_JSVAL(rows);
-			}
+			*rval = OBJECT_TO_JSVAL(js_create_property_array(cx,obj,sec->items));
                         break;
 		default:
 			JS_ReportError(cx, "property not found");
@@ -2390,7 +2405,7 @@ static JSBool js_config_section_getprop(JSContext *cx, JSObject *obj, jsval id, 
 	return JS_TRUE;
 }
 
-static JSClass config_section_class = {
+static JSClass js_config_section_class = {
 	"config_section",	/* Name */
 	JSCLASS_HAS_PRIVATE,	/* Flags */
 	JS_PropertyStub,	/* addProperty */
@@ -2404,7 +2419,7 @@ static JSClass config_section_class = {
 	JSCLASS_NO_OPTIONAL_MEMBERS
 };
 
-JSObject *js_config_section_new(JSContext *cx, JSObject *parent, config_section_t *sec) {
+static JSObject *js_InitConfigSectionClass(JSContext *cx, JSObject *parent) {
 	JSPropertySpec props[] = {
 		{ "name",CONFIG_SECTION_PROPERTY_ID_NAME,JSPROP_ENUMERATE | JSPROP_READONLY },
 		{ "items",CONFIG_SECTION_PROPERTY_ID_ITEMS,JSPROP_ENUMERATE | JSPROP_READONLY },
@@ -2416,15 +2431,25 @@ JSObject *js_config_section_new(JSContext *cx, JSObject *parent, config_section_
 	};
 	JSObject *obj;
 
-	dprintf(dlevel,"defining %s object\n",config_property_class.name);
-	obj = JS_InitClass(cx, parent, 0, &config_section_class, 0, 0, props, funcs, 0, 0);
+	dprintf(dlevel,"defining %s object\n",js_config_property_class.name);
+	obj = JS_InitClass(cx, parent, 0, &js_config_section_class, 0, 0, props, funcs, 0, 0);
 	if (!obj) {
-		JS_ReportError(cx,"unable to initialize %s class", config_section_class.name);
+		JS_ReportError(cx,"unable to initialize %s class", js_config_section_class.name);
 		return 0;
 	}
-	JS_SetPrivate(cx,obj,sec);
 	dprintf(dlevel,"done!\n");
 	return obj;
+}
+
+JSObject *js_config_section_new(JSContext *cx, JSObject *parent, config_section_t *sec) {
+	JSObject *newobj;
+
+	/* Create the new object */
+	newobj = JS_NewObject(cx, &js_config_section_class, 0, parent);
+	if (!newobj) return 0;
+
+	JS_SetPrivate(cx,newobj,sec);
+	return newobj;
 }
 
 enum CONFIG_PROPERTY_ID {
@@ -3080,7 +3105,7 @@ static JSBool js_config_get_property(JSContext *cx, JSObject *obj, uintN argc, j
 	}
 
 	*cp->errmsg = 0;
-	if (p->jsval == JSVAL_NULL) p->jsval = OBJECT_TO_JSVAL(js_config_property_new(cx,p));
+	if (p->jsval == JSVAL_NULL) p->jsval = OBJECT_TO_JSVAL(js_config_property_new(cx,obj,p));
 	*rval = p->jsval;
 	return JS_TRUE;
 }
@@ -3276,6 +3301,45 @@ static JSBool config_ctor(JSContext *cx, JSObject *obj, uintN argc, jsval *argv,
 	return JS_TRUE;
 }
 
+JSObject *js_InitConfigClass(JSContext *cx, JSObject *parent) {
+	JSObject *obj;
+	JSConstantSpec config_consts[] = {
+		JS_NUMCONST(CONFIG_FLAG_READONLY),
+		JS_NUMCONST(CONFIG_FLAG_NOSAVE),
+		JS_NUMCONST(CONFIG_FLAG_NOID),
+		JS_NUMCONST(CONFIG_FLAG_FILEONLY),
+		JS_NUMCONST(CONFIG_FLAG_ALLOC),
+		JS_NUMCONST(CONFIG_FLAG_NOPUB),
+		JS_NUMCONST(CONFIG_FILE_FORMAT_INI),
+		JS_NUMCONST(CONFIG_FILE_FORMAT_JSON),
+		JS_NUMCONST(CONFIG_FILE_FORMAT_CUSTOM),
+		JS_NUMCONST(CONFIG_FLAG_READONLY),
+		JS_NUMCONST(CONFIG_FLAG_NOSAVE),
+		JS_NUMCONST(CONFIG_FLAG_NOID),
+		JS_NUMCONST(CONFIG_FLAG_FILE),
+		JS_NUMCONST(CONFIG_FLAG_FILEONLY),
+		JS_NUMCONST(CONFIG_FLAG_ALLOC),
+		JS_NUMCONST(CONFIG_FLAG_NOPUB),
+		JS_NUMCONST(CONFIG_FLAG_NODEF),
+		JS_NUMCONST(CONFIG_FLAG_ALLOCDEST),
+		JS_NUMCONST(CONFIG_FLAG_NOTRIG),
+		JS_NUMCONST(CONFIG_FLAG_VALUE),
+		JS_NUMCONST(CONFIG_FLAG_PRIVATE),
+		{ 0 }
+	};
+
+	/* Create initial object */
+	obj = js_config_new(cx,parent,0);
+	if (!obj) return 0;
+
+	/* Define global consts */
+	if (!JS_DefineConstants(cx, parent, config_consts)) {
+		JS_ReportError(cx,"unable to define constants for class: %s", config_class.name);
+		return 0;
+	}
+
+	return obj;
+}
 
 JSObject *js_config_new(JSContext *cx, JSObject *parent, config_t *cp) {
 	JSPropertySpec config_props[] = {
@@ -3315,43 +3379,10 @@ JSObject *js_config_new(JSContext *cx, JSObject *parent, config_t *cp) {
 	return obj;
 }
 
-JSObject *js_InitConfigClass(JSContext *cx,JSObject *parent) {
-	JSObject *obj;
-	JSConstantSpec config_consts[] = {
-		JS_NUMCONST(CONFIG_FLAG_READONLY),
-		JS_NUMCONST(CONFIG_FLAG_NOSAVE),
-		JS_NUMCONST(CONFIG_FLAG_NOID),
-		JS_NUMCONST(CONFIG_FLAG_FILEONLY),
-		JS_NUMCONST(CONFIG_FLAG_ALLOC),
-		JS_NUMCONST(CONFIG_FLAG_NOPUB),
-		JS_NUMCONST(CONFIG_FILE_FORMAT_INI),
-		JS_NUMCONST(CONFIG_FILE_FORMAT_JSON),
-		JS_NUMCONST(CONFIG_FILE_FORMAT_CUSTOM),
-		JS_NUMCONST(CONFIG_FLAG_READONLY),
-		JS_NUMCONST(CONFIG_FLAG_NOSAVE),
-		JS_NUMCONST(CONFIG_FLAG_NOID),
-		JS_NUMCONST(CONFIG_FLAG_FILE),
-		JS_NUMCONST(CONFIG_FLAG_FILEONLY),
-		JS_NUMCONST(CONFIG_FLAG_ALLOC),
-		JS_NUMCONST(CONFIG_FLAG_NOPUB),
-		JS_NUMCONST(CONFIG_FLAG_NODEF),
-		JS_NUMCONST(CONFIG_FLAG_ALLOCDEST),
-		JS_NUMCONST(CONFIG_FLAG_NOTRIG),
-		JS_NUMCONST(CONFIG_FLAG_VALUE),
-		JS_NUMCONST(CONFIG_FLAG_PRIVATE),
-		{ 0 }
-	};
-
-	/* Create initial object */
-	obj = js_config_new(cx,parent,0);
-	if (!obj) return 0;
-
-	/* Define global consts */
-	if (!JS_DefineConstants(cx, parent, config_consts)) {
-		JS_ReportError(cx,"unable to define constants for class: %s", config_class.name);
-		return 0;
-	}
-
-	return obj;
+int config_jsinit(JSEngine *e) {
+	JS_EngineAddInitClass(e, "js_InitConfigClass", js_InitConfigClass);
+	JS_EngineAddInitClass(e, "js_InitConfigSectionClass", js_InitConfigSectionClass);
+	JS_EngineAddInitClass(e, "js_InitConfigPropertyClass", js_InitConfigPropertyClass);
+	return 0;
 }
 #endif

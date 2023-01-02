@@ -1,8 +1,7 @@
 {
     "btc": {
         "log_power": true,
-        "interval": 30,
-        "mqtt_host": "192.168.1.164",
-        "influx_database": "power"
+        "interval": 15,
+        "influx_database": "power",
     }
 }

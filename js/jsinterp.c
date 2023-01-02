@@ -4950,6 +4950,11 @@ interrupt:
             JSPropCacheEntry *entry;
 
             obj = fp->scopeChain;
+//	    printf("obj: %p\n", obj);
+	    if (!obj) {
+		JS_ReportError(cx,"Internal error: object in scopeChain is null!\n");
+		return JS_FALSE;
+	    }
             if (JS_LIKELY(OBJ_IS_NATIVE(obj))) {
                 PROPERTY_CACHE_TEST(cx, regs.pc, obj, obj2, entry, atom);
                 if (!atom) {

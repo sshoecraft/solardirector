@@ -607,7 +607,7 @@ void mqtt_add_props(mqtt_session_t *s, config_t *cp, char *name) {
 
 	if (!s) return;
 
-	dprintf(1,"adding props...\n");
+	dprintf(dlevel,"adding props...\n");
 	config_add_props(cp, name, mqtt_props, 0);
 #if 0
 	/* Add the mqtt props to the instance config */
@@ -752,7 +752,7 @@ static JSBool js_mqtt_pub(JSContext *cx, JSObject *obj, uintN argc, jsval *argv,
 		JS_ReportError(cx, "private is null!");
 		return JS_FALSE;
 	}
-	dprintf(5,"argc: %d\n", argc);
+	dprintf(dlevel,"argc: %d\n", argc);
 	if (argc < 2) {
 		JS_ReportError(cx, "mqtt.pub requires 2 arguments: topic (string), message (striing)");
 		return JS_FALSE;
@@ -760,7 +760,7 @@ static JSBool js_mqtt_pub(JSContext *cx, JSObject *obj, uintN argc, jsval *argv,
 	topic = message = 0;
 	retain = 0;
 	if (!JS_ConvertArguments(cx, argc, argv, "s s / i", &topic, &message, &retain)) return JS_FALSE;
-	dprintf(5,"topic: %s, message: %s, retain: %d\n", topic, message, retain);
+	dprintf(dlevel,"topic: %s, message: %s, retain: %d\n", topic, message, retain);
 
         mqtt_pub(s,topic,message,1,retain);
 	JS_free(cx,topic);
@@ -778,14 +778,14 @@ static JSBool js_mqtt_sub(JSContext *cx, JSObject *obj, uintN argc, jsval *argv,
 		JS_ReportError(cx, "private is null!");
 		return JS_FALSE;
 	}
-	dprintf(5,"argc: %d\n", argc);
+	dprintf(dlevel,"argc: %d\n", argc);
 	if (argc < 1) {
 		JS_ReportError(cx, "mqtt.pub requires 1 argument: topic (string)");
 		return JS_FALSE;
 	}
 	topic = 0;
 	if (!JS_ConvertArguments(cx, argc, argv, "s", &topic)) return JS_FALSE;
-	dprintf(5,"topic: %s\n", topic);
+	dprintf(dlevel,"topic: %s\n", topic);
 
 	mqtt_sub(s,topic);
 	JS_free(cx,topic);

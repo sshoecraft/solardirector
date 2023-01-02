@@ -2,7 +2,7 @@
 include ../make.opts
 
 LIBNAME=$(shell basename $(shell pwd))
-SRCS+=null.c can.c rdev.c ip.c serial.c http.c
+SRCS+=null.c can.c rdev.c ip.c serial.c http.c transports.c
 
 ifeq ($(BLUETOOTH),yes)
 	SRCS+=bt.c

@@ -59,12 +59,10 @@ struct solard_agent {
 		bool run_scripts;
 		JSPropertySpec *props;
 		JSFunctionSpec *funcs;
-		JSObject *agent_obj;
 		jsval agent_val;
 		jsval config_val;
 		jsval mqtt_val;
 		jsval influx_val;
-		jsval msg_val;
 		int gc_interval;
 		int ignore_js_errors;
 		char script_dir[SOLARD_PATH_MAX];
@@ -142,12 +140,12 @@ void agent_event(solard_agent_t *ap, char *action, char *reason);
 #include "config.h"
 
 #ifdef JS
-JSObject *js_InitAgentClass(JSContext *cx, JSObject *global_object);
 int agent_start_script(solard_agent_t *ap, char *name);
 int agent_start_jsfunc(solard_agent_t *ap, char *name, char *func, int argc, jsval *argv);
 int agent_script_exists(solard_agent_t *ap, char *name);
 #define agent_run_script(a,n) agent_start_script(a,n,0)
-JSObject *js_agent_new(JSContext *cx, JSObject *parent, solard_agent_t *ap);
+JSObject *js_InitAgentClass(JSContext *cx, JSObject *global_object);
+JSObject *js_agent_new(JSContext *cx, JSObject *parent, void *priv);
 int agent_jsexec(solard_agent_t *ap, char *string);
 #endif
 

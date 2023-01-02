@@ -247,9 +247,8 @@ static inline float _getf64(unsigned char *v) {
 #endif
 
 #ifdef JS
-#include "jsengine.h"
-//int types_jsinit(JSEngine *e);
-int types_jsinit(void *e);
+#include "jsapi.h"
+int js_types_init(JSContext *cx, JSObject *parent, void *priv);
 #endif
 
 #endif /* __SD_TYPES_H */

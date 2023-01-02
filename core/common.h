@@ -19,7 +19,7 @@ LICENSE file in the root directory of this source tree.
 #include <errno.h>
 #include <time.h>
 #ifdef JS
-#include "jsapi.h"
+#include "jsengine.h"
 #endif
 
 #define SOLARD_PATH_MAX		256
@@ -85,6 +85,7 @@ extern char SOLARD_BINDIR[SOLARD_PATH_MAX], SOLARD_ETCDIR[SOLARD_PATH_MAX], SOLA
 #define clear_bit(b,v)	((b) &= (~v))
 #define check_bit(b,v)	(((b) & v) != 0)
 
+#include "log.h"
 #include "types.h"
 #include "opts.h"
 #include "cfg.h"
@@ -97,6 +98,8 @@ extern char SOLARD_BINDIR[SOLARD_PATH_MAX], SOLARD_ETCDIR[SOLARD_PATH_MAX], SOLA
 #include "mqtt.h"
 #include "influx.h"
 #include "event.h"
+#include "agent.h"
+#include "client.h"
 
 #if 0
 #define Black "\033[0;30m"
@@ -128,5 +131,9 @@ void solard_common_shutdown(void);
 
 void common_add_props(config_t *, char *);
 json_object_t *solard_create_results(int status, char *errmsg, ...);
+
+#ifdef JS
+JSEngine *common_jsinit(int rtsize, int stksize, js_outputfunc_t *jsout);
+#endif
 
 #endif
