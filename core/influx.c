@@ -843,7 +843,7 @@ int influx_write_json(influx_session_t *s, char *name, json_value_t *rv) {
 	return len;
 }
 
-static int enabled_set(void *ctx, config_property_t *p) {
+static int enabled_set(void *ctx, config_property_t *p, void *old_value) {
 	influx_session_t *s = ctx;
 
 	dprintf(dlevel,"enabled: %d, connected: %d\n", s->enabled, s->connected);
@@ -896,7 +896,7 @@ void influx_add_props(influx_session_t *s, config_t *cp, char *name) {
 #include "jsdate.h"
 #include "jsstr.h"
 
-JSObject *js_values_new(JSContext *cx, JSObject *obj, influx_series_t *sp) {
+JSObject *js_influx_values_new(JSContext *cx, JSObject *obj, influx_series_t *sp) {
 	JSObject *values,*vo,*dateobj;
 	jsval ie,ke;
 	int i,j,time_col,doconv;
@@ -953,7 +953,7 @@ enum SERIES_PROPERTY_ID {
 	SERIES_PROPERTY_ID_VALUES,
 };
 
-static JSBool series_getprop(JSContext *cx, JSObject *obj, jsval id, jsval *rval) {
+static JSBool js_influx_series_getprop(JSContext *cx, JSObject *obj, jsval id, jsval *rval) {
 	influx_series_t *sp;
 	int prop_id;
 
@@ -978,7 +978,7 @@ static JSBool series_getprop(JSContext *cx, JSObject *obj, jsval id, jsval *rval
 			*rval = sp->columns_val;
 			break;
 		case SERIES_PROPERTY_ID_VALUES:
-			if (!sp->values_val) sp->values_val = OBJECT_TO_JSVAL(js_values_new(cx,obj,sp));
+			if (!sp->values_val) sp->values_val = OBJECT_TO_JSVAL(js_influx_values_new(cx,obj,sp));
 			*rval = sp->values_val;
 			break;
 		}
@@ -986,12 +986,12 @@ static JSBool series_getprop(JSContext *cx, JSObject *obj, jsval id, jsval *rval
 	return JS_TRUE;
 }
 
-static JSClass series_class = {
-	"influx_series",	/* Name */
+static JSClass js_influx_series_class = {
+	"InfluxSeries",		/* Name */
 	JSCLASS_HAS_PRIVATE,	/* Flags */
 	JS_PropertyStub,	/* addProperty */
 	JS_PropertyStub,	/* delProperty */
-	series_getprop,		/* getProperty */
+	js_influx_series_getprop,/* getProperty */
 	JS_PropertyStub,	/* setProperty */
 	JS_EnumerateStub,	/* enumerate */
 	JS_ResolveStub,		/* resolve */
@@ -1000,7 +1000,7 @@ static JSClass series_class = {
 	JSCLASS_NO_OPTIONAL_MEMBERS
 };
 
-JSObject *js_series_new(JSContext *cx, JSObject *parent, influx_series_t *sp) {
+JSObject *js_InitInfluxSeriesClass(JSContext *cx, JSObject *parent) {
 	JSPropertySpec series_props[] = { 
 		{ "name",		SERIES_PROPERTY_ID_NAME,	JSPROP_ENUMERATE | JSPROP_READONLY },
 		{ "columns",		SERIES_PROPERTY_ID_COLUMNS,	JSPROP_ENUMERATE | JSPROP_READONLY },
@@ -1009,22 +1009,35 @@ JSObject *js_series_new(JSContext *cx, JSObject *parent, influx_series_t *sp) {
 	};
 	JSObject *obj;
 
-	dprintf(dlevel,"creating %s class...\n",series_class.name);
-	obj = JS_InitClass(cx, parent, 0, &series_class, 0, 0, series_props, 0, 0, 0);
+	dprintf(2,"creating %s class...\n",js_influx_series_class.name);
+	obj = JS_InitClass(cx, parent, 0, &js_influx_series_class, 0, 0, series_props, 0, 0, 0);
 	if (!obj) {
-		JS_ReportError(cx,"unable to initialize influx class");
+		JS_ReportError(cx,"unable to initialize %s class", js_influx_series_class.name);
 		return 0;
 	}
-	JS_SetPrivate(cx,obj,sp);
 	dprintf(dlevel,"done!\n");
 	return obj;
+}
+
+JSObject *js_influx_series_new(JSContext *cx, JSObject *parent, influx_series_t *sp) {
+	JSObject *newobj;
+
+	/* Create the new object */
+	dprintf(2,"Creating %s object...\n", js_influx_series_class.name);
+	newobj = JS_NewObject(cx, &js_influx_series_class, 0, parent);
+	if (!newobj) return 0;
+
+	JS_SetPrivate(cx,newobj,sp);
+
+	dprintf(dlevel,"newobj: %p!\n",newobj);
+	return newobj;
 }
 
 /********************************************************************************/
 /*
 *** RESULTS
 */
-JSObject *js_results_new(JSContext *cx, JSObject *obj, influx_session_t *s) {
+static JSObject *js_results_new(JSContext *cx, JSObject *obj, influx_session_t *s) {
 	influx_series_t *sp;
 	JSObject *results;
 	jsval element;
@@ -1043,7 +1056,7 @@ JSObject *js_results_new(JSContext *cx, JSObject *obj, influx_session_t *s) {
 	i = 0;
 	list_reset(s->results);
 	while((sp = list_get_next(s->results)) != 0) {
-		element = OBJECT_TO_JSVAL(js_series_new(cx,obj,sp));
+		element = OBJECT_TO_JSVAL(js_influx_series_new(cx,obj,sp));
 		JS_SetElement(cx, results, i++, &element);
 	}
 	dprintf(dlevel,"returning: %p\n", results);
@@ -1381,6 +1394,7 @@ static JSBool js_influx_ctor(JSContext *cx, JSObject *obj, uintN argc, jsval *ar
 		dprintf(dlevel,"url: %s, db: %s, user: %s, pass: %s\n", url, db, user, pass);
 
 		strncpy(s->endpoint,url,sizeof(s->endpoint)-1);
+		if (!strrchr(s->endpoint,':')) strcat(s->endpoint,":8086");
 		strncpy(s->database,db,sizeof(s->database)-1);
 		if (user) strncpy(s->username,user,sizeof(s->username)-1);
 		if (pass) strncpy(s->password,pass,sizeof(s->password)-1);
@@ -1394,7 +1408,7 @@ static JSBool js_influx_ctor(JSContext *cx, JSObject *obj, uintN argc, jsval *ar
 	return JS_TRUE;
 }
 
-JSObject * js_InitInfluxClass(JSContext *cx, JSObject *global_object) {
+static JSObject *js_InitInfluxClass(JSContext *cx, JSObject *global_object) {
 	JSPropertySpec influx_props[] = { 
 //		{ "", 0 },
 		{ "enabled",		INFLUX_PROPERTY_ID_ENABLED,	JSPROP_ENUMERATE },
@@ -1418,13 +1432,13 @@ JSObject * js_InitInfluxClass(JSContext *cx, JSObject *global_object) {
 	};
 	JSObject *obj;
 
-	dprintf(dlevel,"Creating %s class...\n", js_influx_class.name);
+	dprintf(2,"Creating %s class...\n", js_influx_class.name);
 	obj = JS_InitClass(cx, global_object, 0, &js_influx_class, js_influx_ctor, 2, influx_props, influx_funcs, 0, 0);
 	if (!obj) {
 		JS_ReportError(cx,"unable to initialize influx class");
 		return 0;
 	}
-	dprintf(dlevel,"done!\n");
+//	dprintf(dlevel,"done!\n");
 	return obj;
 }
 
@@ -1432,12 +1446,20 @@ JSObject *js_influx_new(JSContext *cx, JSObject *parent, influx_session_t *s) {
 	JSObject *newobj;
 
 	/* Create the new object */
+	dprintf(2,"Creating %s object...\n", js_influx_class.name);
 	newobj = JS_NewObject(cx, &js_influx_class, 0, parent);
 	if (!newobj) return 0;
 
-	if (s) JS_SetPrivate(cx,newobj,s);
+	JS_SetPrivate(cx,newobj,s);
 
+	dprintf(dlevel,"newobj: %p!\n",newobj);
 	return newobj;
 }
-#endif
-#endif
+
+int influx_jsinit(JSEngine *e) {
+	JS_EngineAddInitClass(e, "js_InitInfluxClass", js_InitInfluxClass);
+	JS_EngineAddInitClass(e, "js_InitInfluxSeriesClass", js_InitInfluxSeriesClass);
+	return 0;
+}
+#endif /* JS */
+#endif /* INFLUX */

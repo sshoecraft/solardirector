@@ -46,7 +46,8 @@ solard_message_t *solard_message_wait_id(list lp, char *id, int timeout);
 solard_message_t *solard_message_wait_target(list lp, char *target, int timeout);
 
 #ifdef JS
-JSObject *js_create_messages_array(JSContext *cx, JSObject *parent, list l);
+JSObject *js_InitMessageClass(JSContext *cx, JSObject *parent);
 JSObject *js_message_new(JSContext *cx, JSObject *parent, solard_message_t *msg);
+JSObject *js_create_messages_array(JSContext *cx, JSObject *parent, list l);
 #endif
 #endif

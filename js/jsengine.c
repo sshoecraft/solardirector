@@ -224,6 +224,9 @@ JSContext *JS_EngineNewContext(JSEngine *e) {
 		return 0;
 	}
 
+	JS_SetOptions(cx, JSOPTION_STRICT);
+	JS_SetOptions(cx, JSOPTION_VAROBJFIX);
+
 //	JS_SetContextCallback(sinfo->rt, ContextCallback);
 	JS_SetErrorReporter(cx, script_error);
 
@@ -298,7 +301,7 @@ JSEngine *JS_EngineInit(int rtsize, int stacksize, js_outputfunc_t *output) {
 	e->initfuncs = list_create();
 	pthread_mutex_init(&e->lockcx, 0);
 
-	dprintf(2,"e: %p\n", e);
+	dprintf(dlevel,"e: %p\n", e);
 	return e;
 
 JS_EngineInit_error:
@@ -324,6 +327,7 @@ int JS_EngineDestroy(JSEngine *e) {
 	scriptinfo_t *sp;
 //	js_initfuncinfo_t *fp;
 
+	dprintf(dlevel,"e: %p\n", e);
 	if (!e) return 1;
 
 	list_reset(e->scripts);
@@ -343,6 +347,7 @@ int JS_EngineDestroy(JSEngine *e) {
 int JS_EngineAddObject(JSEngine *e, jsobjinit_t *func, void *priv) {
 	JSContext *cx;
 
+	dprintf(dlevel,"e: %p\n", e);
 	if (!e) return 1;
 	cx = _getcx(e,1,1);
 	if (cx) func(cx, priv);
@@ -353,7 +358,7 @@ int JS_EngineAddObject(JSEngine *e, jsobjinit_t *func, void *priv) {
 int JS_EngineAddInitFunc(JSEngine *e, char *name, js_initfunc_t *func, void *priv) {
 	js_initfuncinfo_t newfunc;
 
-	dprintf(2,"e: %p\n", e);
+	dprintf(dlevel,"e: %p\n", e);
 	if (!e) return 1;
 
 	dprintf(dlevel,"adding: name: %s, func: %p, priv: %p\n", name, func, priv);
@@ -369,6 +374,7 @@ int JS_EngineAddInitFunc(JSEngine *e, char *name, js_initfunc_t *func, void *pri
 int JS_EngineAddInitClass(JSEngine *e, char *name, js_initclass_t *class) {
 	js_initfuncinfo_t newfunc;
 
+	dprintf(dlevel,"e: %p\n", e);
 	if (!e) return 1;
 
 	dprintf(dlevel,"adding: name: %s, class: %p\n", name, class);
@@ -574,7 +580,7 @@ int JS_GetValue(JSEngine *e, char *name, int type, void *dest, int dsize) {
 	cx = _getcx(e,1,0);
 	if (cx) {
 		ok = JS_GetProperty(cx, JS_GetGlobalObject(cx), name, &val);
-		dprintf(2,"ok: %d\n", ok);
+		dprintf(dlevel,"ok: %d\n", ok);
 		if (ok) jsval_to_type(type,dest,dsize,cx,val);
 	} else {
 		ok = 0;

@@ -11,9 +11,8 @@ LICENSE file in the root directory of this source tree.
 // pct = (vgt - min) / spread
 
 function si_check_config() {
-	var spread;
 
-	var dlevel = 1;
+	let dlevel = 1;
 
 	// No recursion please
 	if (si.in_check) return 0;
@@ -64,7 +63,7 @@ function si_check_config() {
 	if (nv != ov) setcleanval("max_voltage",nv,"%.1f");
 
 	dprintf(dlevel,"min_voltage: %f, max_voltage: %f\n", si.min_voltage, si.max_voltage);
-	spread = si.max_voltage - si.min_voltage;
+	let spread = si.max_voltage - si.min_voltage;
 	dprintf(dlevel,"spread: %f\n", spread);
 
 	while(1) {
@@ -146,15 +145,23 @@ function si_check_config() {
 	return 0;
 }
 
-function set_charge_start_level() {
+function set_charge_start_level(c,p,o) {
 
-	var dlevel = 1;
+	let dlevel = 1;
+
+	dprintf(dlevel,"c: %s, p: %s, o: %s\n", c, p ? p.value : p, o);
 
 	dprintf(dlevel,"si.charge_start_level: %f\n", si.charge_start_level);
 	if (!si.charge_start_level) return;
 	dprintf(dlevel,"min_voltage: %f, max_voltage: %f\n", si.min_voltage, si.max_voltage);
-	if (double_equals(si.min_voltage,0.0) || double_equals(si.max_voltage,0.0)) return;
+	if (double_equals(si.min_voltage,0.0) || double_equals(si.max_voltage,0.0)) {
+		dprintf(dlevel,"min || max == 0, returning\n");
+		return;
+	}
 
+	dprintf(dlevel,"config: %s\n", config);
+	config.get_property("blah");
+	dprintf(dlevel,"getting prop\n");
 	var lp = config.get_property("charge_start_level");
 	dprintf(dlevel,"lp.flags: %x\n", lp.flags);
 	let dv = (lp.default.length ? pround(lp.default,1) : NaN);
@@ -171,9 +178,11 @@ function set_charge_start_level() {
 	si_check_config();
 }
 
-function set_charge_end_level() {
+function set_charge_end_level(c,p,o) {
 
-	var dlevel = 1;
+	let dlevel = 1;
+
+	dprintf(dlevel,"c: %s, p: %s, o: %s\n", c, p ? p.value : p, o);
 
 	dprintf(dlevel,"si.charge_end_level: %f\n", si.charge_end_level);
 	if (!si.charge_end_level) return;
@@ -239,16 +248,20 @@ function set_cv_cutoff() {
 	}
 }
 
-function set_battery_capacity() {
+function charge_event_handler(name,module,action) {
 
-	var dlevel = 1;
+	let dlevel = 1;
 
-	dprintf(dlevel,"si.battery_capacity: %d\n", si.battery_capacity);
-	if (!si.battery_capacity) return;
+	dprintf(dlevel,"name: %s, module: %s, action: %s\n", name, module, action);
+	if (name != agent.name) return;
 
-	set_cv_cutoff();
-
-	si_check_config();
+	if (module == "Location" && action == "Set") {
+		if (si.charge_start_time && si.charge_start_time.length) set_charge_start_date();
+		if (si.charge_stop_time && si.charge_stop_time.length) set_charge_stop_date();
+	} else if (module == "Battery" && action == "Set") {
+		set_cv_cutoff();
+		si_check_config();
+	}
 }
 
 function set_charge_start_date() {
@@ -269,181 +282,6 @@ function set_charge_stop_date() {
 	if (!si.charge_stop_time.length) si.charge_stop_date = undefined;
 	else si.charge_stop_date = get_date(si.location,si.charge_stop_time,"charge_stop_time",true);
 	if (si.charge_stop_date) dprintf(dlevel,"charge_stop_date: %s\n",si.charge_stop_date);
-}
-
-function set_location() {
-
-	var dlevel = 1;
-
-	dprintf(dlevel,"location: %s\n", si.location);
-	if (!si.location) return;
-	if (si.charge_start_time && si.charge_start_time.length) set_charge_start_date();
-	if (si.charge_stop_time && si.charge_stop_time.length) set_charge_stop_date();
-	// Notify others
-	agent.event("Location","Set");
-}
-
-// open checkpoint file
-function open_battcp() {
-
-	var dlevel = 1;
-
-	// Battery checkpoint file
-	battcp = new File(si.script_dir + "/battcp.dat","text");
-	var opts = "readWrite";
-	if (!battcp.exists) {
-		opts += ",create";
-	} else {
-		let cur = new Date();
-		dprintf(dlevel,"last mod: %s, current: %s\n", battcp.lastModified, new Date());
-		var diff = Math.abs((new Date().getTime() - battcp.lastModified.getTime()) / 1000);
-		dprintf(dlevel,"diff: %s\n", diff);
-		if (diff > 60) opts += ",create,truncate";
-	}
-	dprintf(dlevel,"opts: %s\n", opts);
-	if (battcp.open(opts)) {
-		dprintf(dlevel,"size: %d\n", battcp.size);
-		if (battcp.size) {
-			var cpinfo = battcp.readln().split(",");
-//			dumpobj(cpinfo);
-			let i = 0;
-			si.battery_ah = parseFloat(cpinfo[i++]);
-			si.battery_in = parseFloat(cpinfo[i++]);
-			si.battery_out = parseFloat(cpinfo[i++]);
-			si.battery_empty = (cpinfo[i++] == 'true');
-			si.battery_full = (cpinfo[i++] == 'true');
-			dprintf(0,"Restored: ah: %f, in: %f, out: %f, empty: %s, full: %s\n", si.battery_ah, si.battery_in, si.battery_out, si.battery_empty, si.battery_full);
-		}
-	}
-}
-
-// checkpoint batt in/out/etc in case of restart
-function checkpoint() {
-
-	let dlevel = 1;
-
-	// Checkpoint total power
-	if (si.battcp) {
-		if (typeof(battcp) == "undefined" || !battcp.exists) open_battcp();
-		if (battcp.isOpen) {
-			battcp.seek(0);
-			let line = sprintf("%f,%f,%f,%s,%s\n",si.battery_ah,si.battery_in,si.battery_out,si.battery_empty,si.battery_full);
-			dprintf(dlevel,"line: %s", line);
-			battcp.write(line);
-			battcp.flush();
-		}
-	}
-}
-
-function charge_empty() {
-
-	let dlevel = 0;
-
-	agent.event("Battery","Empty");
-
-	dprintf(dlevel,"battery_in: %f, battery_out: %f\n", si.battery_in, si.battery_out);
-
-	dprintf(dlevel,"battery_ah: %f, charge_start_ah: %f\n", si.battery_ah, si.charge_start_ah);
-
-	// If the battery was empty and fully charged and now empty again (full cycle), we can calulcate efficiency
-	dprintf(dlevel,"battery_full: %s\n", si.battery_full);
-	if (si.battery_full && si.battery_in > 0) {
-		let ov = si.discharge_efficiency;
-		let val = (si.battery_out / si.battery_in) * 100.0;
-		dprintf(dlevel,"val: %f\n", val);
-		if (influx.enabled && influx.connected) influx.write(si.discharge_efficiency_table,{} = { value: val });
-		let nv = kf_deff.filter(val);
-		dprintf(dlevel,"nv: %f, ov: %f\n", nv, ov);
-		if (!double_equals(nv,ov)) {
-			printf("Setting discharge_effiency to: %f\n", nv);
-			si.discharge_efficiency = nv;
-			config.save();
-		}
-	}
-	si.battery_full = false;
-
-	dprintf(dlevel,"setting battery_empty to true\n");
-	si.battery_empty = true;
-
-	dprintf(dlevel,"empty_command: %s\n", si.empty_command);
-	if (si.empty_command.length > 0) system(si.empty_command);
-
-	// Start counting all over again
-	si.battery_in = si.battery_out = 0;
-	si.battery_ah = si.charge_start_ah;
-}
-
-function charge_full() {
-
-	let dlevel = 0;
-
-	agent.event("Battery","Full");
-
-	dprintf(dlevel,"battery_in: %f, battery_out: %f\n", si.battery_in, si.battery_out);
-
-	dprintf(dlevel,"battery_ah: %f, charge_end_ah: %f\n", si.battery_ah, si.charge_end_ah);
-
-	if (si.battery_empty) {
-		let ov = si.charge_efficiency;
-		dprintf(dlevel,"charge_efficiency: %f\n", si.charge_efficiency);
-		let real_ah = si.battery_ah /= (si.charge_efficiency / 100.0);
-		dprintf(dlevel,"real_ah: %f\n", real_ah);
-		let val = (real_ah / si.charge_end_ah) * 100.0;
-		dprintf(dlevel,"val: %f\n", val);
-		if (val > 100.0) {
-			val = 100.0;
-			dprintf(dlevel,"FIXED val: %f\n", val);
-		}
-		if (influx.enabled && influx.connected) influx.write(si.charge_efficiency_table,{} = { value: val });
-		let nv = kf_ceff.filter(val);
-		dprintf(dlevel,"nv: %f, ov: %f\n", nv, ov);
-		if (!double_equals(nv,ov)) {
-			printf("Setting charge_effiency to: %f\n", nv);
-			si.charge_efficiency = nv;
-		}
-		config.save();
-	}
-
-
-	// Charged from empty?
-	dprintf(dlevel,"battery_empty: %s\n", si.battery_empty);
-	si.battery_full = (si.battery_empty ? true : false);
-	dprintf(dlevel,"battery_full: %s\n", si.battery_full);
-	si.battery_empty = false;
-	// XXX
-//	if (si.battery_ah < si.charge_end_ah) si.battery_ah = si.charge_end_ah;
-	si.battery_ah = si.charge_end_ah;
-}
-
-// Prime efficiency kalman filter
-function charge_prime_kf(kf,table_name,prop_name) {
-
-	let dlevel = 1;
-
-	dprintf(dlevel,"table_name: %s, prop_name: %s\n", table_name, prop_name);
-
-	if (influx.enabled && influx.connected) {
-		let query = "SELECT value FROM " + table_name + " ORDER BY time";
-		dprintf(dlevel,"query: %s\n", query);
-		let results = influx2arr(influx.query(query));
-		dprintf(dlevel,"results: %s\n", results);
-		let nv,ov;
-		nv = ov = si[prop_name];
-		dprintf(dlevel,"ov: %f\n", ov);
-		if (results) {
-			dprintf(dlevel,"count: %d\n", results.length);
-			for(i=0; i < results.length; i++) {
-				dprintf(dlevel,"results[%d].value: %f\n", i, results[i].value);
-				nv = kf.filter(results[i].value);
-			}
-			dprintf(dlevel,"nv: %f, ov: %f\n", nv, ov);
-			if (!double_equals(nv,ov)) {
-				log_warning("computed initial %s (%f) != saved value (%f)\n", prop_name, nv, ov);
-				si[prop_name] = nv;
-				config.save();
-			}
-		}
-	}
 }
 
 /* Init the charging modules */
@@ -492,8 +330,7 @@ function charge_init() {
 
 	/* Make sure all our variables are defined */
 	var flags = CONFIG_FLAG_NOPUB | CONFIG_FLAG_NOSAVE;
-	var old_charge_props = [
-		[ "location", DATA_TYPE_STRING, null, 0, set_location ],
+	var charge_props = [
 		[ "charge_start_time", DATA_TYPE_STRING, null, 0, set_charge_start_date ],
 		[ "charge_stop_time", DATA_TYPE_STRING, null, 0, set_charge_stop_date ],
 		[ "charge_source", DATA_TYPE_STRING, null, 0 ],
@@ -502,68 +339,44 @@ function charge_init() {
 		[ "charge_amps_temp_modifier", DATA_TYPE_INT, "1", flags ],
 		[ "charge_amps_soc_modifier", DATA_TYPE_INT, "1", flags ],
 		[ "charge_method", DATA_TYPE_INT, CHARGE_METHOD_FAST.toString(), 0 ],
-		// XXX should be called: dont_end_feeding_while_charging
+		// XXX should be called: dont_stop_feeding_while_charging
 		[ "charge_feed", DATA_TYPE_BOOL, "false", 0 ],
+		// Start feeding when starting grid
 		[ "grid_feed", DATA_TYPE_BOOL, "false", 0 ],
 		[ "empty_command", DATA_TYPE_STRING, "", 0 ],
+		[ "full_command", DATA_TYPE_STRING, "", 0 ],
 		[ "cc_feed", DATA_TYPE_BOOL, "false", 0 ],
 		[ "cc_command", DATA_TYPE_STRING, "", 0 ],
 		[ "cv_method", DATA_TYPE_INT, CV_METHOD_DYNAMIC.toString(), 0 ],
 		[ "cv_time", DATA_TYPE_INT, "60", 0 ],
 		[ "cv_samples", DATA_TYPE_INT, "6", 0 ],
-		[ "cv_cutoff", DATA_TYPE_FLOAT, null, 0, set_cv_cutoff ],
+		[ "cv_cutoff", DATA_TYPE_DOUBLE, null, 0, set_cv_cutoff ],
 		[ "cv_feed", DATA_TYPE_BOOL, "false", 0 ],
 		[ "cv_command", DATA_TYPE_STRING, "", 0 ],
 		[ "ce_feed", DATA_TYPE_BOOL, "false", 0 ],
 		[ "ce_command", DATA_TYPE_STRING, "", 0 ],
-		[ "charge_start_voltage", DATA_TYPE_FLOAT, null, 0, si_check_config ],
-		[ "charge_start_level", DATA_TYPE_FLOAT, "25.0", 0, set_charge_start_level ],
-		[ "charge_end_voltage", DATA_TYPE_FLOAT, null, 0, si_check_config ],
-		[ "charge_end_level", DATA_TYPE_FLOAT, "85.0", 0, set_charge_end_level ],
-		[ "battery_capacity", DATA_TYPE_FLOAT, null, 0, set_battery_capacity ],
-		[ "battery_ah", DATA_TYPE_FLOAT, NaN, CONFIG_FLAG_PRIVATE ],
+		[ "charge_start_voltage", DATA_TYPE_DOUBLE, null, 0, si_check_config ],
+		[ "charge_start_level", DATA_TYPE_DOUBLE, "25.0", 0, set_charge_start_level ],
+		[ "charge_end_voltage", DATA_TYPE_DOUBLE, null, 0, si_check_config ],
+		[ "charge_end_level", DATA_TYPE_DOUBLE, "85.0", 0, set_charge_end_level ],
 		[ "charge_at_max", DATA_TYPE_BOOL, "false", 0 ],
-		[ "battcp", DATA_TYPE_BOOL, "true", 0 ],
-		[ "discharge_efficiency_table", DATA_TYPE_STRING, "si_deff", 0 ],
-		[ "discharge_efficiency", DATA_TYPE_FLOAT, "94.5", 0 ],
-		[ "charge_efficiency_table", DATA_TYPE_STRING, "si_ceff", 0 ],
-		[ "charge_efficiency", DATA_TYPE_FLOAT, "96", 0 ],
-	];
-	var charge_props = [
-		[ "location", DATA_TYPE_STRING, null, 0, set_location ],
-	];
-	var charge_funcs = [
-		[ "battery_empty", charge_empty, 0 ],
-		[ "battery_full", charge_full, 0 ],
 	];
 
 	// Dont allow check to run while initializing
 	si.in_check = true;
-	config.add_props(si, charge_props, agent.driver_name);
-	config.add_funcs(si, charge_funcs, agent.driver_name);
+	config.add_props(si, charge_props);
 
 	// Set triggers for min/max to auto set levels
-	config.set_trigger("min_voltage",set_min_voltage);
-	config.set_trigger("max_voltage",set_max_voltage);
+	set_trigger("min_voltage",set_min_voltage);
+	set_trigger("max_voltage",set_max_voltage);
+
+	agent.event_handler(charge_event_handler,agent.name);
 
 	si.ba = [];
 	si.baidx = 0;
 	si.bafull = 0;
 	si.grid_started = false;
 	si.gen_started = false;
-	si.battery_empty = false;
-	si.battery_full = false;
-	si.battery_in = 0.0;
-	si.battery_out = 0.0;
-	si.battery_ah = NaN;
-
-	if (si.battcp) open_battcp();
-
-	kf_deff = new KalmanFilter();
-	kf_ceff = new KalmanFilter();
-
-	charge_prime_kf(kf_deff,si.discharge_efficiency_table,"discharge_efficiency");
-	charge_prime_kf(kf_ceff,si.charge_efficiency_table,"charge_efficiency");
 
 	charging_initialized = true;
 //	printf("*** INIT DONE ***\n");
@@ -691,7 +504,7 @@ function charge_end() {
 
 	var dlevel = 1;
 
-	charge_full();
+	agent.event("Battery","Full");
 
 	charge_stop();
 
@@ -734,7 +547,7 @@ function cv_check_amps() {
 
 // XXX experimental
 	if (typeof(kf_cva) == "undefined") kf_cva = new KalmanFilter();
-	let num = kf_cva.filter(amps);
+	let num = kf_cva.filter(amps,1);
 	dprintf(0,"amps: %f, num: %f\n", amps, num);
 
 	/* Average the last X amp samples */
@@ -748,7 +561,7 @@ function cv_check_amps() {
 	dprintf(dlevel,"baidx: %d, bafull: %d\n", si.baidx, si.bafull);
 	if (si.bafull) {
 		amps = 0;
-		for(var i=0; i < si.cv_samples; i++) {
+		for(let i=0; i < si.cv_samples; i++) {
 			dprintf(dlevel,"ba[%d]: %f\n", i, si.ba[i]);
 			amps += si.ba[i];
 		}
@@ -762,7 +575,7 @@ function cv_check_amps() {
 
 function cv_check_ah() {
 
-	var dlevel = 0;
+	var dlevel = 1;
 
 	dprintf(dlevel,"battery_ah: %f, battery_end_ah: %f\n", si.battery_ah, si.battery_end_ah);
 	if (si.battery_ah >= si.battery_end_ah) return true;
@@ -790,7 +603,6 @@ function charge_start_grid() {
 }
 
 function charge_main()  {
-	include(dirname(script_name)+"/../../core/kalman.js");
 
 	var dlevel = 1;
 
@@ -817,54 +629,6 @@ function charge_main()  {
 		si_stop_grid(true);
 		si_start_gen();
 	}
-
-	// Battery in/out
-	dprintf(dlevel,"battery_current: %f\n", data.battery_current);
-	if (data.battery_current > 0) si.battery_out += data.battery_current;
-	else si.battery_in += Math.abs(data.battery_current);
-	dprintf(dlevel,"battery_in: %f, battery_out: %f\n", si.battery_in, si.battery_out);
-
-	dprintf(dlevel,"battery_capacity: %d\n", si.battery_capacity);
-	if (si.battery_capacity) {
-		let mult = (si.interval / 3600);
-		dprintf(dlevel,"mult: %f\n", mult);
-
-		// Set initial battery_ah
-		dprintf(dlevel,"battery_ah: %f\n", si.battery_ah);
-		if (isNaN(si.battery_ah)) {
-			// XXX use a table for the initial val?
-			dprintf(dlevel,"battery_voltage: %f, min_voltage: %f, max_voltage: %f\n",
-				data.battery_voltage, si.min_voltage, si.max_voltage);
-			var vsoc = ((data.battery_voltage - si.min_voltage) / (si.max_voltage - si.min_voltage));
-
-			dprintf(dlevel,"vsoc: %f\n", vsoc);
-			si.battery_ah = si.battery_capacity * vsoc;
-			if (!si.battery_ah) si.battery_ah = 0;
-			dprintf(dlevel,"initial battery_ah: %f\n", si.battery_ah);
-		}
-
-		// battery AH counter
-		let amps = data.battery_current;
-		dprintf(dlevel,"amps: %f, efficiency: %f, charge_efficiency: %f\n", amps, si.discharge_efficiency, si.charge_efficiency);
-		if (amps > 0) amps /= (si.discharge_efficiency / 100.0);
-//		else amps *= (si.charge_efficiency / 100.0);
-		dprintf(dlevel,"NEW amps: %f\n", amps);
-		let ah = amps * mult;
-		dprintf(dlevel,"ah: %f\n", ah);
-		si.battery_ah -= ah;
-		dprintf(dlevel,"NEW battery_ah: %f\n", si.battery_ah);
-		var obt = si.battery_ah;
-		if (si.battery_ah < 0) si.battery_ah = 0;
-		if (si.battery_capacity && si.battery_ah > si.battery_capacity) si.battery_ah = si.battery_capacity;
-		if (si.battery_ah != obt) dprintf(dlevel,"FIXED battery_ah: %f\n", si.battery_ah);
-
-		// XXX sanity check
-		if (si.battery_ah < si.charge_start_ah && pround(data.battery_voltage,1) > si.charge_start_voltage)
-			si.battery_ah = si.charge_start_ah;
-	}
-
-	// Checkpoint in case restart
-	checkpoint();
 
 	// Charge auto start/stop
 	let cur = new Date();
@@ -947,7 +711,7 @@ function charge_main()  {
 
 	// Battery is "empty", start charging
 	} else if (battery_is_empty()) {
-		charge_empty();
+		agent.event("Battery","Empty");
 
 		charge_start();
 

@@ -31,13 +31,14 @@ enum CONFIG_FILE_FORMAT {
 #define CONFIG_FLAG_ALLOCDEST	0x0100	/* Just dest is allocated */
 #define CONFIG_FLAG_NOINFO	0x0200	/* Do not include in info */
 #define CONFIG_FLAG_PUB		0x0400	/* Publish (one time) */
+#define CONFIG_FLAG_NOWARN	0x1000	/* Don't warn dup props */
 #define CONFIG_FLAG_NOTRIG	0x2000	/* Don't Call trigger func during addprop */
 #define CONFIG_FLAG_VALUE	0x4000	/* Value has been set */
 #define CONFIG_FLAG_PRIVATE	(CONFIG_FLAG_NOSAVE | CONFIG_FLAG_NOPUB | CONFIG_FLAG_NOINFO)
 
 struct config_property;
 typedef struct config_property config_property_t;
-typedef int (config_trigger_func_t)(void *ctx, config_property_t *p);
+typedef int (config_trigger_func_t)(void *ctx, config_property_t *p, void *old_value);
 
 struct config;
 struct config_property {
@@ -82,6 +83,7 @@ typedef struct config_function config_function_t;
 struct config_section {
 	char name[CONFIG_SECTION_NAME_SIZE];
 	list items;
+	time_t items_updated;
 	uint32_t flags;
 #ifdef JS
 	jsval jsval;			/* JSVal of this property object */
@@ -120,6 +122,8 @@ struct config {
 	};
 	int dirty;
 	int triggers;
+	config_trigger_func_t *trigger;	/* Function to call when config is updated */
+	void *trigger_ctx;		/* Context to pass function */
 #ifdef JS
 	list roots;
 	list fctx;

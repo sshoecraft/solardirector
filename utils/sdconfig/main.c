@@ -70,7 +70,7 @@ int main(int argc,char **argv) {
 	argv = args;
 #endif
 
-	c = client_init(argc,argv,"1.0",opts,"sdconfig",CLIENT_FLAG_NOJS,props,0);
+	c = client_init(argc,argv,"1.0",opts,"sdconfig",CLIENT_FLAG_NOJS,props,0,0);
 	if (!c) return 1;
 //	c->addmq = true;
 	exact = cfg_exact;
@@ -91,6 +91,11 @@ int main(int argc,char **argv) {
         argc -= optind;
         argv += optind;
         optind = 0;
+
+	dprintf(dlevel,"my clientid: %s\n", c->m->clientid);
+	sprintf(temp,"%s/%s/%s/#",SOLARD_TOPIC_ROOT,SOLARD_TOPIC_CLIENTS,c->m->clientid);
+	dprintf(dlevel,"temp: %s\n", temp);
+	mqtt_sub(c->m,temp);
 
 	/* Sleep 1 second to ingest persistant configs */
 	sleep(1);

@@ -29,26 +29,42 @@ fields.push("remain_text");
 fields.sort();
 data_topic = SOLARD_TOPIC_ROOT+"/Agents/"+si.agent.name+"/"+SOLARD_FUNC_DATA;
 
+// Notify all modules when location set
+function si_location_trigger() {
+
+	var dlevel = 1;
+
+	dprintf(dlevel,"location: %s\n", si.location);
+	if (!si.location) return;
+
+	agent.event("Location","Set");
+}
+
 function init_main() {
 
 	var dlevel = 1;
 
 	// Call init funcs
 	var init_funcs = [
-		"soc",				// SoC must be before charge due to possible battery_kwh reset
+		"mirror",
 		"charge",
-//		"sim",
 		"feed",
 		"grid",
 		"gen",
+		"soc",
 	];
 
 	dprintf(1,"length: %d\n", init_funcs.length);
-	for(i=0; i < init_funcs.length; i++) {
+	for(let i=0; i < init_funcs.length; i++) {
 		dprintf(dlevel,"calling: %s\n", init_funcs[i]+"_init");
 		run(script_dir+"/"+init_funcs[i]+".js",init_funcs[i]+"_init");
 	}
-//	abort(0);
+
+	var props = [
+		[ "location", DATA_TYPE_STRING, null, 0, si_location_trigger ],
+	];
+
+	config.add_props(si,props);
 
 	// re-publish info (in the case of scripts being disable then enabled after init)
 	agent.pubinfo();

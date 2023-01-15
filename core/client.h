@@ -64,7 +64,8 @@ typedef struct solard_client solard_client_t;
 #define CLIENT_FLAG_NOEVENT		0x0080		/* Don't init Event subsystem */
 #define CLIENT_FLAG_JSGLOBAL		0x1000		/* Create global config/mqtt/influx objects */
 
-solard_client_t *client_init(int argc,char **argv,char *version,opt_proctab_t *client_opts,char *Cname,int flags,config_property_t *props,config_function_t *funcs);
+typedef int (client_callback_t)(solard_client_t *);
+solard_client_t *client_init(int argc,char **argv,char *version,opt_proctab_t *client_opts,char *Cname,int flags,config_property_t *props,config_function_t *funcs,client_callback_t *initcb);
 void client_destroy(solard_client_t *);
 
 client_agentinfo_t *client_getagentbyname(solard_client_t *c, char *name);

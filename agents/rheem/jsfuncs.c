@@ -425,8 +425,6 @@ static int js_rheem_init(JSContext *cx, JSObject *parent, void *priv) {
 	JS_DefineProperty(cx, parent, "rheem", OBJECT_TO_JSVAL(obj), 0, 0, JSPROP_ENUMERATE);
 	s->agent_val = OBJECT_TO_JSVAL(js_agent_new(cx,obj,s->ap));
 	JS_DefineProperty(cx, parent, "agent", s->agent_val, 0, 0, JSPROP_ENUMERATE);
-	s->client_val = OBJECT_TO_JSVAL(js_client_new(cx,obj,s->c));
-	JS_DefineProperty(cx, parent, "client", s->client_val, 0, 0, JSPROP_ENUMERATE);
 
 	if (s->ap) {
 		JS_DefineProperty(cx, parent, "config", s->ap->js.config_val, 0, 0, JSPROP_ENUMERATE);

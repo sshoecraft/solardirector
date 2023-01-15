@@ -4367,6 +4367,7 @@ JS_GetFunctionObject(JSFunction *fun)
 JS_PUBLIC_API(const char *)
 JS_GetFunctionName(JSFunction *fun)
 {
+    if (!fun) return "";
     return fun->atom
            ? JS_GetStringBytes(ATOM_TO_STRING(fun->atom))
            : js_anonymous_str;

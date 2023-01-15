@@ -1,0 +1,37 @@
+include("../../core/utils.js");
+function getmsg(arg,topic,message,replyto) {
+//	printf("topic: %s, message: %s, replyto: %s\n", topic, message, replyto);
+	let info = topic.split("/");
+//	dumpobj(info);
+	let func = info[info.length-1];
+	printf("func: %s\n", func);
+	if (func == SOLARD_FUNC_DATA) {
+		printf("data!!\n");
+		m = JSON.parse(message);
+		dumpobj(m);
+	} else if (func == SOLARD_FUNC_EVENT) {
+		printf("event!\n");
+		m = JSON.parse(message);
+		dumpobj(m);
+	}
+}
+
+//m = new MQTT("192.168.1.142",getmsg);
+m = new MQTT('localhost',getmsg);
+printf("m: %s\n", m);
+m.enabled = true;
+m.connect();
+dumpobj(m);
+mirror_name = "+";
+m.sub(SOLARD_TOPIC_ROOT+"/"+SOLARD_TOPIC_AGENTS+"/" + mirror_name + "/"+SOLARD_FUNC_DATA);
+m.sub(SOLARD_TOPIC_ROOT+"/"+SOLARD_TOPIC_AGENTS+"/" + mirror_name + "/"+SOLARD_FUNC_EVENT);
+while(true) {
+	mq = m.mq;
+	printf("mq.len: %d\n", mq.length);
+	for(let i=0; i < mq.length; i++) {
+//		dumpobj(mq[i]);
+		printf("topic[%d]: %s\n", i, mq[i].topic);
+	}
+	m.purgemq();
+	sleep(10);
+}

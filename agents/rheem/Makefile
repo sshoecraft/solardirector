@@ -1,6 +1,6 @@
 
 PROGNAME=$(shell basename $(shell pwd))
-SRCS=main.c driver.c config.c jsfuncs.c
+SRCS=main.c driver.c rconfig.c jsfuncs.c
 SCRIPTS=*.js
 MQTTSSL=yes
 

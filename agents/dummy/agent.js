@@ -2,8 +2,12 @@
 
 include(dirname(script_name)+"/../../core/utils.js");
 
+function set_astring() {
+	printf("new astring: %s\n", dummy.astring);
+}
+
 function agent_main() {
-	var dummy = new Driver("dummy");
+	dummy = new Driver("dummy");
 	dummy.init = function(tempagent) {
 		dprintf(0,"*** INIT ***\n");
 		dprintf(0,"tempagent: %s\n", tempagent);
@@ -16,12 +20,6 @@ function agent_main() {
 	}
 	dummy.write = function(control,buflen) {
 		dprintf(0,"write: control: %s, buflen: %s\n", control, buflen);
-	}
-	dummy.info = function() {
-		dprintf(0,"info...\n");
-	}
-	dummy.config = function() {
-		dprintf(0,"config...\n");
 	}
 	dummy.run = function() {
 //		dprintf(0,"*** RUN ***\n");
@@ -38,12 +36,15 @@ function agent_main() {
 	}
 
 	var props = [
-		[ "boolval", DATA_TYPE_BOOL, "false", 0 ],
+		[ "astring", DATA_TYPE_STRING, "adef", 0, set_astring ],
 	];
 	var funcs = [];
 
 	agent = new Agent(argv,dummy,"1.0",props,funcs);
 	config = agent.config;
+	dummy.astring = "atest";
+	config.save();
+	agent.pubconfig();
 	mqtt = agent.mqtt;
 	influx = agent.influx;
 	agent.run();

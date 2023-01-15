@@ -533,9 +533,15 @@ int si_can_connect(si_session_t *s) {
 void si_can_disconnect(si_session_t *s) {
 	dprintf(dlevel,"can: %p, can_handle: %p, close: %p\n", s->can, s->can_handle, s->can ? s->can->close : 0);
 //	if (s->can && s->can_handle && s->can->close) s->can->close(s->can_handle);
+	dprintf(dlevel,"closing...\n");
 	si_driver.close(s);
+	dprintf(dlevel,"setting flag...\n");
 	s->can_connected = false;
-	if (s->ap) agent_event(s->ap,"CAN","Disconnected");
+	if (s->ap) {
+		dprintf(dlevel,"sending event...\n");
+		agent_event(s->ap,"CAN","Disconnected");
+	}
+	dprintf(dlevel,"done!\n");
 }
 
 int si_can_init(si_session_t *s) {
@@ -577,22 +583,31 @@ int si_can_init(si_session_t *s) {
 }
 
 void si_can_destroy(si_session_t *s) {
+	dprintf(dlevel,"s->can: %p\n", s->can);
 	if (s->can) {
+		dprintf(dlevel,"disconnecting...\n");
 		si_can_disconnect(s);
 
 		/* Clear any previous filters */
+		dprintf(dlevel,"clearing filters...\n");
 		s->can->config(s->can_handle,CAN_CONFIG_CLEAR_FILTER);
 
 		/* Stop any buffering */
+		dprintf(dlevel,"stopping buffering...\n");
 		s->can->config(s->can_handle,CAN_CONFIG_STOP_BUFFER);
 
 		// Close the handle 1st so the thread read returns -1 vs hanging
+		dprintf(dlevel,"closing handle...\n");
 		if (check_state(s,SI_STATE_OPEN)) s->can->close(s->can_handle);
+		dprintf(dlevel,"stopping read thread...\n");
 		if (strcmp(s->can->name,"can") == 0) si_can_stop_thread(s);
 		s->can_init = false;
+		dprintf(dlevel,"clearing agent callback...\n");
 		if (s->ap) agent_clear_callback(s->ap);
+		dprintf(dlevel,"destroying handle...\n");
 		s->can->destroy(s->can_handle);
 		s->can = 0;
+		dprintf(dlevel,"done!\n");
 	}
 }
 
@@ -784,10 +799,11 @@ int si_can_write_data(si_session_t *s) {
 		}
 	}
 
-//	dprintf(dlevel,"discharge_amps: %f\n", s->discharge_amps);
+	dprintf(dlevel,"discharge_amps: %f\n", s->discharge_amps);
 	if ((int)(s->discharge_amps) == 0) {
-		log_warning("discharge_amps is 0.0, setting to 1200.0\n");
-		s->discharge_amps = 1200;
+//		log_warning("discharge_amps is 0.0, setting to 1120.0\n");
+		s->discharge_amps = 1120;
+		dprintf(dlevel,"NEW discharge_amps: %f\n", s->discharge_amps);
 	}
 
 	/* 0x350 Active Current Set-point / Reactive current Set-Point */

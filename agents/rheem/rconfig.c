@@ -12,7 +12,7 @@ LICENSE file in the root directory of this source tree.
 
 extern char *rheem_agent_version_string;
 
-static int set_location(void *ctx, config_property_t *p) {
+static int set_location(void *ctx, config_property_t *p, void *old_value) {
 	rheem_session_t *s = ctx;
 
 	/* punt to javascript */
@@ -20,7 +20,7 @@ static int set_location(void *ctx, config_property_t *p) {
 	return 0;
 }
 
-static int set_readonly(void *ctx, config_property_t *p) {
+static int set_readonly(void *ctx, config_property_t *p, void *old_value) {
 	rheem_session_t *s = ctx;
 	bool b;
 
@@ -68,8 +68,6 @@ int rheem_agent_init(int argc, char **argv, rheem_session_t *s) {
 		{ "password", DATA_TYPE_STRING, &s->password, sizeof(s->password)-1, 0, 0 },
 		{ "location", DATA_TYPE_STRING, &s->location, sizeof(s->location)-1, 0, 0, 0, 0, 0, 0, 0, 0, set_location, s },
 		{ "readonly", DATA_TYPE_BOOL, &s->readonly, 0, "no", 0, 0, 0, 0, 0, 0, 0, set_readonly, s },
-		{ "inverter_source", DATA_TYPE_STRING, &s->inverter_source, sizeof(s->inverter_source)-1, "mqtt", 0 },
-		{ "inverter_name", DATA_TYPE_STRING, &s->inverter_name, sizeof(s->inverter_name)-1, 0, 0 },
 		{ 0 }
 	};
 	config_function_t rheem_funcs[] = {
@@ -119,13 +117,20 @@ static json_value_t *rheem_get_info(rheem_session_t *s) {
 	return json_object_value(o);
 }
 
-static int rheem_set_enabled(void *ctx, config_property_t *p) {
+static int rheem_set_enabled(void *ctx, config_property_t *p, void *old_value) {
         rheem_device_t *d = ctx;
 	rheem_session_t *s = d->s;
 	json_object_t *o;
 	char ts[32], temp[64], *str;
 
-	if (s && s->readonly) return 0;
+	dprintf(dlevel,"s: %p\n", s);
+	if (!s) return 1;
+
+	dprintf(dlevel,"old_value: %p\n", old_value);
+	if (old_value && *(bool *)old_value == d->enabled) return 0;
+
+	log_info("Setting %s.enabled to: %s\n", d->id, d->enabled ? "true" : "false");
+	if (s->readonly) return 0;
 
 	o = json_create_object();
 	if (!o) return 1;
@@ -140,21 +145,23 @@ static int rheem_set_enabled(void *ctx, config_property_t *p) {
 	json_object_set_number(o,"@ENABLED",d->enabled);
 	str = json_dumps(json_object_value(o),0);
 	dprintf(dlevel,"str: %s\n", str);
-	if (!s->readonly && mqtt_pub(s->m, s->desired, str, 0, 0)) {
-		log_error("set_enabled: mqtt_pub failed!\n");
-	}
+	if (!s->readonly && mqtt_pub(s->m, s->desired, str, 0, 0)) log_error("set_enabled: mqtt_pub failed!\n");
 	free(str);
 	return 0;
 }
 
-static int rheem_set_mode(void *ctx, config_property_t *p) {
+static int rheem_set_mode(void *ctx, config_property_t *p, void *old_value) {
         rheem_device_t *d = ctx;
 	rheem_session_t *s = d->s;
 	json_object_t *o;
 	char ts[32], temp[64], *str;
 	int i,mode;
 
-	if (s && s->readonly) return 0;
+	dprintf(dlevel,"s: %p\n", s);
+	if (!s) return 1;
+
+	dprintf(dlevel,"old_value: %p\n", old_value);
+	if (old_value && strcmp((char *)old_value,d->modestr) == 0) return 0;
 
 	mode = 1;
 	for(i=0; i < d->modecount; i++) {
@@ -164,6 +171,9 @@ static int rheem_set_mode(void *ctx, config_property_t *p) {
 			break;
 		}
 	}
+
+	log_info("Setting %s.mode to: %s (%d)\n", d->id, d->modes[mode], mode);
+	if (s->readonly) return 0;
 
 	o = json_create_object();
 	if (!o) return 1;
@@ -178,20 +188,25 @@ static int rheem_set_mode(void *ctx, config_property_t *p) {
 	json_object_set_number(o,"@MODE",mode);
 	str = json_dumps(json_object_value(o),0);
 	dprintf(dlevel,"str: %s\n", str);
-	if (!s->readonly && mqtt_pub(s->m, s->desired, str, 0, 0)) {
-		log_error("set_mode: mqtt_pub failed!\n");
-	}
+	if (mqtt_pub(s->m, s->desired, str, 0, 0)) log_error("set_mode: mqtt_pub failed!\n");
 	free(str);
 	return 0;
 }
 
-static int rheem_set_temp(void *ctx, config_property_t *p) {
+static int rheem_set_temp(void *ctx, config_property_t *p, void *old_value) {
         rheem_device_t *d = ctx;
 	rheem_session_t *s = d->s;
 	json_object_t *o;
 	char ts[32], temp[64], *str;
 
-	if (s && s->readonly) return 0;
+	dprintf(dlevel,"s: %p\n", s);
+	if (!s) return 1;
+
+	dprintf(dlevel,"old_value: %p\n", old_value);
+	if (old_value && *(int *)old_value == d->temp) return 0;
+
+	log_info("Setting %s.temp to: %d\n", d->id, d->temp);
+	if (s->readonly) return 0;
 
 	o = json_create_object();
 	if (!o) return 1;
@@ -206,9 +221,7 @@ static int rheem_set_temp(void *ctx, config_property_t *p) {
 	json_object_set_number(o,"@SETPOINT",d->temp);
 	str = json_dumps(json_object_value(o),0);
 	dprintf(dlevel,"str: %s\n", str);
-	if (!s->readonly && mqtt_pub(s->m, s->desired, str, 0, 0)) {
-		log_error("set_emp: mqtt_pub failed!\n");
-	}
+	if (mqtt_pub(s->m, s->desired, str, 0, 0)) log_error("set_emp: mqtt_pub failed!\n");
 	free(str);
 	return 0;
 }
@@ -274,21 +287,8 @@ int rheem_config(void *h, int req, ...) {
 	r = 1;
 	switch(req) {
 	case SOLARD_CONFIG_INIT:
-		{
-			char mqtt_info[128];
-
-			s->ap = va_arg(va,solard_agent_t *);
-			/* must create client here as jsinit must be called here */
-			s->c = client_init(0,0,rheem_agent_version_string,0,"rheem",CLIENT_FLAG_NOJS,0,0);
-			if (!s->c) return 1;
-			mqtt_disconnect(s->c->m,1);
-			mqtt_get_config(mqtt_info,sizeof(mqtt_info),s->ap->m,0);
-			mqtt_parse_config(s->c->m,mqtt_info);
-			mqtt_newclient(s->c->m);
-			mqtt_connect(s->c->m,10);
-			mqtt_resub(s->c->m);
-			r = rheem_jsinit(s);
-		}
+		s->ap = va_arg(va,solard_agent_t *);
+		r = rheem_jsinit(s);
 		break;
 	case SOLARD_CONFIG_GET_INFO:
 		{

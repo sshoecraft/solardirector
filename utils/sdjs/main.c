@@ -7,12 +7,7 @@
 #include "smanet.h"
 #include "jsengine.h"
 
-struct sdjs_private {
-        int argc;
-        char **argv;
-        solard_client_t *c;
-};
-typedef struct sdjs_private sdjs_private_t;
+#define dlevel 3
 
 #ifdef WINDOWS
 #include "wineditline/editline.c"
@@ -91,7 +86,7 @@ int shell(JSContext *cx) {
             bufp += strlen(bufp);
             lineno++;
         } while (!JS_BufferIsCompilableUnit(cx, JS_GetGlobalObject(cx), buffer, strlen(buffer)));
-	dprintf(1,"buffer: %s\n", buffer);
+	dprintf(dlevel,"buffer: %s\n", buffer);
 	if (strncmp(buffer,"quit",4)==0) break;
 
         /* Clear any pending exception from previous failed compiles.  */
@@ -99,6 +94,8 @@ int shell(JSContext *cx) {
         script = JS_CompileScript(cx, JS_GetGlobalObject(cx), buffer, strlen(buffer), "typein", startline);
         if (script) {
                 ok = JS_ExecuteScript(cx, JS_GetGlobalObject(cx), script, &result);
+		dprintf(dlevel,"result: %x\n", result);
+//		dprintf(dlevel,"result type: %s\n", jstypestr(cx,result));
                 if (ok && result != JSVAL_VOID) {
                     str = JS_ValueToString(cx, result);
                     if (str)
@@ -108,7 +105,6 @@ int shell(JSContext *cx) {
                 }
             JS_DestroyScript(cx, script);
         }
-//    } while (!hitEOF && !gQuitting);
     } while (!hitEOF);
 	return 0;
 }
@@ -118,27 +114,32 @@ static void newgobj(JSContext *cx, char *name, js_newobj_t func, void *priv) {
 	JSObject *newobj, *global = JS_GetGlobalObject(cx);
 	jsval newval;
 
+	dprintf(dlevel,"name: %s\n", name);
 	newobj = func(cx, global, priv);
-	dprintf(1,"%s newobj: %p\n", name, newobj);
+	dprintf(dlevel,"%s newobj: %p\n", name, newobj);
 	if (newobj) {
 		newval = OBJECT_TO_JSVAL(newobj);
 		JS_DefineProperty(cx, global, name, newval, 0, 0, JSPROP_ENUMERATE);
 	}
 }
 
+static int sdjs_argc = 0;
+static char **sdjs_argv = 0;
+
 JSObject *mkargv(JSContext *cx, JSObject *parent, void *ctx) {
-	sdjs_private_t *priv = ctx;
 	JSObject *obj;
 	int count,i,ind;
 	jsval val;
 	char *p;
 
-	count = priv->argc - optind;
-	dprintf(1,"argc: %d, optind: %d, count: %d\n", priv->argc, optind, count);
+	dprintf(dlevel,"argc: %d, optind: %d\n", sdjs_argc, optind);
+	count = sdjs_argc - optind;
+	if (count < 0) count = 0;
+	dprintf(dlevel,"argc: %d, optind: %d, count: %d\n", sdjs_argc, optind, count);
  	obj = JS_NewArrayObject(cx, count, NULL);
 	ind = optind;
 	for(i=0; i < count; i++) {
-		p = priv->argv[ind++];
+		p = sdjs_argv[ind++];
 		val = type_to_jsval(cx,DATA_TYPE_STRING,p,strlen(p));
 		JS_SetElement(cx, obj, i, &val);
 	}
@@ -149,56 +150,77 @@ JSObject *mkargv(JSContext *cx, JSObject *parent, void *ctx) {
 }
 
 int sdjs_jsinit(JSContext *cx, JSObject *parent, void *ctx) {
-	sdjs_private_t *priv = ctx;
+	solard_client_t *c = ctx;
 
-	newgobj(cx,"argv",mkargv,priv);
-	newgobj(cx,"client",js_client_new,priv->c);
-	smanet_jsinit(priv->c->js);
+	newgobj(cx,"argv",mkargv,c);
+	newgobj(cx,"client",js_client_new,c);
+	/* Create global convienience objects */
+	JS_DefineProperty(cx, parent, "config", c->config_val, 0, 0, JSPROP_ENUMERATE);
+	JS_DefineProperty(cx, parent, "mqtt", c->mqtt_val, 0, 0, JSPROP_ENUMERATE);
+	JS_DefineProperty(cx, parent, "influx", c->influx_val, 0, 0, JSPROP_ENUMERATE);
+	smanet_jsinit(c->js);
 	return 0;
 }
 
+int sdjs_init(solard_client_t *c) {
+	JS_EngineAddInitFunc(c->js, "sdjs_jsinit", sdjs_jsinit, c);
+	return 0;
+
+}
+
 int main(int argc, char **argv) {
-	char script[256],func[128];
+	char script[256],func[128],load[4096];
 	opt_proctab_t opts[] = {
 		{ "%|script",&script,DATA_TYPE_STRING,sizeof(script)-1,0,"" },
 		{ "-f:|function name (default: <script_name>_main)",&func,DATA_TYPE_STRING,sizeof(func)-1,0,"" },
 		{ 0 }
 	};
+	config_property_t sdjs_props[] = {
+		/* name, type, dest, dsize, def, flags, scope, values, labels, units, scale, precision, trigger, ctx */
+		{ "load", DATA_TYPE_STRING, load, sizeof(load)-1, "", 0, 0, 0, 0, 0, 0, 1, 0, 0 },
+		{ 0 }
+	};
+
 #if TESTING
 	char *args[] = { "js", "-d", "7", "json.js" };
 	argc = (sizeof(args)/sizeof(char *));
 	argv = args;
 #endif
 	solard_client_t *c;
-	sdjs_private_t *priv;
+
+	sdjs_argc = argc;
+	sdjs_argv = argv;
 
 	*script = *func = 0;
-	c = client_init(argc,argv,"1.0",opts,"sdjs",CLIENT_FLAG_JSGLOBAL,0,0);
+	c = client_init(argc,argv,"1.0",opts,"sdjs",CLIENT_FLAG_JSGLOBAL,sdjs_props,0,sdjs_init);
 	if (!c) {
 		log_error("unable to initialize client\n");
 		return 1;
 	}
 
-	/* Create our private data and save cmdline */
-	priv = malloc(sizeof(*priv));
-	if (!priv) {
-		log_syserror("malloc priv");
-		return 1;
+	/* load any scripts specified in load */
+	if (strlen(load)) {
+		char cmd[1024], *name;
+		int i = 0;
+		dprintf(dlevel,"load: %s\n", load);
+		while(1) {
+			name = strele(i++,",",load);
+			dprintf(dlevel,"name: %s\n", name);
+			if (!strlen(name)) break;
+			snprintf(cmd,sizeof(cmd)-1,"load(\"%s\");",name);
+			dprintf(dlevel,"cmd: %s\n", cmd);
+			if (JS_EngineExecString(c->js, cmd))
+				log_error("unable to load %s\n",name);
+		}
 	}
-	memset(priv,0,sizeof(*priv));
-	priv->c = c;
-	priv->argc = argc;
-	priv->argv = argv;
 
-	JS_EngineAddInitFunc(c->js, "sdjs_jsinit", sdjs_jsinit, priv);
-        JS_EngineAddInitClass(c->js, "InitAgentClass", js_InitAgentClass);
-
-	dprintf(1,"script: %s, func: %s\n", script, func);
+	dprintf(dlevel,"script: %s, func: %s\n", script, func);
 	if (*script) {
 		if (access(script,0) < 0) {
 			printf("%s: %s\n",script,strerror(errno));
 		} else {
 			strcpy(c->name,basename(script));
+			dprintf(dlevel,"executing script: %s\n",script);
 			if (JS_EngineExec(c->js,script,func,0,0,1)) {
 //				char *msg = JS_EngineGetErrmsg(c->js);
 //				printf("%s: %s\n",script,strlen(msg) ? msg : "error executing script");
@@ -206,7 +228,8 @@ int main(int argc, char **argv) {
 			}
 		}
 	} else {
-		shell(JS_EngineNewContext(c->js));
+		JS_EngineExecString(c->js,"");
+		shell(JS_EngineGetCX(c->js));
 	}
 	return 0;
 }

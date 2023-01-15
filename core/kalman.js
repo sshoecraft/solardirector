@@ -37,6 +37,11 @@ function KalmanFilter(R,Q,A,B,C) {
 	this.x = NaN; // estimated signal without noise
 }
 
+KalmanFilter.prototype.reset = function() {
+	this.cov = NaN;
+	this.x = NaN;
+}
+
 /**
 * Filter a new value
 * @param  {Number} z Measurement

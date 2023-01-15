@@ -4,7 +4,7 @@
 #include "jswindow_defs.h"
 #include "jsengine.h"
 
-#define dlevel 4
+#define dlevel 1
 
 #if 0
 Window Object Methods

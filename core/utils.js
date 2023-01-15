@@ -173,9 +173,8 @@ function dumpobj(obj) {
         return;
         }
         for(key in obj) {
-                if (obj[key] && typeof obj[key] === 'function') printf("%-30.30s: %s\n", key, '[function]');
-		else printf("%-30.30s %s\n", (key + ":"), obj[key]);
-//		else print(key + ": " + obj[key] + "\n");
+		val = (obj[key] && typeof obj[key] === 'function' ? '[function]' : obj[key]);
+		printf("%-30.30s %s\n", (key + ":"), val);
         }
 }
 
@@ -254,11 +253,11 @@ function parseBoolean(str) {
 // timespec format: [sunrise|sunset|0-23:0-59][[+|-]# of seconds]
 // what: timespec name
 // next: if date < current, use next day
-function get_date(location,timespec,what,next) {
+function get_date(location,timespec,what,nextday) {
 
 	var dlevel = 3;
 
-	dprintf(dlevel,"location: %s, timespec: %s, what: %s, next: %s\n", location, timespec, what, next);
+	dprintf(dlevel,"location: %s, timespec: %s, what: %s, nextday: %s\n", location, timespec, what, nextday);
 
 	function get_offset(d,s) {
 
@@ -320,26 +319,29 @@ function get_date(location,timespec,what,next) {
 			let m = p[p.index];
 			dprintf(dlevel,"m: %s(%s)\n", m,typeof(m));
 			// Must have location for sunrise/set
-			if (location) dprintf(dlevel,"location: >>%s<<(%d)\n", location, location.length);
-			if (!location || location.length < 1) {
-				log_error("unable to calculate time for %s (%s), location is empty\n",what,timespec);
+			if (typeof(location) != "string") {
+				log_error("get_date: location must be a string");
+				return null;
+			}
+			if (location.length < 1) {
+				log_error("get_date: unable to calculate time for %s (%s), location is empty\n",what,timespec);
 				return null;
 			}
 			let locs = location.split(",");
 			let lat = parseFloat(locs[0]);
 			let lon = parseFloat(locs[1]);
 			if (isNaN(lat)) {
-				log_error("latitude specified in location (%s) is invalid\n", locs[0]);
+				log_error("get_date: latitude specified in location (%s) is invalid\n", locs[0]);
 				return null;
 			}
 			if (isNaN(lon)) {
-				log_error("longitude specified in location (%s) is invalid\n", locs[1]);
+				log_error("get_date: longitude specified in location (%s) is invalid\n", locs[1]);
 				return null;
 			}
 			dprintf(dlevel,"lat: %s, lon: %s\n", lat, lon);
 			let times = SunCalc.getTimes(new Date(), lat, lon);
 			if (!times) {
-				log_error("unable to calculate sunrise/sunset: bad location?\n");
+				log_error("get_date: unable to calculate sunrise/sunset: bad location?\n");
 				return null;
 			}
 			if (m.match(/sunrise/i)) {
@@ -355,9 +357,10 @@ function get_date(location,timespec,what,next) {
 	dprintf(dlevel,"d: %s\n", d.toString());
 	d = get_offset(d,timespec);
 	dprintf(dlevel,"d: %s\n", d.toString());
-	var cur = new Date();
-	dprintf(dlevel,"next: %s, d: %s, cur: %s, diff: %s\n", next, d.getTime(), cur.getTime(), cur.getTime() - d.getTime());
-	if (next && d.getTime() <= cur.getTime()) {
+//	var cur = new Date();
+//	dprintf(dlevel,"next: %s, d: %s, cur: %s, diff: %s\n", next, d.getTime(), cur.getTime(), cur.getTime() - d.getTime());
+//	if (next && d.getTime() <= cur.getTime()) {
+	if (nextday) {
 		d.setDate(d.getDate() + 1);
 		dprintf(dlevel,"NEW d: %s\n", d.toString());
 	}
@@ -365,7 +368,16 @@ function get_date(location,timespec,what,next) {
 }
 
 function double_equals(a,b) {
-	return ((Math.abs(a) - Math.abs(b)) < 10e-7);
+
+	let dlevel = 7;
+
+	dprintf(dlevel,"a: %.10f, b: %.10f\n", a, b);
+	let v = Math.abs(a - b);
+	dprintf(dlevel,"v: %.10f\n", v);
+	let r = v < 10e-7;
+	dprintf(dlevel,"r: %.10f\n", r);
+	return r;
+//	return ((Math.abs(a) - Math.abs(b)) < 10e-7);
 }
 
 // Return the 1st result as an object
@@ -435,4 +447,33 @@ function influx2arr(results,include_time) {
 		arr[j] = obj;
 	}
 	return arr;
+}
+
+function report_mem() {
+	if (typeof(last_memused) == "undefined") last_memused = -1;
+	if (memused() != last_memused) {
+		var udiff = memused() - last_memused;
+		printf("mem: %d (%s%d)\n", memused(), (udiff > 0 ? "+" : ""), udiff);
+		last_memused = memused();
+	}
+
+	if (typeof(last_sysmemused) == "undefined") last_sysmemused = 0;
+	if (sysmemused() != last_sysmemused) {
+		var udiff = sysmemused() - last_sysmemused;
+		printf("sysmem: %d (%s%d)\n", sysmemused(), (udiff > 0 ? "+" : ""), udiff);
+		last_sysmemused = sysmemused();
+	}
+}
+
+function set_trigger(name,func,arg) {
+
+	let dlevel = 3;
+
+	dprintf(dlevel,"name: %s\n", name);
+	let p = config.get_property(name);
+	dprintf(dlevel,"p: %s\n", p);
+	if (p) {
+		p.trigger = func;
+		p.arg = arg;
+	}
 }

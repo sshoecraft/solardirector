@@ -1,8 +1,5 @@
-
-include("kalman.js");
-kf = new KalmanFilter();
-f = new File("/tmp/l2");
-while(line = f.readln()) {
-	p = parseFloat(line);
-	printf("p: %f, f: %f\n", p, kf.filter(p));
-}
+i = new Influx("192.168.1.142",'power');
+printf("i: %s\n", i);
+r = i.query("select last(*) from inverter");
+printf("r: %s\n", r);
+if (!r) printf("error: %s\n", i.errmsg);

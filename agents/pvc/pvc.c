@@ -209,7 +209,7 @@ static int pvc_config(void *h, int req, ...) {
 
 		s->ap = va_arg(va,solard_agent_t *);
 		agent_set_callback(s->ap,pvc_cb,s);
-		s->c = client_init(0,0,pvc_agent_version_string,0,"pvc",CLIENT_FLAG_NOJS,0,0);
+		s->c = client_init(0,0,pvc_agent_version_string,0,"pvc",CLIENT_FLAG_NOJS,0,0,0);
 		if (!s->c) return 1;
 		s->c->addmq = true;
 		mqtt_disconnect(s->c->m,1);

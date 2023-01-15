@@ -160,7 +160,7 @@ int agent_pubdata(solard_agent_t *ap, json_value_t *v) {
 }
 
 static void agent_process_message(solard_agent_t *ap, solard_message_t *msg) {
-	char topic[SOLARD_TOPIC_LEN],*data;
+	char topic[SOLARD_TOPIC_LEN],*data,*name;
 	json_object_t *status;
 
 	status = json_create_object();
@@ -168,17 +168,20 @@ static void agent_process_message(solard_agent_t *ap, solard_message_t *msg) {
 	config_process_request(ap->cp, msg->data, status);
 
 	data = json_dumps(json_object_value(status), 1);
-	dprintf(dlevel,"status: %s\n", data);
+	dprintf(dlevel,"data: %s\n", data);
 	json_destroy_object(status);
 	if (!data) return;
 
-	snprintf(topic,sizeof(topic)-1,"%s/%s/%s/%s",SOLARD_TOPIC_ROOT,SOLARD_TOPIC_CLIENTS,msg->replyto,ap->instance_name);
+	name = strlen(ap->instance_name) ? ap->instance_name : ap->m->clientid;
+	dprintf(dlevel,"name: %s\n", name);
+	if (!strlen(name)) name = "agent";
+	snprintf(topic,sizeof(topic)-1,"%s/%s/%s/%s",SOLARD_TOPIC_ROOT,SOLARD_TOPIC_CLIENTS,msg->replyto,name);
 	dprintf(dlevel,"topic: %s\n", topic);
 	mqtt_pub(ap->m,topic,data,1,0);
 	free(data);
 }
 
-void agent_getmsg(void *ctx, char *topic, char *message, int msglen, char *replyto) {
+static void agent_getmsg(void *ctx, char *topic, char *message, int msglen, char *replyto) {
 	solard_agent_t *ap = ctx;
 	solard_message_t newmsg;
 
@@ -192,14 +195,17 @@ void agent_event(solard_agent_t *ap, char *module, char *action) {
 
 	dprintf(dlevel,"e: %p\n", ap->e);
 	if (!ap->e) return;
+	dprintf(dlevel,"calling event...\n");
 	event(ap->e, ap->instance_name, module, action);
 
+	dprintf(dlevel,"creating json object...\n");
 	o = json_create_object();
 	json_object_add_string(o,"agent",ap->instance_name);
 	json_object_add_string(o,"module",module);
 	json_object_add_string(o,"action",action);
 
 #ifdef MQTT
+	dprintf(dlevel,"m: %p, connected: %d\n", ap->m, ap->m ? mqtt_connected(ap->m) : 0);
 	if (ap->m && mqtt_connected(ap->m)) {
 		char *event;
 
@@ -215,10 +221,8 @@ void agent_event(solard_agent_t *ap, char *module, char *action) {
 	}
 #endif
 #ifdef INFLUX
-	if (ap->i) {
-		dprintf(dlevel,"influx_connected: %d\n", influx_connected(ap->i));
-		if (influx_connected(ap->i)) influx_write_json(ap->i,"events",json_object_value(o));
-	}
+	dprintf(dlevel,"i: %p, connected: %d\n", ap->i, ap->i ? influx_connected(ap->i) : 0);
+	if (ap->i && influx_connected(ap->i)) influx_write_json(ap->i,"events",json_object_value(o));
 #endif
 	json_destroy_object(o);
 }
@@ -429,7 +433,7 @@ static int agent_service_clear(void *ctx, list args, char *errmsg, json_object_t
 	return agent_pubconfig(ap);
 }
 
-static int agent_configfile_set(void *ctx, config_property_t *p) {
+static int agent_configfile_set(void *ctx, config_property_t *p, void *old_value) {
 	solard_agent_t *ap = ctx;
 
 	dprintf(dlevel,"configfile: %s\n", ap->configfile);
@@ -438,7 +442,7 @@ static int agent_configfile_set(void *ctx, config_property_t *p) {
 	return 0;
 }
 
-static int agent_run_set(void *ctx, config_property_t *p) {
+static int agent_run_set(void *ctx, config_property_t *p, void *old_value) {
 	solard_agent_t *ap = ctx;
 
 	dprintf(dlevel,"run_scripts: %d\n", ap->js.run_scripts);
@@ -466,7 +470,7 @@ static int agent_run_set(void *ctx, config_property_t *p) {
 }
 
 #ifdef JS
-static int set_script_dir(void *ctx, config_property_t *p) {
+static int set_script_dir(void *ctx, config_property_t *p, void *old_value) {
 	solard_agent_t *ap = ctx;
 
 	/* Set script_dir if empty */
@@ -562,6 +566,8 @@ static int agent_startup(solard_agent_t *ap, char *mqtt_info, char *influx_info,
 	jptr = (ap->flags & AGENT_FLAG_NOJS ? 0 : &ap->js.e);
 #endif
 
+//	if (props) config_dump_props(props);
+
         /* Call common startup */
 	if (solard_common_startup(&ap->cp, ap->section_name, ap->configfile, props, funcs, eptr
 #ifdef MQTT
@@ -577,20 +583,9 @@ static int agent_startup(solard_agent_t *ap, char *mqtt_info, char *influx_info,
 //	if (props) free(props);
 //	if (funcs) free(funcs);
 
-#if 0
 #ifdef JS
-	dprintf(dlevel,"nojs: %d\n", check_bit(ap->flags, AGENT_FLAG_NOJS));
-	if (!check_bit(ap->flags, AGENT_FLAG_NOJS)) {
-		/* Add JS init funcs (define classes) */
-		JS_EngineAddInitClass(ap->js.e, "js_InitAgentClass", js_InitAgentClass);
-		JS_EngineAddInitClass(ap->js.e, "js_InitConfigClass", js_InitConfigClass);
-		JS_EngineAddInitClass(ap->js.e, "js_InitMQTTClass", js_InitMQTTClass);
-		JS_EngineAddInitClass(ap->js.e, "js_InitInfluxClass", js_InitInfluxClass);
-	} else {
-		/* See if the driver has an engine ptr */
-//		if (ap->driver && ap->driver->config) ap->driver->config(ap->handle, AGENT_CONFIG_GETJS, &ap->js.e);
-	}
-#endif
+	/* See if the driver has an engine ptr */
+	if (ap->driver && ap->driver->config) ap->driver->config(ap->handle, AGENT_CONFIG_GETJS, &ap->js.e);
 #endif
 
 #ifdef MQTT
@@ -607,7 +602,7 @@ static int agent_startup(solard_agent_t *ap, char *mqtt_info, char *influx_info,
 	/* Agent libdir */
 	sprintf(ap->agent_libdir,"%s/agents/%s",SOLARD_LIBDIR,ap->name);
 
-	set_script_dir(ap,0);
+	set_script_dir(ap,0,0);
 
 	config_add_props(ap->cp, "agent", agent_props, CONFIG_FLAG_NODEF | CONFIG_FLAG_PRIVATE);
 
@@ -807,7 +802,7 @@ solard_agent_t *agent_init(int argc, char **argv, char *agent_version, opt_proct
 //	if (interval > 0) ap->interval = interval;
 
 #ifdef JS
-	dprintf(dlevel,"e: %p\n", ap->js.e);
+	dprintf(dlevel,">>>> ap->js.e: %p\n", ap->js.e);
 	if (ap->js.e) {
 		/* script_dir from commanline overrides config */
 		if (strlen(script_dir)) strcpy(ap->js.script_dir,script_dir);
@@ -1134,7 +1129,7 @@ static JSBool js_agent_setprop(JSContext *cx, JSObject *obj, jsval id, jsval *vp
 	return JS_TRUE;
 }
 
-static JSClass agent_class = {
+static JSClass js_agent_class = {
 	"Agent",		/* Name */
 	JSCLASS_HAS_PRIVATE,	/* Flags */
 	JS_PropertyStub,	/* addProperty */
@@ -1368,7 +1363,7 @@ static JSBool js_agent_ctor(JSContext *cx, JSObject *obj, uintN argc, jsval *arg
 	config_property_t *props;
 	config_function_t *funcs;
 
-	dprintf(0,"cx: %p, obj: %p, argc: %d\n", cx, obj, argc);
+	dprintf(dlevel,"cx: %p, obj: %p, argc: %d\n", cx, obj, argc);
 
 	name = vers = 0;
 	aobj = dobj = pobj = fobj = 0;
@@ -1418,9 +1413,10 @@ static JSBool js_agent_ctor(JSContext *cx, JSObject *obj, uintN argc, jsval *arg
 
 	/* Convert props array to config_property_t array */
 	if (pobj) {
-		props = js_config_obj2props(cx, pobj, 0);
+		props = js_config_obj2props(cx, pobj, dobj);
 		dprintf(dlevel,"props: %p\n", props);
 		if (!props) return JS_FALSE;
+//		config_dump_props(props);
 	} else {
 		props = 0;
 	}
@@ -1440,6 +1436,7 @@ static JSBool js_agent_ctor(JSContext *cx, JSObject *obj, uintN argc, jsval *arg
 		for(i=0; i < count; i++) JS_free(cx, args[i]);
 		JS_free(cx,args);
 	}
+	if (props) JS_free(cx,props);
 	JS_free(cx,name);
 	dprintf(dlevel,"ap: %p\n", ap);
 	if (!ap) {
@@ -1448,7 +1445,7 @@ static JSBool js_agent_ctor(JSContext *cx, JSObject *obj, uintN argc, jsval *arg
 	}
 
 	/* Driver's init func must create agent object */
-	dprintf(0,"agent_val: %x\n", ap->js.agent_val);
+	dprintf(dlevel,"agent_val: %x\n", ap->js.agent_val);
 	*rval = ap->js.agent_val;
 	return JS_TRUE;
 }
@@ -1483,13 +1480,13 @@ JSObject *js_InitAgentClass(JSContext *cx, JSObject *global_object) {
 		{ 0 }
 	};
 
-	dprintf(dlevel,"creating %s class\n",agent_class.name);
-	obj = JS_InitClass(cx, global_object, 0, &agent_class, js_agent_ctor, 1, agent_props, agent_funcs, 0, 0);
+	dprintf(2,"creating %s class\n",js_agent_class.name);
+	obj = JS_InitClass(cx, global_object, 0, &js_agent_class, js_agent_ctor, 1, agent_props, agent_funcs, 0, 0);
 	if (!obj) {
-		JS_ReportError(cx,"unable to initialize %s class", agent_class.name);
+		JS_ReportError(cx,"unable to initialize %s class", js_agent_class.name);
 		return 0;
 	}
-	dprintf(dlevel,"obj: %p\n", obj);
+//	dprintf(dlevel,"obj: %p\n", obj);
 	return obj;
 }
 
@@ -1500,7 +1497,8 @@ JSObject *js_agent_new(JSContext *cx, JSObject *parent, void *priv) {
 //	dprintf(dlevel,"parent name: %s\n", JS_GetObjectName(cx,parent));
 
 	/* Create the new object */
-	newobj = JS_NewObject(cx, &agent_class, 0, parent);
+	dprintf(2,"Creating %s object...\n", js_agent_class.name);
+	newobj = JS_NewObject(cx, &js_agent_class, 0, parent);
 	if (!newobj) return 0;
 
 	/* Add config props/funcs */

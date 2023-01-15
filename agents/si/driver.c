@@ -50,8 +50,6 @@ static int si_destroy(void *h) {
 #endif
 #endif
 
-        if (s->ap) agent_destroy(s->ap);
-
 	/* Close and destroy transport */
 	dprintf(dlevel,"s->can: %p, s->can_handle: %p\n", s->can, s->can_handle);
 	if (s->can && s->can_handle) si_can_destroy(s);
@@ -63,6 +61,10 @@ static int si_destroy(void *h) {
         if (s->output.source == CURRENT_SOURCE_INFLUX) free(s->output.query);
 
 	dprintf(dlevel,"freeing session!\n");
+
+	/* must be last */
+	dprintf(dlevel,"destroying agent...\n");
+        if (s->ap) agent_destroy(s->ap);
 
         free(s);
 	return 0;
@@ -91,11 +93,13 @@ static int si_open(void *h) {
 static int si_close(void *handle) {
 	si_session_t *s = handle;
 
-	dprintf(dlevel,"s: %p\n", s);
+	dprintf(dlevel,"s->can: %p, s->can_handle: %p\n", s->can, s->can_handle);
 	if (!s->can || !s->can_handle) return 1;
 
-	dprintf(dlevel,"s: %p\n", s);
+	dprintf(dlevel,"OPEN: %d\n", check_state(s,SI_STATE_OPEN));
 	if (check_state(s,SI_STATE_OPEN) && s->can->close(s->can_handle) == 0) clear_state(s,SI_STATE_OPEN);
+
+	dprintf(dlevel,"done!\n");
 	return 0;
 }
 

@@ -663,11 +663,13 @@ mptr = (c->flags & AGENT_FLAG_NOMQTT ? 0 : &c->m);
 #ifdef JS
 	dprintf(dlevel,"nojs: %d\n", check_bit(c->flags, CLIENT_FLAG_NOJS));
 	if (!check_bit(c->flags, CLIENT_FLAG_NOJS)) {
+#if 0
 		/* Add JS init funcs (define classes) */
 		JS_EngineAddInitClass(c->js, "client_jsinit", js_InitClientClass);
 		JS_EngineAddInitClass(c->js, "config_jsinit", js_InitConfigClass);
 		JS_EngineAddInitClass(c->js, "mqtt_jsinit", js_InitMQTTClass);
 		JS_EngineAddInitClass(c->js, "influx_jsinit", js_InitInfluxClass);
+#endif
 
 		/* Set script_dir if empty */
 		dprintf(dlevel,"script_dir(%d): %s\n", strlen(c->script_dir), c->script_dir);
@@ -687,7 +689,7 @@ mptr = (c->flags & AGENT_FLAG_NOMQTT ? 0 : &c->m);
 //static int _rc = 0;
 
 solard_client_t *client_init(int argc,char **argv,char *version,opt_proctab_t *client_opts,char *Cname,int flags,
-			config_property_t *props,config_function_t *funcs) {
+			config_property_t *props,config_function_t *funcs,client_callback_t *initcb) {
 	solard_client_t *c;
 	char mqtt_info[200],influx_info[200];
 	char configfile[256];
@@ -807,6 +809,9 @@ solard_client_t *client_init(int argc,char **argv,char *version,opt_proctab_t *c
 
 	if (client_startup(c,configfile,mqtt_info,influx_info,props,funcs)) goto client_init_error;
 
+	/* Call initcb if specified */
+	if (initcb && initcb(c)) goto client_init_error;
+
 #ifdef JS
 	/* Execute any command-line javascript code */
 	dprintf(dlevel,"jsexec(%d): %s\n", strlen(jsexec), jsexec);
@@ -891,7 +896,7 @@ enum CLIENT_PROPERTY_ID {
 };
 
 static JSObject *js_create_agents_array(JSContext *cx, JSObject *parent, list l) {
-	JSObject *rows,*mobj;
+	JSObject *rows,*obj;
 	jsval val;
 	solard_agent_t *ap;
 	int i;
@@ -902,10 +907,10 @@ static JSObject *js_create_agents_array(JSContext *cx, JSObject *parent, list l)
 	i = 0;
 	list_reset(l);
 	while((ap = list_get_next(l)) != 0) {
-		mobj = js_agent_new(cx,rows,ap);
-		dprintf(dlevel,"mobj: %p\n", mobj);
-		if (!mobj) continue;
-		val = OBJECT_TO_JSVAL(mobj);
+		obj = js_agent_new(cx,rows,ap);
+		dprintf(dlevel,"obj: %p\n", obj);
+		if (!obj) continue;
+		val = OBJECT_TO_JSVAL(obj);
 		JS_SetElement(cx, rows, i++, &val);
 	}
 	return rows;
@@ -1000,7 +1005,7 @@ static JSBool js_client_setprop(JSContext *cx, JSObject *obj, jsval id, jsval *v
 	return JS_TRUE;
 }
 
-static JSClass client_class = {
+static JSClass js_client_class = {
 	"Client",		/* Name */
 	JSCLASS_HAS_PRIVATE,	/* Flags */
 	JS_PropertyStub,	/* addProperty */
@@ -1148,7 +1153,12 @@ static JSBool js_client_event_handler(JSContext *cx, JSObject *obj, uintN argc, 
 	return JS_TRUE;
 }
 
-static JSBool client_ctor(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rval) {
+static int _js_client_ctor_init(solard_client_t *c) {
+	dprintf(0,"c: %p\n", c);
+	return 0;
+}
+
+static JSBool js_client_ctor(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rval) {
 	solard_client_t *c;
 	char *name;
 	JSObject *newobj;
@@ -1165,7 +1175,7 @@ static JSBool client_ctor(JSContext *cx, JSObject *obj, uintN argc, jsval *argv,
 	if (!JS_ConvertArguments(cx, argc, argv, "/ s", &name)) return JS_FALSE;
 	dprintf(dlevel,"name: %s\n", name);
 
-	c = client_init(0,0,0,0,name ? name : "client",0,0,0);
+	c = client_init(0,0,0,0,name ? name : "client",CLIENT_FLAG_NOJS,0,0,_js_client_ctor_init);
 	dprintf(dlevel,"c: %p\n", c);
 	if (!c) {
 		JS_ReportError(cx, "client_init returned null\n");
@@ -1196,10 +1206,10 @@ JSObject *js_InitClientClass(JSContext *cx, JSObject *parent) {
 	};
 	JSObject *obj;
 
-	dprintf(dlevel,"creating %s object\n",client_class.name);
-	obj = JS_InitClass(cx, parent, 0, &client_class, client_ctor, 1, client_props, client_funcs, 0, 0);
+	dprintf(2,"creating %s class\n",js_client_class.name);
+	obj = JS_InitClass(cx, parent, 0, &js_client_class, js_client_ctor, 1, client_props, client_funcs, 0, 0);
 	if (!obj) {
-		JS_ReportError(cx,"unable to initialize %s class", client_class.name);
+		JS_ReportError(cx,"unable to initialize %s class", js_client_class.name);
 		return 0;
 	}
 
@@ -1237,7 +1247,8 @@ JSObject *js_client_new(JSContext *cx, JSObject *parent, void *priv) {
 //	dprintf(dlevel,"parent name: %s\n", JS_GetObjectName(cx,parent));
 
 	/* Create the new object */
-	newobj = JS_NewObject(cx, &client_class, 0, parent);
+	dprintf(2,"creating %s object\n",js_client_class.name);
+	newobj = JS_NewObject(cx, &js_client_class, 0, parent);
 	if (!newobj) return 0;
 
 	/* Add config props/funcs */

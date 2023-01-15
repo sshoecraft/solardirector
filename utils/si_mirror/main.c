@@ -36,7 +36,7 @@ int main(int argc, char **argv) {
 	};
 	solard_client_t *c;
 
-	c = client_init(argc,argv,"1.0",opts,"si_mirror",CLIENT_FLAG_NOJS,props,0);
+	c = client_init(argc,argv,"1.0",opts,"si_mirror",CLIENT_FLAG_NOJS,props,0,0);
 	if (!c) return 1;
 //	config_dump(c->cp);
 

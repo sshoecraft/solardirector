@@ -102,7 +102,7 @@ int main(int argc,char **argv) {
 	conf = malloc(sizeof(*conf));
 	if (!conf) return 1;
 	memset(conf,0,sizeof(*conf));
-	conf->c = client_init(argc,argv,"1.0",opts,"cellmon",CLIENT_FLAG_NOJS,0,0);
+	conf->c = client_init(argc,argv,"1.0",opts,"cellmon",CLIENT_FLAG_NOJS,0,0,0);
 	if (!conf->c) return 1;
 	conf->c->addmq = true;
 	conf->packs = list_create();

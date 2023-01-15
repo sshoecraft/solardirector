@@ -97,6 +97,7 @@
 #include "jsobj.h"
 #include "jsscope.h"
 #include "jsstr.h"
+#include "debug.h"
 
 /* 2^32 - 1 as a number and a string */
 #define MAXINDEX 4294967295u
@@ -2031,51 +2032,51 @@ array_sort(JSContext *cx, uintN argc, jsval *vp)
 /*
  * Perl-inspired push, pop, shift, unshift, and splice methods.
  */
-static JSBool
-array_push_slowly(JSContext *cx, JSObject *obj, uintN argc, jsval *vp)
-{
-    jsuint length, newlength;
+static JSBool array_push_slowly(JSContext *cx, JSObject *obj, uintN argc, jsval *vp) {
+	jsuint length, newlength;
 
-    if (!js_GetLengthProperty(cx, obj, &length))
-        return JS_FALSE;
-    newlength = length + argc;
-    if (!InitArrayElements(cx, obj, length, newlength, vp + 2))
-        return JS_FALSE;
+	if (!js_GetLengthProperty(cx, obj, &length)) return JS_FALSE;
+//	dprintf(0,"length: %d\n", length);
+	newlength = length + argc;
+	if (!InitArrayElements(cx, obj, length, newlength, vp + 2)) {
+		dprintf(0,"unable to init elements\n");
+		return JS_FALSE;
+	}
 
-    /* Per ECMA-262, return the new array length. */
-    if (!IndexToValue(cx, newlength, vp))
-        return JS_FALSE;
-    return js_SetLengthProperty(cx, obj, newlength);
+	/* Per ECMA-262, return the new array length. */
+//	dprintf(0,"newlength: %d\n", newlength);
+	if (!IndexToValue(cx, newlength, vp)) return JS_FALSE;
+//	dprintf(0,"setting length...\n");
+	return js_SetLengthProperty(cx, obj, newlength);
 }
 
-static JSBool
-array_push(JSContext *cx, uintN argc, jsval *vp)
-{
-    JSObject *obj;
-    uint32 length;
+static JSBool array_push(JSContext *cx, uintN argc, jsval *vp) {
+	JSObject *obj;
+	uint32 length;
 
-    /* Insist on one argument and obj of the expected class. */
-    obj = JS_THIS_OBJECT(cx, vp);
-    if (!obj)
-        return JS_FALSE;
-    if (argc != 1 || !OBJ_IS_DENSE_ARRAY(cx, obj))
-        return array_push_slowly(cx, obj, argc, vp);
+	/* Insist on one argument and obj of the expected class. */
+	obj = JS_THIS_OBJECT(cx, vp);
+//	dprintf(0,"obj: %p\n", obj);
+	if (!obj) return JS_FALSE;
 
-    length = obj->fslots[JSSLOT_ARRAY_LENGTH];
-    if (INDEX_TOO_SPARSE(obj, length)) {
-        if (!js_MakeArraySlow(cx, obj))
-            return JS_FALSE;
-        return array_push_slowly(cx, obj, argc, vp);
-    }
+//	dprintf(0,"argc: %d, IS_DENSE: %d\n", argc, OBJ_IS_DENSE_ARRAY(cx, obj));
+	if (argc != 1 || !OBJ_IS_DENSE_ARRAY(cx, obj)) return array_push_slowly(cx, obj, argc, vp);
 
-    if (!EnsureLength(cx, obj, length + 1))
-        return JS_FALSE;
-    obj->fslots[JSSLOT_ARRAY_LENGTH] = length + 1;
+	length = obj->fslots[JSSLOT_ARRAY_LENGTH];
+//	dprintf(0,"length: %d, TOO_SPARSE: %d\n", length, INDEX_TOO_SPARSE(obj, length));
+	if (INDEX_TOO_SPARSE(obj, length)) {
+		if (!js_MakeArraySlow(cx, obj)) return JS_FALSE;
+		return array_push_slowly(cx, obj, argc, vp);
+	}
 
-    JS_ASSERT(obj->dslots[length] == JSVAL_HOLE);
-    obj->fslots[JSSLOT_ARRAY_COUNT]++;
-    obj->dslots[length] = vp[2];
-    return IndexToValue(cx, obj->fslots[JSSLOT_ARRAY_LENGTH], vp);
+	if (!EnsureLength(cx, obj, length + 1)) return JS_FALSE;
+	obj->fslots[JSSLOT_ARRAY_LENGTH] = length + 1;
+//	dprintf(0,"new length: %d\n", obj->fslots[JSSLOT_ARRAY_LENGTH]);
+
+	JS_ASSERT(obj->dslots[length] == JSVAL_HOLE);
+	obj->fslots[JSSLOT_ARRAY_COUNT]++;
+	obj->dslots[length] = vp[2];
+	return IndexToValue(cx, obj->fslots[JSSLOT_ARRAY_LENGTH], vp);
 }
 
 JSBool

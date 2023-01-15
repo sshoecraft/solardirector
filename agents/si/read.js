@@ -11,11 +11,15 @@ function read_main() {
 
 	var dlevel = 1;
 
+	dprintf(dlevel,"mirroring: %s\n", si.mirror);
+	if (si.mirror) run(script_dir+"/mirror.js");
+
 	// If not running, leave now
+	dprintf(dlevel,"running: %s\n", data.Run);
 	if (!data.Run) return;
 
 //	printf("sim.enabled: %s\n", sim.enable);
-//	if (sim.enable) run(dirname(script_name)+"/sim.js");
+//	if (sim.enable) run(script_dir+"/sim.js");
 
 	// When connected to SMANET 1st time, get some info
 	if (typeof(si.have_smanet_info) == "undefined") si.have_smanet_info = false;
@@ -79,7 +83,7 @@ function read_main() {
 	}
 
 	// Charge control
-	run(script_dir+"/charge.js");
+	if (!si.mirror) run(script_dir+"/charge.js");
 
 	// Set SoC / remain
 	run(script_dir+"/soc.js");
@@ -111,19 +115,6 @@ function read_main() {
 		}
         }
 
-if (0 == 1) {
-        if (typeof(last_memused) == "undefined") last_memused = -1;
-        if (memused() != last_memused) {
-		var udiff = memused() - last_memused;
-                printf("mem: %d (%s%d)\n", memused(), (udiff > 0 ? "+" : ""), udiff);
-                last_memused = memused();
-        }
-
-        if (typeof(last_sysmemused) == "undefined") last_sysmemused = 0;
-        if (sysmemused() != last_sysmemused) {
-		var udiff = sysmemused() - last_sysmemused;
-                printf("sysmem: %d (%s%d)\n", sysmemused(), (udiff > 0 ? "+" : ""), udiff);
-                last_sysmemused = sysmemused();
-        }
-}
+//	report_mem();
+	return 0;
 }

@@ -41,6 +41,9 @@ struct mqtt_session {
 	list subs;
 	int connected;
 	char errmsg[128];
+	/* for CTOR only */
+	bool ctor;
+	list mq;
 };
 typedef struct mqtt_session mqtt_session_t;
 

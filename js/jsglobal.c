@@ -50,6 +50,8 @@ LICENSE file in the root directory of this source tree.
 #include "jsgc.h"
 #include "jswindow.h"
 
+#include "jswindow_defs.h"
+
 static int version = 182;
 #define VERSION_MAJOR 1
 #define VERSION_MINOR 8
@@ -60,6 +62,8 @@ static int version = 182;
 
 enum GLOBAL_PROPERTY_ID {
 	GLOBAL_PROPERTY_ID_SCRIPT_NAME=1,
+	JSWINDOW_PROPIDS,
+	JSWINDOW_PROPERTY_ID_LOCATION,
 };
 
 static char *_getstr(JSContext *cx, jsval val) {
@@ -90,37 +94,6 @@ static const char *get_script_name(JSContext *cx) {
 		return "unknown";
 	}
 	return(fp->script->filename);
-}
-
-static JSBool global_getprop(JSContext *cx, JSObject *obj, jsval id, jsval *rval) {
-	int prop_id;
-
-//	dprintf(0,"id type: %s\n", jstypestr(cx,id));
-	if(JSVAL_IS_INT(id)) {
-		prop_id = JSVAL_TO_INT(id);
-		dprintf(dlevel,"prop_id: %d\n", prop_id);
-		switch(prop_id) {
-		case GLOBAL_PROPERTY_ID_SCRIPT_NAME:
-			*rval = STRING_TO_JSVAL(JS_NewStringCopyZ(cx,get_script_name(cx)));
-			break;
-		default:
-			JS_ReportError(cx, "global_getprop: internal error: property %d not found", prop_id);
-			return JS_FALSE;
-		}
-#if 0
-        } else if (JSVAL_IS_STRING(id)) {
-		char *name;
-		jsval val;
-		JSBool ok;
-
-		name = JS_EncodeString(cx, JSVAL_TO_STRING(id));
-		dprintf(0,"name: %s\n", name);
-//		ok = JS_GetProperty(cx,obj,name,&val);
-//		if (ok) *rval = val;
-		if (name) JS_free(cx,name);
-#endif
-        }
-	return JS_TRUE;
 }
 
 static JSBool js_print(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rval) {
@@ -531,6 +504,59 @@ static JSBool js_version(JSContext *cx, uintN argc, jsval *vp) {
 	return JS_TRUE;
 }
 
+JSBool js_window_setInterval(JSContext *cx, uintN argc, jsval *rval) {
+	dprintf(dlevel,"setInterval called\n");
+	return JS_TRUE;
+}
+
+JSBool global_getprop(JSContext *cx, JSObject *obj, jsval id, jsval *rval) {
+	int prop_id;
+	JSEngine *s;
+
+	s = JS_GetPrivate(cx,obj);
+
+//	dprintf(0,"id type: %s\n", jstypestr(cx,id));
+	if(JSVAL_IS_INT(id)) {
+		prop_id = JSVAL_TO_INT(id);
+		dprintf(dlevel,"prop_id: %d\n", prop_id);
+		switch(prop_id) {
+		case GLOBAL_PROPERTY_ID_SCRIPT_NAME:
+			*rval = STRING_TO_JSVAL(JS_NewStringCopyZ(cx,get_script_name(cx)));
+			break;
+		case JSWINDOW_PROPERTY_ID_LOCATION:
+			dprintf(dlevel,"returning location...\n");
+			if (!((jswindow_t *)s->private)->location_val) {
+				jslocation_t *loc = malloc(sizeof(*loc));
+				if (loc) {
+					memset(loc,0,sizeof(*loc));
+					loc->protocol = "file:";
+					JSObject *locobj = js_location_new(cx,obj,loc);
+					if (locobj) ((jswindow_t *)s->private)->location_val = OBJECT_TO_JSVAL(locobj);
+				}
+			}
+			*rval = ((jswindow_t *)s->private)->location_val;
+			break;
+		JSWINDOW_GETPROP
+		default:
+			JS_ReportError(cx, "global_getprop: internal error: property %d not found", prop_id);
+			return JS_FALSE;
+		}
+#if 0
+        } else if (JSVAL_IS_STRING(id)) {
+		char *name;
+		jsval val;
+		JSBool ok;
+
+		name = JS_EncodeString(cx, JSVAL_TO_STRING(id));
+		dprintf(0,"name: %s\n", name);
+//		ok = JS_GetProperty(cx,obj,name,&val);
+//		if (ok) *rval = val;
+		if (name) JS_free(cx,name);
+#endif
+        }
+	return JS_TRUE;
+}
+
 static JSClass global_class = {
 	"global",		/* Name */
 	JSCLASS_GLOBAL_FLAGS | JSCLASS_HAS_PRIVATE,	/* Flags */
@@ -545,6 +571,66 @@ static JSClass global_class = {
 	JSCLASS_NO_OPTIONAL_MEMBERS
 };
 
+/******************************** WINDOW ***********************************/
+
+static jsnavigator_t nav = { };
+
+static jsdocument_t doc = { };
+
+static jswindow_t win = { };
+
+#define EWINDOW_FUNCSPEC \
+
+//mkstdclass(window,EWINDOW,JSEngine);
+
+typedef JSObject *(js_newobj_t)(JSContext *cx, JSObject *parent, void *priv);
+static void newgobj(JSContext *cx, char *name, js_newobj_t func, void *priv) {
+	JSObject *newobj, *global = JS_GetGlobalObject(cx);
+	jsval newval;
+
+	newobj = func(cx, global, priv);
+	dprintf(1,"%s newobj: %p\n", name, newobj);
+	if (newobj) {
+		newval = OBJECT_TO_JSVAL(newobj);
+		JS_DefineProperty(cx, global, name, newval, 0, 0, JSPROP_ENUMERATE);
+	}
+}
+
+/* Add the window props/funcs to the global object */
+char *js_define_window(JSContext *cx, JSObject *obj, JSEngine *e) {
+	JSPropertySpec props[] = {
+		JSWINDOW_PROPSPEC,
+		{ "location",JSWINDOW_PROPERTY_ID_LOCATION,JSPROP_ENUMERATE| JSPROP_READONLY },
+		{ 0 }
+	};
+	JSFunctionSpec funcs[] = {
+		EWINDOW_FUNCSPEC
+		JS_FN("setInterval",js_window_setInterval,0,0,0),
+		{ 0 }
+	};
+
+	nav.userAgent = "Mozilla/5.0 (X11; Linux x86_64; rv:102.0) Gecko/20100101 Firefox/102.0 debugger eval code:1:9";
+	newgobj(cx,"navigator",js_navigator_new,&nav);
+	doc.compatMode = "BackCompat";
+	newgobj(cx,"document",js_document_new,&doc);
+
+	/* Set engine private to window private */
+	e->private = &win;
+
+	dprintf(dlevel,"Defining window props...\n");
+	if(!JS_DefineProperties(cx, obj, props)) return "defining window properties";
+
+	dprintf(dlevel,"Defining window funcs...\n");
+	if(!JS_DefineFunctions(cx, obj, funcs)) return "defining window functions";
+
+	dprintf(dlevel,"Defining window property...\n");
+	if (!JS_DefineProperty(cx, obj, "window", OBJECT_TO_JSVAL(obj), 0, 0, 0)) 
+		return "defining window property";
+
+	return 0;
+}
+
+/******************************* init ****************************************/
 JSObject *JS_CreateGlobalObject(JSContext *cx, void *priv) {
 	JSPropertySpec global_props[] = {
 		{ "script_name",GLOBAL_PROPERTY_ID_SCRIPT_NAME, JSPROP_ENUMERATE | JSPROP_READONLY },
@@ -631,23 +717,12 @@ JSObject *JS_CreateGlobalObject(JSContext *cx, void *priv) {
 		goto _create_global_error;
 	}
 
-#if 0
-	dprintf(dlevel,"Defining window property...\n");
-	if (!JS_DefineProperty(cx, obj, "window", OBJECT_TO_JSVAL(obj), 0, 0, JSPROP_ENUMERATE)) {
-		msg = "defining window property";
-		goto _create_global_error;
-	}
-#endif
-
 	dprintf(dlevel,"Setting global private...\n");
 	JS_SetPrivate(cx,obj,priv);
 	JS_DefineProperty(cx, obj, "global", OBJECT_TO_JSVAL(obj), 0, 0, JSPROP_ENUMERATE);
 
-	dprintf(dlevel,"Adding window props/funcs\n");
-	if(!JS_InitWindow(cx, obj, priv)) {
-		msg = "initializing root window";
-		goto _create_global_error;
-	}
+	msg = js_define_window(cx, obj, priv);
+	if (msg) goto _create_global_error;
 
 	/* Add standard classes */
 	dprintf(dlevel,"Adding standard classes...\n");
@@ -663,3 +738,33 @@ _create_global_error:
 	if (msg) log_error(msg);
 	return 0;
 }
+#if 0
+Window Object Methods
+Method	Description
+alert()	Displays an alert box with a message and an OK button
+atob()	Decodes a base-64 encoded string
+blur()	Removes focus from the current window
+btoa()	Encodes a string in base-64
+clearInterval()	Clears a timer set with setInterval()
+clearTimeout()	Clears a timer set with setTimeout()
+close()	Closes the current window
+confirm()	Displays a dialog box with a message and an OK and a Cancel button
+focus()	Sets focus to the current window
+getComputedStyle()	Gets the current computed CSS styles applied to an element
+getSelection()	Returns a Selection object representing the range of text selected by the user
+matchMedia()	Returns a MediaQueryList object representing the specified CSS media query string
+moveBy()	Moves a window relative to its current position
+moveTo()	Moves a window to the specified position
+open()	Opens a new browser window
+print()	Prints the content of the current window
+prompt()	Displays a dialog box that prompts the visitor for input
+requestAnimationFrame()	Requests the browser to call a function to update an animation before the next repaint
+resizeBy()	Resizes the window by the specified pixels
+resizeTo()	Resizes the window to the specified width and height
+scroll()	Deprecated. This method has been replaced by the scrollTo() method.
+scrollBy()	Scrolls the document by the specified number of pixels
+scrollTo()	Scrolls the document to the specified coordinates
+setInterval()	Calls a function or evaluates an expression at specified intervals (in milliseconds)
+setTimeout()	Calls a function or evaluates an expression after a specified number of milliseconds
+stop()	Stops the window from loading
+#endif

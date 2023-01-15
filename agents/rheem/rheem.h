@@ -49,7 +49,6 @@ typedef struct rheem_device rheem_device_t;
 
 struct rheem_session {
 	solard_agent_t *ap;
-	solard_client_t *c;
 	uint16_t state;
 	char email[64];
 	char password[64];

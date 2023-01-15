@@ -172,14 +172,20 @@ int list_count(list lp) {
 	if (!lp) return -1;
 
 #if THREAD_SAFE
+	dprintf(dlevel,"locking...\n");
 	pthread_mutex_lock(&lp->mutex);
 #endif
+
+	dprintf(dlevel,"counting...\n");
 	count = 0;
 	for(ip = lp->first; ip; ip = ip->next) count++;
 
 #if THREAD_SAFE
+	dprintf(dlevel,"unlocking...\n");
 	pthread_mutex_unlock(&lp->mutex);
 #endif
+
+	dprintf(dlevel,"returning count: %d\n", count);
 	return count;
 }
 
@@ -516,3 +522,24 @@ void list_restore_next(list lp) {
 	pthread_mutex_unlock(&lp->mutex);
 #endif
 }
+
+#if 0
+#ifdef JS
+static JSClass js_list_array_class = {
+	"Array",		/* Name */
+	JSCLASS_HAS_PRIVATE,	/* Flags */
+	JS_PropertyStub,	/* addProperty */
+	JS_PropertyStub,	/* delProperty */
+	js_list_array_getprop,	/* getProperty */
+	js_list_array_setprop,	/* setProperty */
+	JS_EnumerateStub,	/* enumerate */
+	JS_ResolveStub,		/* resolve */
+	JS_ConvertStub,		/* convert */
+	JS_FinalizeStub,	/* finalize */
+	JSCLASS_NO_OPTIONAL_MEMBERS
+};
+
+JSObject *NewListArray(JSContext *cx, JSObject *obj, list l) {
+}
+#endif
+#endif

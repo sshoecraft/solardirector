@@ -194,7 +194,7 @@ static int _read_values(smanet_session_t *s, smanet_channel_t *cx) {
 			break;
 		default:
 			log_error("SMANET: _read_values: unhandled type: %d(%s)\n", c->type, typestr(c->type));
-			sprintf(s->errmsg,"_read_values: unhandled type: %d(%s)\n", c->type, typestr(c->type));
+			sprintf(s->errmsg,"_read_values: unhandled type: %d(%s)", c->type, typestr(c->type));
 			return 1;
 			break;
 		}
@@ -317,7 +317,7 @@ int smanet_get_multvalues(smanet_session_t *s, smanet_multreq_t *mr, int count) 
 	/* Always refresh spot values */
 	for(i=0; i < count; i++) {
 		if ((c = smanet_get_channel(s, mr[i].name)) == 0) {
-			sprintf(s->errmsg,"channel not found: %s\n", mr[i].name);
+			sprintf(s->errmsg,"channel not found: %s", mr[i].name);
 			return 1;
 		}
 //		if (c->mask & CH_SPOT)) 

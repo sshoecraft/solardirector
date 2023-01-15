@@ -13,7 +13,7 @@ LICENSE file in the root directory of this source tree.
 
 #define dlevel 2
 
-#define NAME_FORMAT "%-20.20s  "
+#define NAME_FORMAT "%-30.30s  "
 #define TYPE_FORMAT "%-10.10s  "
 #define SCOPE_FORMAT "%-10.10s  "
 #define VALUE_FORMAT "%s  "

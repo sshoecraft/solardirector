@@ -115,12 +115,25 @@ function si_smanet_getset(name,value,timeout) {
 }
 
 function setcleanval(name,value,format) {
+
+	let dlevel = 1;
+
+	dprintf(dlevel,"name: %s, value: %s, format: %s\n", name, value, format);
+
 	if (typeof(format) != "undefined") printf("Settting %s to: " + format + "\n",name,value);
-	si[name] = value;
 	var p = config.get_property(name);
+	dprintf(dlevel,"p: %s\n", p);
+	let has_val = false;
+	let old_dirty = false;
 	if (p) {
-		p.flags = clear_bit(p.flags,CONFIG_FLAG_VALUE);
-		p.dirty = 0;
+		has_val = check_bit(p.flags,CONFIG_FLAG_VALUE);
+		old_dirty = p.dirty;
+	}
+	si[name] = value;
+	if (p) {
+		dprintf(dlevel,"has_val: %s, old_dirty: %s\n", has_val, old_dirty);
+		if (!has_val) p.flags = clear_bit(p.flags,CONFIG_FLAG_VALUE);
+		p.dirty = old_dirty;
 	}
 }
 

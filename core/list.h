@@ -44,4 +44,9 @@ void list_restore_next(list);
 }
 #endif
 
+#ifdef JS
+#include "jsapi.h"
+JSObject *NewListArray(JSContext *cx, JSObject *obj, list l);
+#endif
+
 #endif /* __LIST_H */

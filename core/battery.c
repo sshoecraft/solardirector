@@ -457,7 +457,7 @@ JSObject *js_InitBatteryClass(JSContext *cx, JSObject *parent) {
 	};
 	JSObject *obj;
 
-	dprintf(dlevel,"defining %s object\n",js_battery_class.name);
+	dprintf(dlevel,"defining %s class\n",js_battery_class.name);
 	obj = JS_InitClass(cx, parent, 0, &js_battery_class, 0, 0, battery_props, battery_funcs, 0, 0);
 	if (!obj) {
 		JS_ReportError(cx,"unable to initialize battery class");

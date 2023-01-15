@@ -1,5 +1,5 @@
 
-all: mkh mkob
+all: 
 
 mkh: mkh.c
 	$(FULLCC) -o mkh mkh.c $(LIBS)

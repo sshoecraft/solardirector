@@ -67,11 +67,11 @@ function feed_init() {
 
 function feed_start(force) {
 
-	let dlevel = 0;
+	let dlevel = 1;
 
 	let lforce = force;
 	if (typeof(lforce) == "undefined") lforce = false;
-	dprintf(0,"feed_enabled: %s, force: %s\n", si.feed_enabled, lforce);
+	dprintf(dlevel,"feed_enabled: %s, force: %s\n", si.feed_enabled, lforce);
 	if (si.feed_enabled && !lforce) return 0;
 
 	dprintf(dlevel,"GnOn: %s\n", data.GnOn);
@@ -104,11 +104,11 @@ function feed_start(force) {
 
 function feed_stop(force) {
 
-	let dlevel = 0;
+	let dlevel = 1;
 
 	let lforce = force;
 	if (typeof(lforce) == "undefined") lforce = false;
-	dprintf(0,"feed_enabled: %s, force: %s\n", si.feed_enabled, lforce);
+	dprintf(dlevel,"feed_enabled: %s, force: %s\n", si.feed_enabled, lforce);
 	if (!si.feed_enabled && !lforce) return 0;
 
 	agent.event("Feed","Stop");
@@ -173,7 +173,7 @@ function feed_timeout() {
 	dprintf(0,"diff: %d, timeout: %d\n", diff, si.feed_timeout);
 //	return (diff > si.feed_timeout ? true : false);
 	let r = diff > si.feed_timeout ? true : false;
-	dprintf(0,"returning: %s\n", r);
+	dprintf(dlevel,"returning: %s\n", r);
 	return r;
 }
 
@@ -194,7 +194,7 @@ function feed_main() {
 
 	dprintf(dlevel,"feed_stop_date: %s\n", si.feed_stop_date);
 	if (si.feed_stop_date) {
-		dprintf(0,"charge_mode: %d, charge_feed: %s\n", si.charge_mode, si.charge_feed);
+		dprintf(dlevel,"charge_mode: %d, charge_feed: %s\n", si.charge_mode, si.charge_feed);
 		dprintf(dlevel,"cur: %s, stop: %s, diff: %s\n",
 			cur.getTime(), si.feed_stop_date.getTime(), si.feed_stop_date.getTime() - cur.getTime());
 	}
@@ -220,10 +220,10 @@ function feed_main() {
 	if (si.input_source != CURRENT_SOURCE_NONE && si.feed_enabled && data.GdOn) {
 		// If ac2_power has been < 0 longer than timeout, disable feed (only if not force charging)
 		dprintf(dlevel,"charge_mode: %d, charge_feed: %s, ac2_power: %.1f\n",
-			si.charge_mode, si.charge_feed, si.ac2_power);
+			si.charge_mode, si.charge_feed, data.ac2_power);
 		if (!(si.charge_mode && si.charge_feed) && data.ac2_power < 0) {
 			if (feed_timeout()) {
-				dprintf(0,"timed out, stopping feed\n");
+				dprintf(dlevel,"timed out, stopping feed\n");
 				feed_stop(false);
 			}
 		} else {

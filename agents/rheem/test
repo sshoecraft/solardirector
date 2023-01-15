@@ -1,0 +1,1 @@
+./rheem -e 'agent.script_dir="."' -c /opt/sd/etc/rheem.json

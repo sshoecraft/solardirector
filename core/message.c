@@ -228,7 +228,7 @@ static JSBool message_getprop(JSContext *cx, JSObject *obj, jsval id, jsval *rva
 	return JS_TRUE;
 }
 
-static JSClass message_class = {
+static JSClass js_message_class = {
 	"Message",		/* Name */
 	JSCLASS_HAS_PRIVATE,	/* Flags */
 	JS_PropertyStub,	/* addProperty */
@@ -242,7 +242,7 @@ static JSClass message_class = {
 	JSCLASS_NO_OPTIONAL_MEMBERS
 };
 
-JSObject *js_message_new(JSContext *cx, JSObject *parent, solard_message_t *msg) {
+JSObject *js_InitMessageClass(JSContext *cx, JSObject *parent) {
 	JSPropertySpec message_props[] = {
 		{ "topic", MESSAGE_PROPERTY_ID_TOPIC, JSPROP_ENUMERATE | JSPROP_READONLY },
 		{ "name", MESSAGE_PROPERTY_ID_NAME, JSPROP_ENUMERATE | JSPROP_READONLY },
@@ -256,15 +256,28 @@ JSObject *js_message_new(JSContext *cx, JSObject *parent, solard_message_t *msg)
 	};
 	JSObject *obj;
 
-	dprintf(2,"creating %s object\n",message_class.name);
-	obj = JS_InitClass(cx, parent, 0, &message_class, 0, 0, message_props, message_funcs, 0, 0);
+	dprintf(2,"creating %s class\n", js_message_class.name);
+	obj = JS_InitClass(cx, parent, 0, &js_message_class, 0, 0, message_props, message_funcs, 0, 0);
 	if (!obj) {
-		JS_ReportError(cx,"unable to initialize %s class", message_class.name);
+		JS_ReportError(cx,"unable to initialize %s class", js_message_class.name);
 		return 0;
 	}
-	JS_SetPrivate(cx,obj,msg);
-	dprintf(2,"done!\n");
+	dprintf(dlevel,"done!\n");
 	return obj;
+}
+
+JSObject *js_message_new(JSContext *cx, JSObject *parent, solard_message_t *m) {
+	JSObject *newobj;
+
+	/* Create the new object */
+	dprintf(2,"Creating %s object...\n", js_message_class.name);
+	newobj = JS_NewObject(cx, &js_message_class, 0, parent);
+	if (!newobj) return 0;
+
+	JS_SetPrivate(cx,newobj,m);
+
+	dprintf(dlevel,"newobj: %p\n", newobj);
+	return newobj;
 }
 
 JSObject *js_create_messages_array(JSContext *cx, JSObject *parent, list l) {

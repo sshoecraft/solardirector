@@ -11,8 +11,10 @@ function pub_main() {
 
 	let dlevel = 1;
 
-	dprintf(dlevel,"can_connected: %s, smanet_connected: %s\n", si.can_connected, si.smanet_connected);
-	if (!si.can_connected && !si.smanet_connected) return(0);
+//	dprintf(dlevel,"can_connected: %s, smanet_connected: %s\n", si.can_connected, si.smanet_connected);
+//	if (!si.can_connected && !si.smanet_connected) return(0);
+	dprintf(dlevel,"running: %s\n", data.Run);
+	if (!data.Run) return;
 
 	function addstat(str,val,text) {
 		if (val) str += "[" + text + "]";
@@ -22,6 +24,7 @@ function pub_main() {
 	var status = "";
 	status = addstat(status,si.can_connected,"can");
 	status = addstat(status,si.readonly,"readonly");
+	status = addstat(status,si.mirror,"mirror");
 	status = addstat(status,si.smanet_connected,"smanet");
 	status = addstat(status,data.GdOn,"grid");
 	status = addstat(status,data.GnOn,"gen");
@@ -80,8 +83,8 @@ if (0 == 1) {
 			[ "status",		status ],
 	];
 	var mydata = {};
-	for(j=0; j < tab.length; j++) mydata[tab[j][0]] = tab[j][1];
-	//for(key in mydata) printf("%20.20s: %s\n", key, mydata[key]);
+	for(let j=0; j < tab.length; j++) mydata[tab[j][0]] = tab[j][1];
+	//for(let key in mydata) printf("%20.20s: %s\n", key, mydata[key]);
 
 
 	var format = 3;

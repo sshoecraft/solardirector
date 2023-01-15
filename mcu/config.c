@@ -45,7 +45,7 @@ int mcu_config(void *h, int req, ...) {
 		char mqtt_info[256];
 
 		s->ap = va_arg(va,solard_agent_t *);
-		s->c = client_init(0,0,sd_version_string,0,s->ap->instance_name,CLIENT_FLAG_NOJS,0,0);
+		s->c = client_init(0,0,sd_version_string,0,s->ap->instance_name,CLIENT_FLAG_NOJS,0,0,0);
 		dprintf(0,"s->c: %p\n", s->c);
 		if (!s->c) return 1;
 		s->c->addmq = true;

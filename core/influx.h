@@ -71,7 +71,8 @@ void influx_add_props(influx_session_t *s, config_t *cp, char *name);
 #ifdef JS
 #include "jsapi.h"
 #include "jsengine.h"
-JSObject * js_InitInfluxClass(JSContext *cx, JSObject *global_object);
+//JSObject * js_InitInfluxClass(JSContext *cx, JSObject *global_object);
+int influx_jsinit(JSEngine *e);
 JSObject *js_influx_new(JSContext *, JSObject *, influx_session_t *);
 #endif
 

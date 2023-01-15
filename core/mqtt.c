@@ -199,6 +199,8 @@ struct mqtt_session *mqtt_new(bool v3, mqtt_callback_t *cb, void *ctx) {
 		free(s);
 		return 0;
 	}
+	s->ctor = false;
+	s->mq = list_create();
 
 	return s;
 }
@@ -403,6 +405,7 @@ int mqtt_destroy(mqtt_session_t *s) {
 	}
 	s->c = 0;
 	list_destroy(s->subs);
+	list_destroy(s->mq);
 	free(s);
 	return 0;
 }
@@ -634,6 +637,7 @@ void mqtt_add_props(mqtt_session_t *s, config_t *cp, char *name) {
 
 #ifdef JS
 #include "jsengine.h"
+#include "jsfun.h"
 
 enum MQTT_PROPERTY_ID {
 	MQTT_PROPERTY_ID_ENABLED=1,
@@ -643,7 +647,11 @@ enum MQTT_PROPERTY_ID {
 	MQTT_PROPERTY_ID_PASSWORD,
 	MQTT_PROPERTY_ID_ERRMSG,
 	MQTT_PROPERTY_ID_CONNECTED,
+	MQTT_PROPERTY_ID_MQ,
 };
+
+#include "common.h"
+#include "message.h"
 
 static JSBool mqtt_getprop(JSContext *cx, JSObject *obj, jsval id, jsval *rval) {
 	mqtt_session_t *s;
@@ -683,7 +691,11 @@ static JSBool mqtt_getprop(JSContext *cx, JSObject *obj, jsval id, jsval *rval) 
 		case MQTT_PROPERTY_ID_CONNECTED:
 			*rval = type_to_jsval(cx,DATA_TYPE_BOOL,&s->connected,0);
 			break;
-		default:
+		case MQTT_PROPERTY_ID_MQ:
+			if (s->ctor)
+				*rval = OBJECT_TO_JSVAL(js_create_messages_array(cx, obj, s->mq));
+			else
+				*rval = JSVAL_VOID;
 			break;
 		}
 	}
@@ -718,8 +730,6 @@ static JSBool mqtt_setprop(JSContext *cx, JSObject *obj, jsval id, jsval *vp) {
 			break;
 		case MQTT_PROPERTY_ID_PASSWORD:
 			jsval_to_type(DATA_TYPE_STRING,&s->password,sizeof(s->password),cx,*vp);
-			break;
-		default:
 			break;
 		}
 	}
@@ -846,44 +856,127 @@ static JSBool js_mqtt_rs(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, 
 	return JS_TRUE;
 }
 
-static JSBool js_mqtt_ctor(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rval) {
-#if 0
-	influx_session_t *s;
-	JSObject *newobj;
-	char *url, *db, *user, *pass;
+struct _getmsg_ctx {
+	mqtt_session_t *s;
+	JSContext *cx;
+	jsval func;
+	jsval arg;
+};
 
-	dprintf(dlevel,"argc: %d\n", argc);
-	if (argc && argc != 2) {
-		JS_ReportError(cx, "INFLUX requires 2 arguments (endpoint:string, database:string) and 2 optional arguments (username:string, password:string)");
-		return JS_FALSE;
-	}
+/*  XXX we cant call a javascript func from the message handler
+    because it runs in a different thread and our JS engine
+    cant handle that yet - rework this when it can
+*/
+#if 1
+static void _js_mqtt_getmsg(void *_ctx, char *topic, char *message, int msglen, char *replyto) {
+	struct _getmsg_ctx *ctx = _ctx;
+	solard_message_t newmsg;
 
-	s = influx_new();
+	dprintf(dlevel,"topic: %s\n", topic);
+	if (solard_getmsg(&newmsg,topic,message,msglen,replyto)) return;
+//	solard_message_dump(&newmsg,0);
+	list_add(ctx->s->mq,&newmsg,sizeof(newmsg));
+}
+#else
+static void _js_mqtt_getmsg(void *_ctx, char *topic, char *message, int msglen, char *replyto) {
+	struct _getmsg_ctx *ctx = _ctx;
+        jsval argv[4];
+	jsval rval;
+	JSBool ok;
+
+//	dprintf(0,"topic: %s, message: %s, replyto: %s\n", topic, message, replyto);
+
+        argv[0] = (ctx->arg ? ctx->arg : JSVAL_VOID);
+        argv[1] = type_to_jsval(ctx->cx, DATA_TYPE_STRING, topic, strlen(topic));
+        argv[2] = type_to_jsval(ctx->cx, DATA_TYPE_STRING, topic, strlen(topic));
+        argv[3] = type_to_jsval(ctx->cx, DATA_TYPE_STRING, topic, strlen(topic));
+
+	/* XXX doesnt work */
+	JS_SetContextThread(ctx->cx);
+	JS_BeginRequest(ctx->cx);
+
+	dprintf(0,"func: %x\n", ctx->func);
+        ok = JS_CallFunctionValue(ctx->cx, JS_GetGlobalObject(ctx->cx), ctx->func, 4, argv, &rval);
+        dprintf(dlevel,"call ok: %d\n", ok);
+
+	JS_EndRequest(ctx->cx);
+	JS_ClearContextThread(ctx->cx);
+
+	dprintf(0,"done!\n");
+	return;
+}
+#endif
+
+static JSBool js_mqtt_purgemq(JSContext *cx, uintN argc, jsval *vp) {
+	JSObject *obj;
+	mqtt_session_t *s;
+
+	obj = JS_THIS_OBJECT(cx, vp);
+	if (!obj) return JS_FALSE;
+	s = JS_GetPrivate(cx, obj);
 	if (!s) {
-		JS_ReportError(cx, "influx_ctor: unable to create new session");
+		JS_ReportError(cx,"js_mqtt_purgemq: mqtt private is null!\n");
 		return JS_FALSE;
 	}
+	list_purge(s->mq);
+	return JS_TRUE;
+}
 
-	if (argc) {
-		url = db = user = pass = 0;
-		if (!JS_ConvertArguments(cx, argc, argv, "s s / s s", &url, &db, &user, &pass))
-			return JS_FALSE;
-		dprintf(dlevel,"url: %s, db: %s, user: %s, pass: %s\n", url, db, user, pass);
+static JSBool js_mqtt_ctor(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rval) {
+	char *uri;
+//	jsval func,arg;
+	JSPropertySpec ctor_props[] = { 
+		{ "mq", MQTT_PROPERTY_ID_MQ, JSPROP_ENUMERATE | JSPROP_READONLY },
+		{0}
+	};
+	JSFunctionSpec ctor_funcs[] = {
+		JS_FN("purgemq",js_mqtt_purgemq,0,0,0),
+		{ 0 }
+	};
+	struct _getmsg_ctx *ctx;
+	JSObject *newobj;
 
-		strncpy(s->endpoint,url,sizeof(s->endpoint)-1);
-		strncpy(s->database,db,sizeof(s->database)-1);
-		if (user) strncpy(s->username,user,sizeof(s->username)-1);
-		if (pass) strncpy(s->password,pass,sizeof(s->password)-1);
-		dprintf(dlevel,"endpoint: %s, database: %s, user: %s, pass: %s\n", s->endpoint, s->database, s->username, s->password);
+	uri = 0;
+#if 1
+	if (!JS_ConvertArguments(cx, argc, argv, "s", &uri)) return JS_FALSE;
+	dprintf(dlevel,"uri: %s\n", uri);
+#else
+	func = arg = JSVAL_NULL;
+	if (!JS_ConvertArguments(cx, argc, argv, "s v / v", &uri, &func, &arg)) return JS_FALSE;
+	dprintf(dlevel,"uri: %s, func: %x (is func: %d), arg: %x\n", uri, func, VALUE_IS_FUNCTION(cx,func), arg);
+	if (!VALUE_IS_FUNCTION(cx,func)) {
+		JS_ReportError(cx, "js_mqtt_ctor: argument 2 is not a function");
+		return JS_FALSE;
 	}
+#endif
 
-	newobj = js_influx_new(cx,JS_GetGlobalObject(cx),s);
-	JS_SetPrivate(cx,newobj,s);
+	ctx = malloc(sizeof(*ctx));
+	dprintf(dlevel,"ctx: %p\n", ctx);
+	if (!ctx) {
+		JS_ReportError(cx, "js_mqtt_ctor: malloc ctx");
+		return JS_FALSE;
+	}
+	ctx->cx = cx;
+//	ctx->func = func;
+//	ctx->arg = arg;
+
+	ctx->s = mqtt_new(false, _js_mqtt_getmsg, ctx);
+	dprintf(dlevel,"s: %p\n", ctx->s);
+	if (!ctx->s) {
+		JS_ReportError(cx, "js_mqtt_ctor: mqtt_new return null!");
+		return JS_FALSE;
+	}
+	ctx->s->ctor = true;
+	if (strlen(uri)) mqtt_parse_config(ctx->s,uri);
+
+	newobj = js_mqtt_new(cx, obj, ctx->s);
+	dprintf(dlevel,"newobj: %p\n", newobj);
+	JS_DefineProperties(cx, newobj, ctor_props);
+	JS_DefineFunctions(cx, newobj, ctor_funcs);
+	JS_SetPrivate(cx,newobj,ctx->s);
 	*rval = OBJECT_TO_JSVAL(newobj);
 
-	return JS_TRUE;
-#endif
-	*rval = JSVAL_VOID;
+	dprintf(dlevel,"done!\n");
 	return JS_TRUE;
 }
 
@@ -896,6 +989,7 @@ JSObject * js_InitMQTTClass(JSContext *cx, JSObject *global_object) {
 		{ "password",		MQTT_PROPERTY_ID_PASSWORD,	JSPROP_ENUMERATE },
 		{ "errmsg",		MQTT_PROPERTY_ID_ERRMSG,	JSPROP_ENUMERATE | JSPROP_READONLY },
 		{ "connected",		MQTT_PROPERTY_ID_CONNECTED,	JSPROP_ENUMERATE | JSPROP_READONLY },
+		{ "mq",			MQTT_PROPERTY_ID_MQ,		JSPROP_ENUMERATE | JSPROP_READONLY },
 		{0}
 	};
 	JSFunctionSpec mqtt_funcs[] = {
@@ -909,13 +1003,13 @@ JSObject * js_InitMQTTClass(JSContext *cx, JSObject *global_object) {
 	};
 	JSObject *obj;
 
-	dprintf(dlevel,"Creating %s class...\n", js_mqtt_class.name);
+	dprintf(2,"Creating %s class...\n", js_mqtt_class.name);
 	obj = JS_InitClass(cx, global_object, 0, &js_mqtt_class, js_mqtt_ctor, 1, mqtt_props, mqtt_funcs, 0, 0);
 	if (!obj) {
 		JS_ReportError(cx,"unable to initialize mqtt class");
 		return 0;
 	}
-	dprintf(dlevel,"done!\n");
+//	dprintf(dlevel,"done!\n");
 	return obj;
 }
 
@@ -923,11 +1017,13 @@ JSObject *js_mqtt_new(JSContext *cx, JSObject *parent, mqtt_session_t *s) {
 	JSObject *newobj;
 
 	/* Create the new object */
+	dprintf(2,"Creating %s object...\n", js_mqtt_class.name);
 	newobj = JS_NewObject(cx, &js_mqtt_class, 0, parent);
 	if (!newobj) return 0;
 
-	if (s) JS_SetPrivate(cx,newobj,s);
+	JS_SetPrivate(cx,newobj,s);
 
+	dprintf(dlevel,"newobj: %p\n", newobj);
 	return newobj;
 }
 #endif

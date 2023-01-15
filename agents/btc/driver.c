@@ -81,6 +81,7 @@ static void getbat(btc_session_t *s, char *name, json_value_t *json) {
 	return;
 };
 
+#if 0
 static int btc_cb(void *h) {
 	btc_session_t *s = h;
 	solard_message_t *msg;
@@ -105,6 +106,7 @@ static int btc_cb(void *h) {
 	}
 	return 0;
 }
+#endif
 
 static void *btc_new(void *driver, void *driver_handle) {
 	btc_session_t *s;
@@ -287,7 +289,7 @@ static int btc_config(void *h, int req, ...) {
 
 		s->ap = va_arg(va,solard_agent_t *);
 //		agent_set_callback(s->ap,btc_cb,s);
-		s->c = client_init(0,0,btc_agent_version_string,0,"btc",CLIENT_FLAG_NOJS,0,0);
+		s->c = client_init(0,0,btc_agent_version_string,0,"btc",CLIENT_FLAG_NOJS,0,0,0);
 		if (!s->c) return 1;
 		s->c->addmq = true;
 		mqtt_disconnect(s->c->m,1);

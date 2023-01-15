@@ -211,7 +211,7 @@ static int si_set_value(void *ctx, list args, char *errmsg, json_object_t *resul
 	return 0;
 }
 
-static int si_set_can_info(void *ctx, config_property_t *p) {
+static int si_set_can_info(void *ctx, config_property_t *p, void *old_value) {
 	si_session_t *s = ctx;
 	char *infop = p->dest;
 
@@ -227,7 +227,7 @@ static int si_set_can_info(void *ctx, config_property_t *p) {
 	return 0;
 }
 
-static int si_set_smanet_info(void *ctx, config_property_t *p) {
+static int si_set_smanet_info(void *ctx, config_property_t *p, void *old_value) {
 	si_session_t *s = ctx;
 	char *infop = p->dest;
 
@@ -246,7 +246,7 @@ static int si_set_smanet_info(void *ctx, config_property_t *p) {
 static int si_charge(void *ctx, list args, char *errmsg, json_object_t *results) {
 #ifdef JS
 	si_session_t *s = ctx;
-//	jsval jstrue = BOOLEAN_TO_JSVAL(JS_TRUE);
+	jsval jstrue = BOOLEAN_TO_JSVAL(JS_TRUE);
 #endif
 	char *arg;
 
@@ -258,17 +258,17 @@ static int si_charge(void *ctx, list args, char *errmsg, json_object_t *results)
 #ifdef JS
 	// XXX using jsexec works and works well - except it wont reload the script file if its modified
 	if (strcmp(arg,"start") == 0 || strcasecmp(arg,"on") == 0) {
-		agent_jsexec(s->ap, "charge_start(true);");
-//		agent_start_jsfunc(s->ap, "charge.js", "charge_start", 1, &jstrue);
+//		agent_jsexec(s->ap, "charge_start(true);");
+		agent_start_jsfunc(s->ap, "charge.js", "charge_start", 1, &jstrue);
 	} else if (strcmp(arg,"startcv") == 0 || strcasecmp(arg,"cv") == 0) {
-		agent_jsexec(s->ap, "charge_start_cv(true)");
-//		agent_start_jsfunc(s->ap, "charge.js", "charge_start_cv", 1, &jstrue);
+//		agent_jsexec(s->ap, "charge_start_cv(true)");
+		agent_start_jsfunc(s->ap, "charge.js", "charge_start_cv", 1, &jstrue);
 	} else if (strcmp(arg,"stop") == 0 || strcasecmp(arg,"off") == 0) {
-		agent_jsexec(s->ap, "charge_stop(true)");
-//		agent_start_jsfunc(s->ap, "charge.js", "charge_stop", 1, &jstrue);
+//		agent_jsexec(s->ap, "charge_stop(true)");
+		agent_start_jsfunc(s->ap, "charge.js", "charge_stop", 1, &jstrue);
 	} else if (strcmp(arg,"end") == 0) {
-		agent_jsexec(s->ap, "charge_end()");
-//		agent_start_jsfunc(s->ap, "charge.js", "charge_end", 1, &jstrue);
+//		agent_jsexec(s->ap, "charge_end()");
+		agent_start_jsfunc(s->ap, "charge.js", "charge_end", 1, &jstrue);
 	} else
 #endif
 	{
@@ -307,13 +307,13 @@ static int si_feed(void *ctx, list args, char *errmsg, json_object_t *results) {
 }
 
 /* smanet_channels_path trigger */
-static int smanet_chanpath_set(void *ctx, config_property_t *p) {
+static int smanet_chanpath_set(void *ctx, config_property_t *p, void *old_value) {
 	si_session_t *s = ctx;
 
 	return si_smanet_load_channels(s);
 }
 
-static int set_input_current_source(void *ctx, config_property_t *p) {
+static int set_input_current_source(void *ctx, config_property_t *p, void *old_value) {
 	si_session_t *s = ctx;
 
 	dprintf(dlevel,"input->text: %s\n", s->input.text);
@@ -323,7 +323,7 @@ static int set_input_current_source(void *ctx, config_property_t *p) {
 	return 0;
 }
 
-static int set_output_current_source(void *ctx, config_property_t *p) {
+static int set_output_current_source(void *ctx, config_property_t *p, void *old_value) {
 	si_session_t *s = ctx;
 
 	dprintf(dlevel,"output->text: %s\n", s->output.text);
@@ -333,7 +333,7 @@ static int set_output_current_source(void *ctx, config_property_t *p) {
 	return 0;
 }
 
-static int set_battery_temp_source(void *ctx, config_property_t *p) {
+static int set_battery_temp_source(void *ctx, config_property_t *p, void *old_value) {
 	si_session_t *s = ctx;
 
 	dprintf(dlevel,"temp->text: %s\n", s->temp.text);
@@ -343,7 +343,7 @@ static int set_battery_temp_source(void *ctx, config_property_t *p) {
 	return 0;
 }
 
-static int set_solar_output_source(void *ctx, config_property_t *p) {
+static int set_solar_output_source(void *ctx, config_property_t *p, void *old_value) {
 	si_session_t *s = ctx;
 
 	dprintf(dlevel,"solar->text: %s\n", s->solar.text);
@@ -408,7 +408,7 @@ int si_agent_init(int argc, char **argv, opt_proctab_t *si_opts, si_session_t *s
 		{ "disable_si_read", DATA_TYPE_BOOL, &s->disable_si_read, 0, 0, 0 },
 		{ "disable_si_write", DATA_TYPE_BOOL, &s->disable_si_write, 0, 0, 0 },
 		{ "force_charge_amps", DATA_TYPE_BOOL, &s->force_charge_amps, 0, "N", CONFIG_FLAG_PRIVATE },
-		{ "discharge_amps", DATA_TYPE_DOUBLE, &s->discharge_amps, 0, "1200", 0, },
+		{ "discharge_amps", DATA_TYPE_DOUBLE, &s->discharge_amps, 0, "1120", 0, },
 		{ "user_soc", DATA_TYPE_DOUBLE, &s->user_soc, 0, "-1", CONFIG_FLAG_NOSAVE, },
 		{ "gen_hold_soc", DATA_TYPE_DOUBLE, &s->gen_hold_soc, 0, "-1", 0, },
 		{ "errmsg", DATA_TYPE_STRING, s->errmsg, sizeof(s->errmsg)-1, 0, CONFIG_FLAG_PRIVATE },

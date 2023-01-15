@@ -1992,6 +1992,7 @@ js_IsActiveWithOrBlock(JSContext *cx, JSObject *obj, int stackDepth)
 {
     JSClass *clasp;
 
+	if (!obj) return NULL;
     clasp = OBJ_GET_CLASS(cx, obj);
     if ((clasp == &js_WithClass || clasp == &js_BlockClass) &&
         OBJ_GET_PRIVATE(cx, obj) == cx->fp &&
@@ -4952,7 +4953,7 @@ interrupt:
             obj = fp->scopeChain;
 //	    printf("obj: %p\n", obj);
 	    if (!obj) {
-		JS_ReportError(cx,"Internal error: object in scopeChain is null!\n");
+		JS_ReportError(cx,"internal error: object in scopeChain is null!");
 		return JS_FALSE;
 	    }
             if (JS_LIKELY(OBJ_IS_NATIVE(obj))) {

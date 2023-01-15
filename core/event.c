@@ -1,6 +1,14 @@
 
 #include "common.h"
 
+#define DEBUG_EVENT 1
+
+#ifdef DEBUG
+#undef DEBUG
+#endif
+#define DEBUG DEBUG_EVENT
+#include "debug.h"
+
 #define dlevel 4
 
 struct event_handler_info {
@@ -66,6 +74,7 @@ void event(event_session_t *e, char *name, char *module, char *action) {
 
 //	log_info("EVENT: name: %s, module: %s, action: %s\n", name, module, action);
 
+	dprintf(dlevel,"handler count: %d\n", list_count(e->handlers));
 	list_reset(e->handlers);
 	while((info = list_get_next(e->handlers)) != 0) {
 		dprintf(dlevel,"info: handler: %p, ctx: %p, name: %s, module: %s, action: %s\n",
@@ -73,4 +82,5 @@ void event(event_session_t *e, char *name, char *module, char *action) {
 		dprintf(dlevel,"calling handler: %p\n", info->handler);
 		info->handler(info->ctx, name, module, action);
 	}
+	dprintf(dlevel,"done!\n");
 }

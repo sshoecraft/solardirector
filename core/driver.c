@@ -17,7 +17,7 @@ LICENSE file in the root directory of this source tree.
 #include "jsfun.h"
 #endif
 
-#define dlevel 1
+#define dlevel 2
 
 solard_driver_t *find_driver(solard_driver_t **transports, char *name) {
 	register int i;
@@ -53,7 +53,7 @@ typedef struct driver_private {
 	JSObject *obj;
 	solard_agent_t *ap;
 	jsval agent_val;
-	config_t *cp;
+//	config_t *cp;
 	jsval init;
 } driver_private_t;
 
@@ -217,6 +217,7 @@ static JSBool driver_getprop(JSContext *cx, JSObject *obj, jsval id, jsval *rval
 		int prop_id = JSVAL_TO_INT(id);
 		dprintf(dlevel,"prop_id: %d\n", prop_id);
 		switch(prop_id) {
+#if 0
 		case CLASS_PROPERTY_ID_CP:
 			dprintf(dlevel,"cpval: %x, cp: %p\n", p->cpval, p->cp);
 			if (!p->cpval && p->cp) {
@@ -225,12 +226,14 @@ static JSBool driver_getprop(JSContext *cx, JSObject *obj, jsval id, jsval *rval
 			}
 			*rval = p->cpval;
 			break;
+#endif
 		default:
-			if (p->cp) return js_config_common_getprop(cx, obj, id, rval, p->cp, 0);
+			dprintf(dlevel,"ap->cp: %p\n", p->ap->cp);
+			if (p->ap->cp) return js_config_common_getprop(cx, obj, id, rval, p->ap->cp, 0);
                         break;
 		}
 	} else {
-#if 0
+#if 1
 		if (JSVAL_IS_STRING(id)) {
 			char *sname, *name;
 			JSClass *driverp = OBJ_GET_CLASS(cx, obj);
@@ -241,8 +244,7 @@ static JSBool driver_getprop(JSContext *cx, JSObject *obj, jsval id, jsval *rval
 			if (name) JS_free(cx, name);
 		}
 #endif
-		dprintf(dlevel,"cp: %p\n", p->cp);
-		if (p->cp) return js_config_common_getprop(cx, obj, id, rval, p->cp, 0);
+		if (p->ap && p->ap->cp) return js_config_common_getprop(cx, obj, id, rval, p->ap->cp, 0);
 	}
 	return JS_TRUE;
 }
@@ -261,16 +263,19 @@ static JSBool driver_setprop(JSContext *cx, JSObject *obj, jsval id, jsval *vp) 
 		int prop_id = JSVAL_TO_INT(id);
 		dprintf(dlevel,"prop_id: %d\n", prop_id);
 		switch(prop_id) {
+#if 0
 		case CLASS_PROPERTY_ID_CP:
 			p->cpval = *vp;
 			p->cp = JS_GetPrivate(cx,JSVAL_TO_OBJECT(*vp));
 			break;
+#endif
 		default:
-			if (p->cp) return js_config_common_setprop(cx, obj, id, vp, p->cp, 0);
+			dprintf(dlevel,"ap->cp: %p\n", p->ap->cp);
+			if (p->ap->cp) return js_config_common_setprop(cx, obj, id, vp, p->ap->cp, 0);
                         break;
 		}
 	} else {
-#if 0
+#if 1
 		if (JSVAL_IS_STRING(id)) {
 			char *sname, *name;
 			JSClass *driverp = OBJ_GET_CLASS(cx, obj);
@@ -281,8 +286,9 @@ static JSBool driver_setprop(JSContext *cx, JSObject *obj, jsval id, jsval *vp) 
 			if (name) JS_free(cx, name);
 		}
 #endif
-		dprintf(dlevel,"cp: %p\n", p->cp);
-		if (p->cp) return js_config_common_setprop(cx, obj, id, vp, p->cp, 0);
+		dprintf(dlevel,"p->ap: %p\n", p->ap);
+		if (p->ap) dprintf(dlevel,"ap->cp: %p\n", p->ap->cp);
+		if (p->ap && p->ap->cp) return js_config_common_setprop(cx, obj, id, vp, p->ap->cp, 0);
 	}
 	return JS_TRUE;
 }
@@ -307,7 +313,7 @@ static JSBool driver_ctor(JSContext *cx, JSObject *parent, uintN argc, jsval *ar
 	JSClass *newdriverp,*ccp = &driver_class;
 	char *namep;
 	JSPropertySpec props[] = {
-		{ DRIVER_CP,CLASS_PROPERTY_ID_CP,JSPROP_ENUMERATE },
+		{ DRIVER_CP,CLASS_PROPERTY_ID_CP,0 },
 		{0}
 	};
 	JSFunctionSpec funcs[] = {
@@ -362,7 +368,7 @@ JSObject *js_InitDriverClass(JSContext *cx, JSObject *parent) {
 		JS_ReportError(cx,"unable to initialize driver Class");
 		return 0;
 	}
-	dprintf(dlevel,"done!\n");
+//	dprintf(dlevel,"done!\n");
 	return obj;
 }
 

@@ -1,5 +1,6 @@
 
 #include "agent.h"
+#include "jsobj.h"
 
 #define TESTING 0
 #define TESTLVL 3
@@ -8,6 +9,16 @@ struct dummy_session {
 	solard_agent_t *ap;
 };
 typedef struct dummy_session dummy_session_t;
+
+int dummy_jsinit(JSContext *cx, JSObject *parent, void *ctx) {
+	dummy_session_t *s = ctx;
+
+	JS_DefineProperty(cx, parent, "agent", OBJECT_TO_JSVAL(js_agent_new(cx,parent,s->ap)), 0, 0, JSPROP_ENUMERATE);
+	JS_DefineProperty(cx, parent, "config", s->ap->js.config_val, 0, 0, JSPROP_ENUMERATE);
+	JS_DefineProperty(cx, parent, "mqtt", s->ap->js.mqtt_val, 0, 0, JSPROP_ENUMERATE);
+	JS_DefineProperty(cx, parent, "influx", s->ap->js.influx_val, 0, 0, JSPROP_ENUMERATE);
+	return 0;
+}
 
 int dummy_config(void *h, int req, ...) {
 	dummy_session_t *s = h;
@@ -18,6 +29,7 @@ int dummy_config(void *h, int req, ...) {
 	switch(req) {
 	case SOLARD_CONFIG_INIT:
 		s->ap = va_arg(va,solard_agent_t *);
+		if (s->ap->js.e) JS_EngineAddInitFunc(s->ap->js.e,"dummy_jsinit",dummy_jsinit,s);
 		break;
 	case SOLARD_CONFIG_GET_INFO:
 		{
@@ -35,6 +47,11 @@ int dummy_config(void *h, int req, ...) {
 	return 0;
 }
 
+int set_parm1(void *ctx, config_property_t *p, void *old_value) {
+	printf("set!\n");
+	return 0;
+}
+
 int main(int argc, char **argv) {
 	solard_driver_t dummy;
 	dummy_session_t *s;
@@ -47,7 +64,8 @@ int main(int argc, char **argv) {
 	int parm2;
 	float parm3;
 	config_property_t dummy_props[] = {
-		{ "parm1", DATA_TYPE_STRING, &parm1, sizeof(parm1)-1, "parm1_default" },
+		{ "parm1", DATA_TYPE_STRING, parm1, sizeof(parm1)-1, 0, 0,
+                        0, 0, 0, 0, 0, 1, set_parm1, 0 },
 		{ "parm2", DATA_TYPE_INT, &parm2, 0, "2" },
 		{ "parm3", DATA_TYPE_FLOAT, &parm3, 0, "4.5" },
 		{ 0 }

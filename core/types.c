@@ -158,9 +158,12 @@ int js_types_init(JSContext *cx, JSObject *parent, void *priv) {
 #define PREFIX "DATA_TYPE_"
 	for(i=0; i < count; i++) {
 		snprintf(temp,sizeof(temp)-1,"%s%s",PREFIX,type_info[i].name);
-//		consts[i].name = js_GetStringBytes(cx,JS_NewStringCopyZ(cx,temp));
+//		dprintf(0,"temp: %s\n", temp);
 		consts[i].name = JS_EncodeString(cx, JS_InternString(cx,temp));
-		consts[i].value = NUMBER_TO_JSVAL(type_info[i].type);
+		if (type_info[i].type == DATA_TYPE_FLOAT || type_info[i].type == DATA_TYPE_F32)
+			consts[i].value = NUMBER_TO_JSVAL(DATA_TYPE_DOUBLE);
+		else
+			consts[i].value = NUMBER_TO_JSVAL(type_info[i].type);
 	}
 	consts[i].name = 0;
 	if(!JS_DefineConstants(cx, obj, consts)) {

@@ -625,6 +625,7 @@ static int js_common_init(JSContext *cx, JSObject *parent, void *priv) {
 		JS_STRCONST(SOLARD_FUNC_INFO),
 		JS_STRCONST(SOLARD_FUNC_CONFIG),
 		JS_STRCONST(SOLARD_FUNC_DATA),
+		JS_STRCONST(SOLARD_FUNC_EVENT),
 #ifdef DEBUG
 		{ "DEBUG", INT_TO_JSVAL(1) },
 #else
@@ -679,7 +680,8 @@ JSEngine *common_jsinit(int rtsize, int stksize, js_outputfunc_t *jsout) {
 	JS_EngineAddInitClass(e, "js_InitAgentClass", js_InitAgentClass);
 	JS_EngineAddInitClass(e, "js_InitClientClass", js_InitClientClass);
 	JS_EngineAddInitClass(e, "js_InitMQTTClass", js_InitMQTTClass);
-	JS_EngineAddInitClass(e, "js_InitInfluxClass", js_InitInfluxClass);
+	JS_EngineAddInitClass(e, "js_InitMessageClass", js_InitMessageClass);
+	if (influx_jsinit(e)) return 0;
 	JS_EngineAddInitClass(e, "js_InitBatteryClass", js_InitBatteryClass);
 //	JS_EngineAddInitClass(e, "js_InitInverterClass", js_InitInverterClass);
 	return e;

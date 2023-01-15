@@ -7,29 +7,30 @@ This source code is licensed under the BSD-style license found in the
 LICENSE file in the root directory of this source tree.
 */
 
-function set_auto_on_date(n) {
+function set_auto_on_date(n,p,o) {
 
-	var dlevel = 1;
+	let dlevel = 1;
 
-	dprintf(dlevel,"n: %s\n", n);
+	dprintf(dlevel,"n: %s, p: %s, o: %s\n", n, p, o);
 	if (typeof(n) == "undefined") return;
 
 	var dev = rheem.devices[n];
-	dprintf(dlevel,"auto_on: %s\n", dev.auto_on);
+	dprintf(dlevel,"auto_on: %s, added: %s\n", dev.auto_on, dev.added);
 	if (!dev.auto_on.length) dev.auto_on_date = undefined;
-	else dev.auto_on_date = get_date(rheem.location,dev.auto_on,"auto_on",true);
+	else dev.auto_on_date = get_date(rheem.location,dev.auto_on,"auto_on",dev.added);
 	if (dev.auto_on_date) dprintf(dlevel,"NEW auto_on_date: %s\n",dev.auto_on_date);
 }
 
-function set_aoltd(n) {
+function set_aoltd(n,p,o) {
 
-	var dlevel = 1;
+	let dlevel = 1;
 
-	dprintf(dlevel,"n: %s\n", n);
+	dprintf(dlevel,"n: %s, p: %s, o: %s\n", n, p, o);
 	if (typeof(n) == "undefined") return;
 
 	var dev = rheem.devices[n];
-	dprintf(dlevel,"auto_off_level_timeout: %s, auto_off_date: %s\n", dev.auto_off_level_timeout, dev.auto_off_date);
+	dprintf(dlevel,"auto_off_level_timeout: %s, auto_off_date: %s, added: %s\n",
+		dev.auto_off_level_timeout, dev.auto_off_date, dev.added);
 	if (!dev.auto_off_level_timeout) dev.aoltd = undefined;
 	else if (dev.auto_off_date) {
 		// Auto Off Level Timeout Date
@@ -40,43 +41,26 @@ function set_aoltd(n) {
 	}
 }
 
-function set_auto_off_date(n) {
+function set_auto_off_date(n,p,o) {
 
-	var dlevel = 1;
+	let dlevel = 1;
 
-	dprintf(dlevel,"n: %s\n", n);
+	dprintf(dlevel,"n: %s, p: %s, o: %s\n", n, p, o);
 	if (typeof(n) == "undefined") return;
 
 	var dev = rheem.devices[n];
-	dprintf(dlevel,"auto_off: %s\n", dev.auto_off);
+	dprintf(dlevel,"auto_off: %s, added: %s\n", dev.auto_off, dev.added);
 	if (!dev.auto_off.length) dev.auto_off_date = undefined;
-	else dev.auto_off_date = get_date(rheem.location,dev.auto_off,"auto_off",true);
+	else dev.auto_off_date = get_date(rheem.location,dev.auto_off,"auto_off",dev.added);
 	if (dev.auto_off_date) dprintf(dlevel,"NEW auto_off_date: %s\n",dev.auto_off_date);
 	if (dev.auto_off_level_timeout) set_aoltd(n);
 }
 
-function set_flbd(n) {
+function set_override(n,p,o) {
 
-	var dlevel = 0;
+	let dlevel = 1;
 
-	dprintf(dlevel,"n: %s\n", n);
-	if (typeof(n) == "undefined") return;
-
-	var dev = rheem.devices[n];
-	dprintf(dlevel,"force_level_before: %s\n", dev.force_level_before);
-	if (!dev.force_level_before.length) dev.flbd = undefined;
-	else {
-		let nextday = (dev.flbd ? true : false);
-		dev.flbd = get_date(rheem.location,dev.force_level_before,"flbd",nextday);
-	}
-	if (dev.flbd) dprintf(dlevel,"NEW flbd: %s\n",dev.flbd);
-}
-
-function set_override(n) {
-
-	var dlevel = 1;
-
-	dprintf(dlevel,"n: %s\n", n);
+	dprintf(dlevel,"n: %s, p: %s, o: %s\n", n, p, o);
 	if (typeof(n) == "undefined") return;
 
 	var dev = rheem.devices[n];
@@ -117,6 +101,46 @@ function get_agent(name) {
 	return undefined;
 }
 
+function inverter_source_trigger() {
+
+	let dlevel = 1;
+
+	dprintf(dlevel,"inverter_source(%d): %s\n", rheem.inverter_source.length, rheem.inverter_source);
+	if (!rheem.inverter_source.length) return;
+	// Source,conx,name
+	// influx,192.168.1.142,power
+	// mqtt,192.168.1.4,si
+	let tf = rheem.inverter_source.split(",");
+//	dumpobj(tf);
+	inverter_type = tf[0];
+	dprintf(dlevel,"type: %s\n", inverter_type);
+	if (inverter_type != 'influx' && inverter_type != 'mqtt') {
+		log_error("inverter_source type must be mqtt or influx\n");
+		return;
+	}
+	let conx = tf[1];
+	dprintf(dlevel,"conx: %s\n", conx);
+	if (!conx) conx = "localhost";
+
+	if (inverter_type == "influx") {
+		let inverter_db = tf[2];
+		dprintf(dlevel,"db: %s\n", inverter_db);
+		if (!inverter_db) inverter_db = "solardirector";
+		inverter_name = tf[3];
+		dprintf(dlevel,"name: %s\n", inverter_name);
+		inverter_influx = new Influx(conx,inverter_db);
+	} else if (inverter_type == "mqtt") {
+		inverter_name = tf[2];
+		dprintf(dlevel,"name: %s\n", inverter_name);
+		inverter_mqtt = new MQTT(conx);
+		inverter_mqtt.enabled = true;
+		inverter_mqtt.connect();
+		if (!inverter_mqtt.connected) log_error("unable to connect to inverter_source %s: %s\n", conx, inverter_mqtt.errmsg);
+		inverter_mqtt.sub(SOLARD_TOPIC_ROOT+"/"+SOLARD_TOPIC_AGENTS+"/" + inverter_name + "/"+SOLARD_FUNC_DATA);
+		inverter_mqtt.sub(SOLARD_TOPIC_ROOT+"/"+SOLARD_TOPIC_AGENTS+"/" + inverter_name + "/"+SOLARD_FUNC_EVENT);
+	}
+}
+
 function read_main() {
 
 //	printf("*** IN READ ****\n");
@@ -124,42 +148,55 @@ function read_main() {
 	include(dirname(script_name)+"/../../core/utils.js");
 	include(dirname(script_name)+"/../../core/kalman.js");
 	include(dirname(script_name)+"/../../core/suncalc.js");
-	include(dirname(script_name)+"/../../core/inverter.js");
 
-	var dlevel = 0;
+	let dlevel = 1;
+
+	dprintf(dlevel,"props_added: %s\n", rheem.props_added);
+	if (!rheem.props_added) {
+		var props = [
+			[ "inverter_source", DATA_TYPE_STRING, "mqtt,localhost,si", 0, inverter_source_trigger ],
+			[ "inverter_timeout", DATA_TYPE_INT, 30, 0 ],
+		];
+
+		config.add_props(rheem,props);
+		last_inverter = undefined;
+		last_inverter_time = 0;
+		rheem.props_added = true;
+	}
 
 	let inverter = undefined;
-	if (rheem.inverter_source == "mqtt") {
-		// See if there's an inverter agent
-		let invagent = get_agent(rheem.inverter_name);
-		dprintf(dlevel,"invagent: %s\n", invagent);
-		if (!invagent) {
-			if (rheem.agent.length)
-				log_warning("agent not found: %s\n", rheem.inverter);
-			else
-				log_warning("no agents found\n");
-		} else {
-			// Get the data if available
-			invagent.addmq = true;
-			let mq = invagent.messages;
+	if (rheem.inverter_source && rheem.inverter_source.length) {
+		if (inverter_type == "mqtt") {
+//			dumpobj(inverter_mqtt);
+			dprintf(dlevel,"connected: %s\n", inverter_mqtt.connected);
+			if (!inverter_mqtt.connected) {
+				inverter_mqtt.reconnect();
+				inverter_mqtt.resub();
+			}
+			let mq = inverter_mqtt.mq;
 			dprintf(dlevel,"mq.length: %d\n", mq.length);
-//			for(let i=0; i < mq.length; i++) {
 			for(let i=mq.length-1; i >= 0; i--) {
 				dprintf(dlevel,"mq[%d].func: %s\n", i, mq[i].func);
 				if (mq[i].func == "Data") {
-//					dprintf(dlevel,"mq[%d].data: %s\n", i, mq[i].data);
 					inverter = JSON.parse(mq[i].data);
 					break;
 				}
 			}
-			invagent.purgemq();
+			inverter_mqtt.purgemq();
+		} else if (inverter_type == "influx") {
+			let query = "select last(*) from inverter";
+			if (inverter_name && inverter_name.length) query += " WHERE \"name\" = '" + inverter_name + "'";
+			dprintf(dlevel,"query: %s\n", query);
+			inverter = influx2obj(inverter_influx.query(query));
 		}
-	} else if (rheem.inverter_source == "influx") {
-		let query = "select last(*) from inverter";
-		if (rheem.inverter_name.length) query += " WHERE \"name\" = '" + rheem.inverter_name + "'";
-		dprintf(dlevel,"query: %s\n", query);
-		inverter = influx2obj(influx.query(query));
-//		dumpobj(inverter);
+	}
+
+	if (!inverter) {
+		dprintf(dlevel,"diff: %s, timeout: %s\n", time() - last_inverter_time, rheem.inverter_timeout);
+		if (time() - last_inverter_time < rheem.inverter_timeout) inverter = last_inverter;
+	} else {
+		last_inverter = inverter;
+		last_inverter_time = time();
 	}
 
 	// If we have the inverter data, get battery_power
@@ -168,11 +205,11 @@ function read_main() {
 	dprintf(dlevel,"inverter: %s\n", inverter);
 	if (inverter) {
 		dprintf(dlevel,"battery_power: %f\n", inverter.battery_power);
-		if (!rheem.kf_bp) rheem.kf_bp = new KalmanFilter();
-		battery_power = rheem.kf_bp.filter(inverter.battery_power);
+		if (typeof(kf_bp) == "undefined") kf_bp = new KalmanFilter();
+		battery_power = kf_bp.filter(inverter.battery_power);
 		dprintf(dlevel,"available_power: %f\n", inverter.available_power);
-		if (!rheem.kf_avail) rheem.kf_avail = new KalmanFilter();
-		avail_power = rheem.kf_avail.filter(inverter.available_power);
+		if (typeof(kf_avail) == "undefined") kf_avail = new KalmanFilter();
+		avail_power = kf_avail.filter(inverter.available_power);
 	}
 	dprintf(dlevel,"battery_power: %f, avail_power: %f\n", battery_power, avail_power);
 
@@ -183,22 +220,24 @@ function read_main() {
 		dprintf(dlevel,"id: %s, added: %s\n", dev.id, dev.added);
 		if (!dev.added) {
 //			printf("***** ADDING DEV PROPS ****\n");
+			let deftemp = 122;
 			var dev_props = [
 				[ "defmode", DATA_TYPE_STRING, "energy_saver", 0 ],
-				[ "deftemp", DATA_TYPE_INT, 123, 0 ],
+				[ "deftemp", DATA_TYPE_INT, deftemp, 0 ],
 				[ "override", DATA_TYPE_STRING, null, 0, set_override, i ],
 				[ "force_level", DATA_TYPE_INT, "-1", 0 ],
 				[ "force_level_mode", DATA_TYPE_STRING, "high_demand", 0 ],
-				[ "force_level_before", DATA_TYPE_STRING, "sunset", 0, set_flbd, i ],
+				[ "force_level_temp", DATA_TYPE_INT, deftemp, 0 ],
 				[ "auto_on", DATA_TYPE_STRING, null, 0, set_auto_on_date, i ],
 				[ "auto_off", DATA_TYPE_STRING, null, 0, set_auto_off_date, i ],
 				[ "auto_off_level", DATA_TYPE_INT, null, 0 ],
-				[ "auto_off_level_timeout", DATA_TYPE_INT, "120", 0, set_aoltd, i ],
+				[ "auto_off_level_timeout", DATA_TYPE_INT, 120, 0, set_aoltd, i ],
 				[ "reserve_power", DATA_TYPE_INT, 5000, 0 ],
 				[ "avail_mode", DATA_TYPE_STRING, "electric", 0 ],
-				[ "avail_temp", DATA_TYPE_INT, "140", 0 ],
+				[ "avail_temp", DATA_TYPE_INT, deftemp, 0 ],
+				[ "battery_power", DATA_TYPE_INT, 300, 0 ],
 				[ "battery_mode", DATA_TYPE_STRING, null, 0 ],
-				[ "battery_temp", DATA_TYPE_INT, 123, 0 ],
+				[ "battery_temp", DATA_TYPE_INT, deftemp, 0 ],
 			];
 
 			config.add_props(dev,dev_props,dev.id);
@@ -211,13 +250,11 @@ function read_main() {
 //		dumpobj(dev);
 
 		// If we're readonly, dont try to do anything here
-		dprintf(dlevel,"readonly: %s\n", rheem.readonly);
-		if (rheem.readonly) continue;
-
-		dprintf(dlevel,"enabled: %s, mode: %s, level: %d\n", dev.enabled, dev.mode, dev.level);
+//		dprintf(dlevel,"readonly: %s\n", rheem.readonly);
+//		if (rheem.readonly) continue;
 
 		let cur = new Date();
-		dprintf(dlevel,"current_date: %s\n", cur);
+		dprintf(dlevel,"Current date: %s\n", cur);
 
 		// Override?
 		dprintf(dlevel,"override: %s\n", dev.override);
@@ -226,125 +263,80 @@ function read_main() {
 				dprintf(dlevel,"setting mode to: %s\n", dev.override);
 				dev.mode = dev.override;
 			}
-		} else if (dev.mode == "off") {
+			continue;
+		}
+
+//		if (dev.mode == "off") {
 			// auto on
+			let doit = false;
 			dprintf(dlevel,"auto_on_date: %s\n", dev.auto_on_date);
 			if (dev.auto_on_date) dprintf(dlevel,"cur: %s, auto_on: %s, diff: %s\n",
 				cur.getTime(), dev.auto_on_date.getTime(), dev.auto_on_date.getTime() - cur.getTime());
 			if (dev.auto_on_date && cur.getTime() >= dev.auto_on_date.getTime()) {
 				set_auto_on_date(i);
-				// Only doit if on time < off time
-				let doit = true;
-				if (dev.auto_off_date && cur.getTime() >= dev.auto_off_date.getTime()) doit = false;
-				dprintf(dlevel+1,"doit: %s\n", doit);
-				if (doit) {
-					dprintf(dlevel,"setting mode to: %s\n", dev.defmode);
-					dev.mode = dev.defmode;
-					if (dev.temp != dev.deftemp) dev.temp = dev.deftemp;
-				}
+				doit = true;
 			}
-		} else {
-			// auto off
-			dprintf(dlevel,"auto_off_date: %s\n", dev.auto_off_date);
-			dprintf(dlevel,"reserved: %s\n", dev.reserved);
-			dprintf(dlevel,"force_level: %s\n", dev.force_level);
-			dprintf(dlevel,"defmode: %s\n", dev.defmode);
-			if (dev.auto_off_date) dprintf(dlevel,"cur: %s, auto_off: %s, diff: %s\n",
-				cur.getTime(), dev.auto_off_date.getTime(), dev.auto_off_date.getTime() - cur.getTime());
-			if (dev.auto_off_date && cur.getTime() >= dev.auto_off_date.getTime()) {
-				// If auto_off > auto_on time, skip it
-				if (dev.auto_on_date) dprintf(dlevel,"cur: %s, auto_on: %s, diff: %s\n",
-					cur.getTime(), dev.auto_on_date.getTime(), dev.auto_on_date.getTime() - cur.getTime());
-				if (dev.auto_on_date && cur.getTime() >= dev.auto_on_date.getTime()) {
-					set_auto_off_date(i);
-				} else {
-					// Only turn off if auto_off_level is >= level
-					let doit = true;
-					dprintf(dlevel,"auto_off_level: %s\n", dev.auto_off_level);
-					if (dev.auto_off_level && dev.level < dev.auto_off_level) {
-						if (dev.aoltd) {
-							dprintf(dlevel,"aoltd: %s\n", dev.aoltd);
-							dprintf(dlevel,"cur: %s, aoltd: %s, diff: %s\n", cur.getTime(), dev.aoltd.getTime(), dev.aoltd.getTime() - cur.getTime());
-						}
-						if (!(dev.aoltd && cur.getTime() >= dev.aoltd.getTime()))
-							doit = false;
-					}
-					dprintf(dlevel+1,"doit: %s\n", doit);
-					if (doit) {
-						dprintf(dlevel,"setting mode to: off\n");
-						dev.mode = "off";
-						set_auto_off_date(i);
-						continue;
-					}
-				}
-			}
+		dprintf(dlevel,"mode: %s, doit: %s\n", dev.mode, doit);
+			if (dev.mode == "off" && !doit) continue;
+//		}
 
-			// If we're on battery power
-			dprintf(dlevel,"battery_power: %s, battery_mode: %s\n", battery_power, dev.battery_mode);
-			if (battery_power > 100 && dev.battery_mode) {
-				if (dev.mode != dev.battery_mode) {
-					dprintf(dlevel,"setting mode to %s\n",dev.battery_mode);
-					dev.mode = dev.battery_mode;
-				}
-				if (dev.temp != dev.battery_temp) {
-					dprintf(dlevel,"setting temp to %s\n",dev.battery_temp);
-					dev.temp = dev.battery_temp;
-				}
+		// auto off
+		dprintf(dlevel,"auto_off_date: %s\n", dev.auto_off_date);
+		if (dev.auto_off_date) dprintf(dlevel,"cur: %s, auto_off: %s, diff: %s\n",
+			cur.getTime(), dev.auto_off_date.getTime(), dev.auto_off_date.getTime() - cur.getTime());
+		if (dev.auto_off_date && cur.getTime() >= dev.auto_off_date.getTime()) {
+			let doit = true;
+			dprintf(dlevel,"level: %d, auto_off_level: %d\n", dev.level, dev.auto_off_level);
+			if (dev.auto_off_level && dev.level < dev.auto_off_level) {
+				dprintf(dlevel,"auto off level timeout date: %s\n", dev.aoltd);
+				if (dev.aoltd) dprintf(dlevel,"cur: %s, aoltd: %s, diff: %s\n", cur.getTime(), dev.aoltd.getTime(), dev.aoltd.getTime() - cur.getTime());
+				if (dev.aoltd && cur.getTime() < dev.aoltd.getTime()) doit = false;
+			}
+			dprintf(dlevel,"doit: %s\n", doit);
+			if (doit) {
+				set_auto_off_date(i);
+				dev.mode = "off";
 				continue;
-			}
-
-			// Check force level?
-			let check_force_level = false;
-			if (dev.flbd) {
-				dprintf(dlevel,"cur: %s, flbd: %s, diff: %s\n",
-					cur.getTime(), dev.flbd.getTime(), dev.flbd.getTime() - cur.getTime());
-				if (cur.getTime() < dev.flbd.getTime()) {
-					check_force_level = true;
-				} else {
-					set_flbd(i);
-				}
-			} else {
-				check_force_level = true;
-			}
-			dprintf(dlevel,"check_force_level: %s\n", check_force_level);
-
-			// Avail power
-			if (!dev.reserved && avail_power > dev.reserve_power) {
-				dprintf(dlevel,"setting mode to %s and temp to %d\n",dev.avail_mode,dev.avail_temp);
-				dev.mode = dev.avail_mode;
-				dev.temp = dev.avail_temp;
-				avail_power -= dev.reserve_power;
-				dev.reserved = true;
-
-			// If reserved, keep it until avail_power < reserve_power
-			} else if (dev.reserved) {
-				dprintf(dlevel,"avail_power + reserve_power: %f\n",avail_power + dev.reserve_power);
-				if (avail_power + dev.reserve_power <= dev.reserve_power) {
-					dprintf(dlevel,"setting mode to %s and temp to %d\n",dev.defmode,dev.deftemp);
-					dev.mode = dev.defmode;
-					dev.temp = dev.deftemp; 
-					dev.reserved = false;
-				}
-
-			// force level
-			} else if (dev.level <= dev.force_level && check_force_level) {
-				if (dev.mode != dev.force_level_mode) {
-					dprintf(dlevel,"setting mode to: %s\n", dev.force_level_mode);
-					dev.mode = dev.force_level_mode;
-				}
-
-			// Default mode
-			} else if (dev.mode != dev.defmode || dev.temp != dev.deftemp) {
-				if (dev.mode != dev.defmode) {
-					dprintf(dlevel,"setting mode to %s\n", dev.defmode);
-					dev.mode = dev.defmode;
-				}
-				if (dev.temp != dev.deftemp) {
-					dprintf(dlevel,"setting temp to: %s\n", dev.deftemp);
-					dev.temp = dev.deftemp;
-				}
 			}
 		}
 
+		// If we're on battery power
+		dprintf(dlevel,"battery_power: %s, battery_mode: %s\n", dev.battery_power, dev.battery_mode);
+		if (battery_power >= dev.battery_power && dev.battery_mode) {
+			dev.mode = dev.battery_mode;
+			dev.temp = dev.battery_temp;
+			continue;
+		}
+
+		// Avail power
+		dprintf(dlevel,"reserved: %s, reserve_power: %s, avail_power: %s\n",
+			dev.reserved, dev.reserve_power, avail_power);
+		if (!dev.reserved && dev.reserve_power && avail_power > dev.reserve_power) {
+			dev.mode = dev.avail_mode;
+			dev.temp = dev.avail_temp;
+			avail_power -= dev.reserve_power;
+			dev.reserved = true;
+			continue;
+
+		// If reserved, keep it until avail_power < reserve_power
+		} else if (dev.reserved) {
+			dprintf(dlevel,"running: %s, avail_power: %s, reserve_power: %f\n",
+				dev.running, avail_power, dev.reserve_power);
+			if (dev.running && avail_power + dev.reserve_power > dev.reserve_power) continue;
+			if (!dev.runnning && avail_power > dev.reserve_power) continue;
+			dev.reserved = false;
+		}
+
+		// force level
+		dprintf(dlevel,"level: %s, force_level: %s\n", dev.level, dev.force_level);
+		if (dev.level <= dev.force_level) {
+			dev.mode = dev.force_level_mode;
+			dev.temp = dev.force_level_temp;
+			continue;
+		}
+
+		// If we got to here, set default mode/temp
+		dev.mode = dev.defmode;
+		dev.temp = dev.deftemp;
 	}
 }
