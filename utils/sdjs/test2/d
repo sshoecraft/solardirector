@@ -1,8 +1,0 @@
-d = new Date();
-printf("d(%s): %s\n",typeof(d), d);
-j = JSON.stringify(d,null,4);
-printf("j(%s): %s\n",typeof(j), j);
-c = JSON.parse(j);
-printf("c(%s): %s\n",typeof(c), c);
-n = new Date(c);
-printf("n(%s): %s\n",typeof(n), n);

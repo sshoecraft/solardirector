@@ -1,2 +1,0 @@
-
-printf("It works!\n");

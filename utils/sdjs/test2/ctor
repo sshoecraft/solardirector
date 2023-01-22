@@ -1,1 +1,0 @@
-var HelloWorld = agent.extend({ ctor: function () { this._super(); this.scheduleUpdate(); }, update: function () { log_write("update called"); } });

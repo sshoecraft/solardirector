@@ -1,8 +1,0 @@
-include("../../core/utils.js");
-influx.database="power"
-var r = influx.query("select input_power from inverter where time >= '2022-05-15 00:00:00' and time < '2022-05-16' and input_power != 0");
-var data = r[0];
-//dumpobj(data);
-for(i=0; i < data.values.length; i++) {
-	printf("%f\n",data.values[i][1]);
-}

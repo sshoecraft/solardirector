@@ -1,5 +1,0 @@
-include("../../core/utils.js");
-var a = new Agent("test");
-client.debug = 6;
-dumpobj(a);
-a.run();
