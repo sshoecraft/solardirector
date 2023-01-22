@@ -131,11 +131,12 @@ static int btc_destroy(void *handle) {
 static int btc_read(void *handle, uint32_t *control, void *buf, int buflen) {
 	btc_session_t *s = handle;
 	solard_battery_t bat,*bp;
-	solard_agent_t *ap;
 	json_value_t *v;
 	float min,max;
 	int count,i;
 	time_t cur;
+#ifdef MQTT
+	solard_agent_t *ap;
 	char *p;
 	solard_message_t *msg;
 
@@ -150,6 +151,7 @@ static int btc_read(void *handle, uint32_t *control, void *buf, int buflen) {
 		}
 		list_purge(ap->mq);
 	}
+#endif
 
 	count = list_count(s->bats);
 	dprintf(dlevel,"count: %d\n", count);
@@ -285,11 +287,12 @@ static int btc_config(void *h, int req, ...) {
 	switch(req) {
 	case SOLARD_CONFIG_INIT:
 		{
+#ifdef MQTT
 		char mqtt_info[256];
 
 		s->ap = va_arg(va,solard_agent_t *);
 //		agent_set_callback(s->ap,btc_cb,s);
-		s->c = client_init(0,0,btc_agent_version_string,0,"btc",CLIENT_FLAG_NOJS,0,0,0);
+		s->c = client_init(0,0,btc_agent_version_string,0,"btc",CLIENT_FLAG_NOJS,0,0,0,0);
 		if (!s->c) return 1;
 		s->c->addmq = true;
 		mqtt_disconnect(s->c->m,1);
@@ -298,6 +301,7 @@ static int btc_config(void *h, int req, ...) {
 		mqtt_newclient(s->c->m);
 		mqtt_connect(s->c->m,10);
 		mqtt_resub(s->c->m);
+#endif
 		r = 0;
 		}
 		break;

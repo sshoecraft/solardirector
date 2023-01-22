@@ -53,7 +53,8 @@ typedef struct influx_series influx_series_t;
 //int influx_parse_config(influx_config_t *conf, char *influx_info);
 int influx_parse_config(influx_session_t *, char *influx_info);
 influx_session_t *influx_new(void);
-void influx_destroy(influx_session_t *);
+void influx_destroy_session(influx_session_t *);
+void influx_shutdown(void);
 char *influx_mkurl(influx_session_t *s, char *action, char *query);
 list influx_get_results(influx_session_t *);
 

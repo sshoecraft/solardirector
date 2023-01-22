@@ -25,7 +25,7 @@ int main(int argc,char **argv) {
 	bool norun_flag;
 	opt_proctab_t pvc_opts[] = {
 		/* Spec, dest, type len, reqd, default val, have */
-		{ "-N|dont enter run loop",&norun_flag,DATA_TYPE_BOOL,0,0,"no" },
+		{ "-1|dont enter run loop",&norun_flag,DATA_TYPE_BOOL,0,0,"no" },
 		OPTS_END
 	};
 

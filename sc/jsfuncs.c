@@ -1,13 +1,13 @@
 
 #ifdef JS
-#include "mcu.h"
+#include "sc.h"
 #include "jsstr.h"
 #include "jsprintf.h"
 
 #define dlevel 1
 
-static JSBool mcu_agent_getprop(JSContext *cx, JSObject *obj, jsval id, jsval *rval) {
-	mcu_agent_t *info;
+static JSBool sc_agent_getprop(JSContext *cx, JSObject *obj, jsval id, jsval *rval) {
+	sc_agent_t *info;
 	int prop_id;
 
 	info = JS_GetPrivate(cx,obj);
@@ -30,8 +30,8 @@ static JSBool mcu_agent_getprop(JSContext *cx, JSObject *obj, jsval id, jsval *r
 	return JS_TRUE;
 }
 
-static JSBool mcu_agent_setprop(JSContext *cx, JSObject *obj, jsval id, jsval *vp) {
-	mcu_agent_t *info;
+static JSBool sc_agent_setprop(JSContext *cx, JSObject *obj, jsval id, jsval *vp) {
+	sc_agent_t *info;
 	int prop_id;
 
 	info = JS_GetPrivate(cx,obj);
@@ -54,13 +54,13 @@ static JSBool mcu_agent_setprop(JSContext *cx, JSObject *obj, jsval id, jsval *v
 	return JS_TRUE;
 }
 
-static JSClass mcu_agent_class = {
-	"mcu_agent",
+static JSClass sc_agent_class = {
+	"sc_agent",
 	JSCLASS_HAS_PRIVATE,
 	JS_PropertyStub,
 	JS_PropertyStub,
-	mcu_agent_getprop,
-	mcu_agent_setprop,
+	sc_agent_getprop,
+	sc_agent_setprop,
 	JS_EnumerateStub,
 	JS_ResolveStub,
 	JS_ConvertStub,
@@ -68,17 +68,17 @@ static JSClass mcu_agent_class = {
 	JSCLASS_NO_OPTIONAL_MEMBERS
 };
 
-JSObject *JSAgentInfo(JSContext *cx, mcu_agent_t *info) {
-	JSPropertySpec mcu_agent_props[] = { 
+JSObject *JSAgentInfo(JSContext *cx, sc_agent_t *info) {
+	JSPropertySpec sc_agent_props[] = { 
 		{0}
 	};
-	JSFunctionSpec mcu_agent_funcs[] = {
+	JSFunctionSpec sc_agent_funcs[] = {
 		{ 0 }
 	};
 	JSObject *obj;
 
-	dprintf(1,"defining %s object\n",mcu_agent_class.name);
-	obj = JS_InitClass(cx, JS_GetGlobalObject(cx), 0, &mcu_agent_class, 0, 0, mcu_agent_props, mcu_agent_funcs, 0, 0);
+	dprintf(1,"defining %s object\n",sc_agent_class.name);
+	obj = JS_InitClass(cx, JS_GetGlobalObject(cx), 0, &sc_agent_class, 0, 0, sc_agent_props, sc_agent_funcs, 0, 0);
 	if (!obj) {
 		JS_ReportError(cx,"unable to initialize si class");
 		return 0;
@@ -89,14 +89,9 @@ JSObject *JSAgentInfo(JSContext *cx, mcu_agent_t *info) {
 }
 
 enum SOLARD_PROPERTY_ID {
-	SOLARD_PROPERTY_ID_NONE,
-	SOLARD_PROPERTY_ID_INTERVAL,
-	SOLARD_PROPERTY_ID_SITE_NAME,
-	SOLARD_PROPERTY_ID_INVERTERS,
-	SOLARD_PROPERTY_ID_BATTERIES,
+	SOLARD_PROPERTY_ID_NAME=1,
 	SOLARD_PROPERTY_ID_AGENTS,
 	SOLARD_PROPERTY_ID_STATE,
-	SOLARD_PROPERTY_ID_INVTERVAL,
 	SOLARD_PROPERTY_ID_AGENT_WARNING,
 	SOLARD_PROPERTY_ID_AGENT_ERROR,
 	SOLARD_PROPERTY_ID_AGENT_NOTIFY,
@@ -106,9 +101,9 @@ enum SOLARD_PROPERTY_ID {
 	SOLARD_PROPERTY_ID_START,
 };
 
-static JSBool js_mcu_getprop(JSContext *cx, JSObject *obj, jsval id, jsval *rval) {
+static JSBool js_sc_getprop(JSContext *cx, JSObject *obj, jsval id, jsval *rval) {
 	int prop_id;
-	mcu_session_t *sd;
+	sc_session_t *sd;
 	register int i;
 
 	sd = JS_GetPrivate(cx,obj);
@@ -125,7 +120,7 @@ static JSBool js_mcu_getprop(JSContext *cx, JSObject *obj, jsval id, jsval *rval
 		switch(prop_id) {
 		case SOLARD_PROPERTY_ID_AGENTS:
 			{
-				mcu_agent_t *info;
+				sc_agent_t *info;
 				JSObject *rows;
 				jsval node;
 
@@ -157,10 +152,6 @@ static JSBool js_mcu_getprop(JSContext *cx, JSObject *obj, jsval id, jsval *rval
 			}
 			break;
 #endif
-		case SOLARD_PROPERTY_ID_INTERVAL:
-			dprintf(1,"getting interval: %d\n", sd->ap->interval);
-			*rval = INT_TO_JSVAL(sd->ap->interval);
-			break;
 		default:
 			*rval = JSVAL_NULL;
 			break;
@@ -169,9 +160,9 @@ static JSBool js_mcu_getprop(JSContext *cx, JSObject *obj, jsval id, jsval *rval
 	return JS_TRUE;
 }
 
-static JSBool js_mcu_setprop(JSContext *cx, JSObject *obj, jsval id, jsval *rval) {
+static JSBool js_sc_setprop(JSContext *cx, JSObject *obj, jsval id, jsval *rval) {
 	int prop_id;
-	mcu_session_t *sd;
+	sc_session_t *sd;
 
 	sd = JS_GetPrivate(cx,obj);
 	dprintf(1,"sd: %p\n", sd);
@@ -185,9 +176,6 @@ static JSBool js_mcu_setprop(JSContext *cx, JSObject *obj, jsval id, jsval *rval
 		prop_id = JSVAL_TO_INT(id);
 		dprintf(1,"prop_id: %d\n", prop_id);
 		switch(prop_id) {
-		case SOLARD_PROPERTY_ID_INTERVAL:
-			sd->ap->interval = JSVAL_TO_INT(*rval);
-			break;
 		default:
 			*rval = JSVAL_NULL;
 			break;
@@ -196,13 +184,13 @@ static JSBool js_mcu_setprop(JSContext *cx, JSObject *obj, jsval id, jsval *rval
 	return JS_TRUE;
 }
 
-static JSClass mcu_class = {
+static JSClass sc_class = {
 	"MCU",
 	JSCLASS_HAS_PRIVATE,
 	JS_PropertyStub,
 	JS_PropertyStub,
-	js_mcu_getprop,
-	js_mcu_setprop,
+	js_sc_getprop,
+	js_sc_setprop,
 	JS_EnumerateStub,
 	JS_ResolveStub,
 	JS_ConvertStub,
@@ -213,7 +201,7 @@ static JSClass mcu_class = {
 static JSBool jssd_notify(JSContext *cx, uintN argc, jsval *vp) {
 	jsval val;
 	char *str;
-//	mcu_session_t *sd;
+//	sc_session_t *sd;
 	JSObject *obj;
 
 	obj = JS_THIS_OBJECT(cx, vp);
@@ -229,7 +217,7 @@ static JSBool jssd_notify(JSContext *cx, uintN argc, jsval *vp) {
 
 JSBool sd_callfunc(JSContext *cx, uintN argc, jsval *vp) {
 	JSObject *obj;
-	mcu_session_t *s;
+	sc_session_t *s;
 
 	obj = JS_THIS_OBJECT(cx, vp);
 	if (!obj) {
@@ -248,13 +236,10 @@ JSBool sd_callfunc(JSContext *cx, uintN argc, jsval *vp) {
 }
 
 static int jssd_init(JSContext *cx, JSObject *parent, void *priv) {
-	mcu_session_t *sd = priv;
+	sc_session_t *sd = priv;
 	JSPropertySpec sd_props[] = {
-		{ "name",		SOLARD_PROPERTY_ID_SITE_NAME,	JSPROP_ENUMERATE | JSPROP_READONLY },
+		{ "name",		SOLARD_PROPERTY_ID_NAME,	JSPROP_ENUMERATE | JSPROP_READONLY },
 		{ "agents",		SOLARD_PROPERTY_ID_AGENTS,	JSPROP_ENUMERATE },
-		{ "batteries",		SOLARD_PROPERTY_ID_BATTERIES,	JSPROP_ENUMERATE | JSPROP_READONLY },
-		{ "inverters",		SOLARD_PROPERTY_ID_INVERTERS,	JSPROP_ENUMERATE | JSPROP_READONLY },
-		{ "interval",		SOLARD_PROPERTY_ID_INTERVAL,	JSPROP_ENUMERATE },
 		{ 0 }
 	};
 	JSFunctionSpec sd_funcs[] = {
@@ -272,7 +257,7 @@ static int jssd_init(JSContext *cx, JSObject *parent, void *priv) {
 	dprintf(dlevel,"sd->props: %p, cp: %p\n",sd->props,sd->ap->cp);
 	if (sd->ap && sd->ap->cp) {
 		if (!sd->props) {
-			sd->props = js_config_to_props(sd->ap->cp, cx, "mcu", sd_props);
+			sd->props = js_config_to_props(sd->ap->cp, cx, "sc", sd_props);
 			dprintf(dlevel,"sd->props: %p\n",sd->props);
 			if (!sd->props) {
 				log_error("unable to create props: %s\n", config_get_errmsg(sd->ap->cp));
@@ -292,18 +277,18 @@ static int jssd_init(JSContext *cx, JSObject *parent, void *priv) {
 	if (!sd->props) sd->props = sd_props;
 	if (!sd->funcs) sd->funcs = sd_funcs;
 
-	dprintf(dlevel,"Defining %s object\n",mcu_class.name);
-	obj = JS_InitClass(cx, parent, 0, &mcu_class, 0, 0, sd->props, sd_funcs, 0, 0);
+	dprintf(dlevel,"Defining %s object\n",sc_class.name);
+	obj = JS_InitClass(cx, parent, 0, &sc_class, 0, 0, sd->props, sd_funcs, 0, 0);
 	if (!obj) {
-		JS_ReportError(cx,"unable to initialize %s class", mcu_class.name);
+		JS_ReportError(cx,"unable to initialize %s class", sc_class.name);
 		return 1;
 	}
-	dprintf(dlevel,"Defining %s aliases\n",mcu_class.name);
+	dprintf(dlevel,"Defining %s aliases\n",sc_class.name);
 	if (!JS_DefineAliases(cx, obj, sd_aliases)) {
 		JS_ReportError(cx,"unable to define aliases");
 		return 1;
 	}
-	dprintf(dlevel,"Defining %s constants\n",mcu_class.name);
+	dprintf(dlevel,"Defining %s constants\n",sc_class.name);
 	if (!JS_DefineConstants(cx, global, sd_constants)) {
 		JS_ReportError(cx,"unable to define constants");
 		return 1;
@@ -319,7 +304,7 @@ static int jssd_init(JSContext *cx, JSObject *parent, void *priv) {
 	return 0;
 }
 
-int mcu_jsinit(mcu_session_t *sd) {
+int sc_jsinit(sc_session_t *sd) {
 	return JS_EngineAddInitFunc(sd->ap->js.e, "solard", jssd_init, sd);
 }
 #endif

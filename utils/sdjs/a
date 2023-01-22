@@ -1,0 +1,15 @@
+
+dprintf(0,"here\n");
+
+function atest() {
+	dprintf(0,"here\n");
+}
+
+function a_main() {
+	dprintf(0,"here\n");
+	atest();
+json = '{ "available_power":0, "battery_current":-2.8, "battery_level":49.55951575401139, "battery_power":-145.04, "battery_temp":0, "battery_voltage":51.8, "charge_current":0, "charge_mode":1, "charge_power":0, "charge_voltage":0, "input_current":-8.210180623973727, "input_frequency":60.02, "input_power":-2000, "input_voltage":243.6, "load_power":2200, "name":"sidev", "output_current":0, "output_frequency":60.01, "output_power":0, "output_voltage":243.5, "remain_text":"", "status":"[readonly][mirror][grid][charge][CC][feed][dynfeed]" }';
+	o = myJSON.parse(json);
+	dprintf(0,"o: %s\n", o);
+	dumpobj(o);
+}

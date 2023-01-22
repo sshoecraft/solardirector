@@ -112,7 +112,8 @@ static JSClass class_class = {
 static JSBool class_ctor(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rval) {
 	class_private_t *p;
 	JSObject *newobj;
-	JSClass *newclassp,*ccp = &class_class;
+	JSClass *newclassp;
+//	,*ccp = &class_class;
 	char *namep;
 	JSPropertySpec props[] = {
 		{ "one",CLASS_PROPERTY_ID_ONE,JSPROP_ENUMERATE },

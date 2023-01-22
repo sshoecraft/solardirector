@@ -35,6 +35,8 @@ LICENSE file in the root directory of this source tree.
 
 #define AGENT_HASFLAG(f) check_bit(ap->flags,SOLARD_AGENT_FLAG_##f)
 
+static list agents = 0;
+
 int agent_set_callback(solard_agent_t *ap, solard_agent_callback_t cb, void *ctx) {
 	ap->callback.func = cb;
 	ap->callback.ctx = ctx;
@@ -491,7 +493,9 @@ config_property_t *agent_get_props(solard_agent_t *ap) {
 		{ "name", DATA_TYPE_STRING, ap->instance_name, sizeof(ap->instance_name)-1, 0 },
 		{ "configfile", DATA_TYPE_STRING, ap->configfile, sizeof(ap->configfile)-1, 0, CONFIG_FLAG_NOSAVE, 0, 0, 0, 0, 0, 0, agent_configfile_set, ap },
 		{ "interval", DATA_TYPE_INT, &ap->interval, 0, "30", 0, "range", "0, 99999, 1", 0, "S", 1, 0 },
-		{ "debug_mem", DATA_TYPE_BOOL, &ap->debug_mem, 0, "no", CONFIG_FLAG_PRIVATE },
+#ifdef DEBUG_MEM
+		{ "debug_mem", DATA_TYPE_BOOL, &ap->debug_mem, 0, "no", 0 },
+#endif
 		{ "agent_libdir", DATA_TYPE_STRING, ap->agent_libdir, sizeof(ap->agent_libdir)-1, 0 },
 #ifdef JS
 		{ "rtsize", DATA_TYPE_INT, &ap->js.rtsize, 0, 0, CONFIG_FLAG_READONLY },
@@ -513,8 +517,7 @@ config_property_t *agent_get_props(solard_agent_t *ap) {
 
 static int agent_startup(solard_agent_t *ap, char *mqtt_info, char *influx_info,
 		config_property_t *driver_props, config_function_t *driver_funcs) {
-	config_property_t *agent_props,*props;
-	config_function_t *funcs;
+	config_property_t *agent_props;
 	config_function_t agent_funcs[] = {
 		{ "ping", cf_agent_ping, ap, 0 },
 		{ "exit", cf_agent_exit, ap, 0 },
@@ -546,10 +549,10 @@ static int agent_startup(solard_agent_t *ap, char *mqtt_info, char *influx_info,
 	dprintf(dlevel,"agent_props: %p\n", agent_props);
 	if (!agent_props) return 1;
 //	dprintf(dlevel,"driver_props: %p\n", driver_props);
-	props = config_combine_props(driver_props,agent_props);
-	dprintf(dlevel,"props: %p\n", props);
-	funcs = config_combine_funcs(driver_funcs,agent_funcs);
-	dprintf(dlevel,"funcs: %p\n", funcs);
+	ap->props = config_combine_props(driver_props,agent_props);
+	dprintf(dlevel,"props: %p\n", ap->props);
+	ap->funcs = config_combine_funcs(driver_funcs,agent_funcs);
+	dprintf(dlevel,"funcs: %p\n", ap->funcs);
 
 	eptr = (ap->flags & AGENT_FLAG_NOEVENT ? 0 : &ap->e);
 #ifdef MQTT
@@ -566,10 +569,8 @@ static int agent_startup(solard_agent_t *ap, char *mqtt_info, char *influx_info,
 	jptr = (ap->flags & AGENT_FLAG_NOJS ? 0 : &ap->js.e);
 #endif
 
-//	if (props) config_dump_props(props);
-
         /* Call common startup */
-	if (solard_common_startup(&ap->cp, ap->section_name, ap->configfile, props, funcs, eptr
+	if (solard_common_startup(&ap->cp, ap->section_name, ap->configfile, ap->props, ap->funcs, eptr
 #ifdef MQTT
 		,mptr, lwt, agent_getmsg, ap, mqtt_info, ap->config_from_mqtt
 #endif
@@ -580,8 +581,6 @@ static int agent_startup(solard_agent_t *ap, char *mqtt_info, char *influx_info,
 		,jptr, ap->js.rtsize, ap->js.stksize, (js_outputfunc_t *)log_info
 #endif
 	)) return 1;
-//	if (props) free(props);
-//	if (funcs) free(funcs);
 
 #ifdef JS
 	/* See if the driver has an engine ptr */
@@ -607,21 +606,28 @@ static int agent_startup(solard_agent_t *ap, char *mqtt_info, char *influx_info,
 	config_add_props(ap->cp, "agent", agent_props, CONFIG_FLAG_NODEF | CONFIG_FLAG_PRIVATE);
 
 	free(agent_props);
+//	if (props) free(props);
+//	if (funcs) free(funcs);
+//	config_dump(ap->cp);
 	return 0;
 }
 
-void agent_destroy(solard_agent_t *ap) {
+void agent_destroy_agent(solard_agent_t *ap) {
+
+	dprintf(dlevel,"ap: %p\n", ap);
 	if (!ap) return;
+
 	if (ap->info) json_destroy_value(ap->info);
-	if (ap->cp) config_destroy(ap->cp);
+	if (ap->cp) config_destroy_config(ap->cp);
 #ifdef MQTT
-	if (ap->m) mqtt_destroy(ap->m);
+	if (ap->m) mqtt_destroy_session(ap->m);
 	list_destroy(ap->mq);
 #endif
 #ifdef INFLUX
-	if (ap->i) influx_destroy(ap->i);
+	if (ap->i) influx_destroy_session(ap->i);
 #endif
-	solard_common_shutdown();
+	if (ap->props) free(ap->props);
+	if (ap->funcs) free(ap->funcs);
 #ifdef JS
 	if (ap->js.props) free(ap->js.props);
 	if (ap->js.funcs) free(ap->js.funcs);
@@ -639,7 +645,29 @@ void agent_destroy(solard_agent_t *ap) {
 	if (ap->js.e) JS_EngineDestroy(ap->js.e);
 #endif
 	if (ap->e) event_destroy(ap->e);
+	if (ap->aliases) list_destroy(ap->aliases);
+
+	if (agents) list_delete(agents,ap);
 	free(ap);
+}
+
+void agent_shutdown(void) {
+	solard_agent_t *ap;
+
+	if (agents) {
+		while(true) {
+			list_reset(agents);
+			ap = list_get_next(agents);
+			if (!ap) break;
+			agent_destroy_agent(ap);
+		}
+        	list_destroy(agents);
+        	agents = 0;
+	}
+	config_shutdown();
+	mqtt_shutdown();
+	influx_shutdown();
+	common_shutdown();
 }
 
 solard_agent_t *agent_init(int argc, char **argv, char *agent_version, opt_proctab_t *agent_opts,
@@ -842,11 +870,14 @@ solard_agent_t *agent_init(int argc, char **argv, char *agent_version, opt_proct
 	if (ap->cp && agent_pubconfig(ap)) goto agent_init_error;
 #endif
 
+	if (!agents) agents = list_create();
+	list_add(agents,ap,0);
+
 	dprintf(dlevel,"returning: %p\n",ap);
 	return ap;
 
 agent_init_error:
-	agent_destroy(ap);
+	agent_destroy_agent(ap);
 	dprintf(dlevel,"returning 0\n");
 	return 0;
 }
@@ -986,8 +1017,10 @@ int agent_run(solard_agent_t *ap) {
 #ifdef JS
 		/* At gc_interval, do a cleanup */
 		dprintf(dlevel,"run_count: %d, gc_interval: %d\n", ap->run_count, ap->js.gc_interval);
-		if (ap->js.e && ap->js.gc_interval > 0 && ((ap->run_count % ap->js.gc_interval) == 0))
+		if (ap->js.e && ap->js.gc_interval > 0 && ((ap->run_count % ap->js.gc_interval) == 0)) {
+			if (ap->debug_mem) log_info("Running GC...\n");
 			JS_EngineCleanup(ap->js.e);
+		}
 #endif
 		ap->run_count++;
 		sleep(1);
@@ -1321,9 +1354,10 @@ static JSBool js_agent_event_handler(JSContext *cx, JSObject *obj, uintN argc, j
         ri.vp = &ctx->func;
         list_add(ap->js.roots,&ri,sizeof(ri));
 
-//	if (name) JS_free(cx,name);
-//	if (module) JS_free(cx,action);
-//	if (action) JS_free(cx,action);
+	dprintf(dlevel,"name: %p, module: %p, action: %p\n", name, module, action);
+	if (name) JS_free(cx,name);
+	if (module) JS_free(cx,module);
+	if (action) JS_free(cx,action);
 	return JS_TRUE;
 }
 

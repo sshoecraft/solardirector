@@ -461,7 +461,7 @@ int solard_common_startup(config_t **cp, char *sname, char *configfile, config_p
 	return 0;
 }
 
-void solard_common_shutdown(void) {
+void common_shutdown(void) {
 #ifdef HAVE_CURL
         curl_global_cleanup();
 #endif
@@ -671,11 +671,13 @@ JSEngine *common_jsinit(int rtsize, int stksize, js_outputfunc_t *jsout) {
 	JS_EngineAddInitFunc(e, "js_common_init", js_common_init, 0);
 	JS_EngineAddInitFunc(e, "js_types_init", js_types_init, 0);
 	JS_EngineAddInitFunc(e, "js_log_init", js_log_init, 0);
+//	JS_EngineAddInitFunc(e, "js_json_init", js_json_init, 0);
 
 	if (config_jsinit(e)) return 0;
 	if (transports_jsinit(e)) return 0;
 
 	/* Add Init classes */
+	JS_EngineAddInitClass(e, "js_InitmyJSONClass", js_InitmyJSONClass);
 	JS_EngineAddInitClass(e, "js_InitDriverClass", js_InitDriverClass);
 	JS_EngineAddInitClass(e, "js_InitAgentClass", js_InitAgentClass);
 	JS_EngineAddInitClass(e, "js_InitClientClass", js_InitClientClass);

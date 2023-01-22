@@ -31,6 +31,7 @@ LICENSE file in the root directory of this source tree.
 #include <inttypes.h>
 #endif
 
+#if 0
 typedef enum {
     STR2INT_SUCCESS,
     STR2INT_OVERFLOW,
@@ -57,7 +58,7 @@ typedef enum {
  *
  * @return Indicates if the operation succeeded, or why it failed.
  */
-str2int_errno str2int(int *out, char *s, int base) {
+static str2int_errno str2int(int *out, char *s, int base) {
     char *end;
     if (s[0] == '\0' || isspace(s[0]))
         return STR2INT_INCONVERTIBLE;
@@ -73,8 +74,9 @@ str2int_errno str2int(int *out, char *s, int base) {
     *out = l;
     return STR2INT_SUCCESS;
 }
+#endif
 
-void str2list(list dest,char *src) {
+static void str2list(list dest,char *src) {
 	register int i;
 	char *p;
 
@@ -85,6 +87,33 @@ void str2list(list dest,char *src) {
 		if (!strlen(p)) break;
 		list_add(dest,p,strlen(p)+1);
 	}
+}
+
+static unsigned long long int _getmult(char *s) {
+	unsigned long long int m = 1;
+	if (s) {
+		if (!*s) return 1;
+		uint8_t c = *((char *)s + (strlen(s) - 1));
+//		dprintf(0,"c(%x): %c\n", c, c);
+		m = 1;
+		switch(c) {
+		case 'T':
+		case 't':
+			m *= 1024;
+		case 'G':
+		case 'g':
+			m *= 1024;
+		case 'M':
+		case 'm':
+			m *= 1024;
+		case 'K':
+		case 'k':
+			m *= 1024;
+			break;
+		}
+//		dprintf(0,"m: %d\n", m);
+	}
+	return m;
 }
 
 int conv_type(int dt,void *d,int dl,int st,void *s,int sl) {
@@ -220,7 +249,7 @@ int conv_type(int dt,void *d,int dl,int st,void *s,int sl) {
 			*((int8_t *)d) = 0;
 			break;
 		case DATA_TYPE_STRING:
-			*((int8_t *)d) = strtol(s,0,0);
+			*((int8_t *)d) = strtol(s,0,0) * _getmult(s);
 			break;
 		case DATA_TYPE_S8:
 			*((int8_t *)d) = *((int8_t *)s);
@@ -262,7 +291,7 @@ int conv_type(int dt,void *d,int dl,int st,void *s,int sl) {
 		    {
 			char **sa = (char **)s;
 			for(i=0; i < sl; i++) dprintf(1,"sa[%d]: %s\n", i, sa[i]);
-			*((int8_t *)d) = strtol(sa[0],0,0);
+			*((int8_t *)d) = strtol(sa[0],0,0) * _getmult(sa[0]);
 		    }
 		    break;
 		case DATA_TYPE_S8_ARRAY:
@@ -289,7 +318,7 @@ int conv_type(int dt,void *d,int dl,int st,void *s,int sl) {
 			*((int16_t *)d) = 0;
 			break;
 		case DATA_TYPE_STRING:
-			*((int16_t *)d) = strtol(s,0,0);
+			*((int16_t *)d) = strtol(s,0,0) * _getmult(s);
 			break;
 		case DATA_TYPE_S8:
 			*((int16_t *)d) = *((int8_t *)s);
@@ -330,7 +359,7 @@ int conv_type(int dt,void *d,int dl,int st,void *s,int sl) {
 		case DATA_TYPE_STRING_ARRAY:
 		    {
 			char **sa = (char **)s;
-			*((int16_t *)d) = strtol(sa[0],0,0);
+			*((int16_t *)d) = strtol(sa[0],0,0) * _getmult(sa[0]);
 		    }
 		    break;
 		case DATA_TYPE_S8_ARRAY:
@@ -357,7 +386,7 @@ int conv_type(int dt,void *d,int dl,int st,void *s,int sl) {
 			*((int32_t *)d) = 0;
 			break;
 		case DATA_TYPE_STRING:
-			*((int32_t *)d) = strtol(s,0,0);
+			*((int32_t *)d) = strtol(s,0,0) * _getmult(s);
 			break;
 		case DATA_TYPE_S8:
 			*((int32_t *)d) = *((int8_t *)s);
@@ -399,7 +428,7 @@ int conv_type(int dt,void *d,int dl,int st,void *s,int sl) {
 		    {
 			char **sa = (char **)s;
 			for(i=0; i < sl; i++) dprintf(1,"sa[%d]: %s\n", i, sa[i]);
-			*((int32_t *)d) = strtol(sa[0],0,0);
+			*((int32_t *)d) = strtol(sa[0],0,0) * _getmult(sa[0]);
 		    }
 		    break;
 		case DATA_TYPE_S8_ARRAY:
@@ -426,7 +455,7 @@ int conv_type(int dt,void *d,int dl,int st,void *s,int sl) {
 			*((int64_t *)d) = 0;
 			break;
 		case DATA_TYPE_STRING:
-			*((int64_t *)d) = strtol(s,0,0);
+			*((int64_t *)d) = strtol(s,0,0) * _getmult(s);
 			break;
 		case DATA_TYPE_S8:
 			*((int64_t *)d) = *((int8_t *)s);
@@ -467,7 +496,7 @@ int conv_type(int dt,void *d,int dl,int st,void *s,int sl) {
 		case DATA_TYPE_STRING_ARRAY:
 		    {
 			char **sa = (char **)s;
-			*((int64_t *)d) = strtoll(sa[0],0,0);
+			*((int64_t *)d) = strtoll(sa[0],0,0) * _getmult(sa[0]);
 		    }
 		    break;
 		case DATA_TYPE_S8_ARRAY:
@@ -494,7 +523,7 @@ int conv_type(int dt,void *d,int dl,int st,void *s,int sl) {
 			*((uint8_t *)d) = 0;
 			break;
 		case DATA_TYPE_STRING:
-			*((uint8_t *)d) = strtol(s,0,0);
+			*((uint8_t *)d) = strtoul(s,0,0) * _getmult(s);
 			break;
 		case DATA_TYPE_S8:
 			*((uint8_t *)d) = *((int8_t *)s);
@@ -535,7 +564,7 @@ int conv_type(int dt,void *d,int dl,int st,void *s,int sl) {
 		case DATA_TYPE_STRING_ARRAY:
 		    {
 			char **sa = (char **)s;
-			*((uint8_t *)d) = strtol(sa[0],0,0);
+			*((uint8_t *)d) = strtoul(sa[0],0,0) * _getmult(sa[0]);
 		    }
 		    break;
 		case DATA_TYPE_S8_ARRAY:
@@ -562,7 +591,7 @@ int conv_type(int dt,void *d,int dl,int st,void *s,int sl) {
 			*((uint16_t *)d) = 0;
 			break;
 		case DATA_TYPE_STRING:
-			*((uint16_t *)d) = strtol(s,0,0);
+			*((uint16_t *)d) = strtoul(s,0,0) * _getmult(s);
 			break;
 		case DATA_TYPE_S8:
 			*((uint16_t *)d) = *((int8_t *)s);
@@ -603,7 +632,7 @@ int conv_type(int dt,void *d,int dl,int st,void *s,int sl) {
 		case DATA_TYPE_STRING_ARRAY:
 		    {
 			char **sa = (char **)s;
-			*((uint16_t *)d) = strtol(sa[0],0,0);
+			*((uint16_t *)d) = strtoul(sa[0],0,0) * _getmult(sa[0]);
 		    }
 		    break;
 		case DATA_TYPE_S8_ARRAY:
@@ -630,7 +659,7 @@ int conv_type(int dt,void *d,int dl,int st,void *s,int sl) {
 			*((uint32_t *)d) = 0;
 			break;
 		case DATA_TYPE_STRING:
-			*((uint32_t *)d) = strtoul(s,0,0);
+			*((uint32_t *)d) = strtoul(s,0,0) * _getmult(s);
 			break;
 		case DATA_TYPE_S8:
 			*((uint32_t *)d) = *((int8_t *)s);
@@ -671,7 +700,7 @@ int conv_type(int dt,void *d,int dl,int st,void *s,int sl) {
 		case DATA_TYPE_STRING_ARRAY:
 		    {
 			char **sa = (char **)s;
-			*((uint32_t *)d) = strtol(sa[0],0,0);
+			*((uint32_t *)d) = strtoul(sa[0],0,0) * _getmult(sa[0]);
 		    }
 		case DATA_TYPE_S8_ARRAY:
 		case DATA_TYPE_S16_ARRAY:
@@ -697,7 +726,7 @@ int conv_type(int dt,void *d,int dl,int st,void *s,int sl) {
 			*((uint64_t *)d) = 0;
 			break;
 		case DATA_TYPE_STRING:
-			*((uint64_t *)d) = strtol(s,0,0);
+			*((uint64_t *)d) = strtoul(s,0,0) * _getmult(s);
 			break;
 		case DATA_TYPE_S8:
 			*((uint64_t *)d) = *((int8_t *)s);
@@ -738,7 +767,7 @@ int conv_type(int dt,void *d,int dl,int st,void *s,int sl) {
 		case DATA_TYPE_STRING_ARRAY:
 		    {
 			char **sa = (char **)s;
-			*((uint64_t *)d) = strtol(sa[0],0,0);
+			*((uint64_t *)d) = strtoul(sa[0],0,0) * _getmult(sa[0]);
 		    }
 		    break;
 		case DATA_TYPE_S8_ARRAY:
@@ -765,7 +794,7 @@ int conv_type(int dt,void *d,int dl,int st,void *s,int sl) {
 			*((float *)d) = 0.0;
 			break;
 		case DATA_TYPE_STRING:
-			*((float *)d) = strtod(s,0);
+			*((float *)d) = strtod(s,0) * _getmult(s);
 			break;
 		case DATA_TYPE_S8:
 			*((float *)d) = *((int8_t *)s);
@@ -829,7 +858,7 @@ int conv_type(int dt,void *d,int dl,int st,void *s,int sl) {
 			*((double *)d) = 0;
 			break;
 		case DATA_TYPE_STRING:
-			*((double *)d) = strtod(s,0);
+			*((double *)d) = strtod(s,0) * _getmult(s);
 			break;
 		case DATA_TYPE_S8:
 			*((double *)d) = *((int8_t *)s);

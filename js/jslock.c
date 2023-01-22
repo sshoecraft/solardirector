@@ -65,6 +65,32 @@
 
 static pthread_mutex_t amutex = PTHREAD_MUTEX_INITIALIZER;
 
+pthread_mutex_t *PR_NewLock(void) {
+        pthread_mutex_t *lock;
+
+        lock = malloc(sizeof(*lock));
+        if (lock) pthread_mutex_init(lock,0);
+        return lock;
+}
+
+void PR_DestroyLock(pthread_mutex_t *lock) {
+	pthread_mutex_destroy(lock);
+	free(lock);
+}
+
+pthread_cond_t *PR_NewCondVar(PRLock *lock) {
+        pthread_cond_t *cond;
+
+        cond = malloc(sizeof(*cond));
+        if (cond) pthread_cond_init(cond,0);
+        return cond;
+}
+
+void PR_DestroyCondVar(pthread_cond_t *cond) {
+	pthread_cond_destroy(cond);
+	free(cond);
+}
+
 int PR_AtomicIncrement(int *val) {
 	int rv;
 

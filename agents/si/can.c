@@ -576,7 +576,17 @@ int si_can_init(si_session_t *s) {
 
 	if (!strlen(s->input.text)) s->input.source = CURRENT_SOURCE_NONE;
 	if (!strlen(s->input.text)) s->output.source = CURRENT_SOURCE_NONE;
-	if (s->ap && s->ap->interval > 10) s->ap->interval = 10;
+	/* Set inteval to 10s */
+	if (s->ap && s->ap->interval != 10) {
+		config_property_t *p = config_get_property(s->ap->cp,si_driver.name,"interval");
+		printf("p: %p\n", p);
+		if (p) {
+			config_property_set_value(p,DATA_TYPE_STRING,"10",2,true,true);
+//			printf("int: %d\n", s->ap->interval);
+//			config_dump_property(p,0);
+			agent_pubconfig(s->ap);
+		}
+	}
 	s->can_init = true;
 	if (s->ap) agent_set_callback(s->ap,si_can_cb,s);
 	return 0;

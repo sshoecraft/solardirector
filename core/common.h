@@ -126,7 +126,7 @@ int solard_common_startup(config_t **cp, char *sname, char *configfile, config_p
 		,JSEngine **js, int rtsize, int stksize, js_outputfunc_t *jsout
 #endif
 	);
-void solard_common_shutdown(void);
+void common_shutdown(void);
 
 
 void common_add_props(config_t *, char *);

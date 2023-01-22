@@ -48,6 +48,8 @@ JS_BEGIN_EXTERN_C
 
 #ifdef DEBUG
 
+#include "debugmem.h"
+
 extern JS_PUBLIC_API(void)
 JS_Assert(const char *s, const char *file, JSIntn ln);
 

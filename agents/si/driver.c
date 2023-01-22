@@ -64,7 +64,7 @@ static int si_destroy(void *h) {
 
 	/* must be last */
 	dprintf(dlevel,"destroying agent...\n");
-        if (s->ap) agent_destroy(s->ap);
+	if (s->ap) agent_destroy_agent(s->ap);
 
         free(s);
 	return 0;
@@ -129,6 +129,9 @@ static double _get_influx_value(influx_session_t *s, char *query) {
 
 static int si_read(void *handle, uint32_t *control, void *buf, int buflen) {
 	si_session_t *s = handle;
+//	long start = mem_used();
+
+//	log_info("mem start: %ld\n", start);
 
 	dprintf(dlevel,"disable_si_read: %d\n", s->disable_si_read);
 	if (s->disable_si_read) return 0;
@@ -143,6 +146,7 @@ static int si_read(void *handle, uint32_t *control, void *buf, int buflen) {
 			if (si_can_read_data(s,0)) si_can_disconnect(s);
 		}
 	}
+//	log_info("mem used: %ld\n", mem_used() - start);
 
 #ifdef SMANET
 	/* Do this after at least 1 loop if can connected */
@@ -157,6 +161,7 @@ static int si_read(void *handle, uint32_t *control, void *buf, int buflen) {
 		if (si_smanet_read_data(s)) si_smanet_disconnect(s);
 	}
 #endif
+//	log_info("mem used: %ld\n", mem_used() - start);
 
 	// Clear data if no connection
 	if (!s->can_connected && !smanet_connected(s->smanet)) memset(&s->data,0,sizeof(s->data));
@@ -188,6 +193,7 @@ static int si_read(void *handle, uint32_t *control, void *buf, int buflen) {
 		dprintf(dlevel,"ac1_current: %.1f, ac1_power: %.1f\n", s->data.ac1_current, s->data.ac1_power);
 	}
 #endif
+//	log_info("mem used: %ld\n", mem_used() - start);
 
 #if 0
 	/* make sure min/max are set to _something_ */
@@ -214,6 +220,7 @@ static int si_read(void *handle, uint32_t *control, void *buf, int buflen) {
 	if (s->soc < 0) s->soc = 0;
 	dprintf(dlevel,"SoC: %f\n", s->soc);
 	s->soh = 100.0;
+//	log_info("mem used: %ld\n", mem_used() - start);
 
 	// Must set before every write
 	s->force_charge_amps = 0;

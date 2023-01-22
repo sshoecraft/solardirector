@@ -138,6 +138,7 @@ function soc_prime_kf(kf,table_name,prop) {
 
 	dprintf(dlevel,"table_name: %s, prop.name: %s\n", table_name, prop.name);
 
+	if (!influx) return;
 	dprintf(dlevel,"influx: enabled: %s, connected: %s\n", influx.enabled, influx.connected);
 	if (influx.enabled && influx.connected) {
 		let query = "SELECT value FROM " + table_name + " ORDER BY time";
@@ -296,7 +297,6 @@ function soc_main() {
 		dprintf(dlevel,"initial battery_ah: %f\n", si.battery_ah);
 	}
 
-dlevel = 1;
 	// battery AH counter
 	let amps = data.battery_current;
 	dprintf(dlevel,"amps: %f, discharge_efficiency: %f, charge_efficiency: %f\n",
@@ -319,7 +319,6 @@ dlevel = 1;
 		si.battery_ah = si.charge_start_ah;
 		dprintf(dlevel,"FIXED battery_ah: %f\n", si.battery_ah);
 	}
-dlevel = 1;
 
 	// Checkpoint in case restart
 	soc_checkpoint();

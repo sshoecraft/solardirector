@@ -83,13 +83,12 @@ js_json_parse(JSContext *cx, uintN argc, jsval *vp)
     jsval reviver = JSVAL_NULL;
     JSAutoTempValueRooter(cx, 1, &reviver);
     
-    if (!JS_ConvertArguments(cx, argc, argv, "S / v", &s, &reviver))
-        return JS_FALSE;
+    if (!JS_ConvertArguments(cx, argc, argv, "S / v", &s, &reviver)) return JS_FALSE;
 
     JSONParser *jp = js_BeginJSONParse(cx, vp);
     JSBool ok = jp != NULL;
     if (ok) {
-        ok = js_ConsumeJSONText(cx, jp, JS_GetStringChars(s), JS_GetStringLength(s));
+        ok = js_ConsumeJSONText(cx, jp, js_GetStringChars(cx,s), JS_GetStringLength(s));
         ok &= js_FinishJSONParse(cx, jp, reviver);
     }
 
@@ -368,9 +367,8 @@ static JSBool JO(JSContext *cx, jsval *vp, StringifyContext *scx) {
             break;
         }
 
-        ok = write_string(cx, scx->callback, scx->data, JS_GetStringChars(s), JS_GetStringLength(s));
-        if (!ok)
-            break;
+        ok = write_string(cx, scx->callback, scx->data, js_GetStringChars(cx,s), JS_GetStringLength(s));
+        if (!ok) break;
 
         c = jschar(':');
         ok = scx->callback(&c, 1, scx->data);
@@ -481,7 +479,7 @@ static JSBool Str(JSContext *cx, jsid id, JSObject *holder, StringifyContext *sc
 
 	if (JSVAL_IS_STRING(*vp)) {
 		JSString *s = JSVAL_TO_STRING(*vp);
-		return write_string(cx, scx->callback, scx->data, JS_GetStringChars(s), JS_GetStringLength(s));
+		return write_string(cx, scx->callback, scx->data, js_GetStringChars(cx,s), JS_GetStringLength(s));
 	}
 
 	if (JSVAL_IS_NULL(*vp)) {
@@ -543,7 +541,7 @@ WriteStringGap(JSContext *cx, jsval space, JSStringBuffer *sb)
     if (!s)
         return JS_FALSE;
 
-    js_AppendUCString(sb, JS_GetStringChars(s), JS_GetStringLength(s));
+    js_AppendUCString(sb, js_GetStringChars(cx,s), JS_GetStringLength(s));
     if (!STRING_BUFFER_OK(sb)) {
         JS_ReportOutOfMemory(cx);
         return JS_FALSE;

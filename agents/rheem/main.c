@@ -76,5 +76,6 @@ printf("client init'd!\n");
 
 	agent_run(s->ap);
 	rheem_driver.destroy(s);
+	agent_shutdown();
 	return 0;
 }

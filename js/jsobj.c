@@ -2519,8 +2519,7 @@ js_ReallocSlots(JSContext *cx, JSObject *obj, uint32 nslots,
         }
 //	printf("old: %p, size: %ld\n", old, nwords * sizeof(jsval));
         slots = (jsval *)JS_realloc(cx, old, nwords * sizeof(jsval));
-        if (!slots)
-            return JS_FALSE;
+        if (!slots) return JS_FALSE;
     } else {
         JS_ASSERT(nslots < oslots);
         if (!exactAllocation) {
@@ -2994,6 +2993,7 @@ void
 js_FinalizeObject(JSContext *cx, JSObject *obj)
 {
     JSObjectMap *map;
+    JSClass *clasp;
 
     /* Cope with stillborn objects that have no map. */
     map = obj->map;
@@ -3006,7 +3006,9 @@ js_FinalizeObject(JSContext *cx, JSObject *obj)
     }
 
     /* Finalize obj first, in case it needs map and slots. */
-    STOBJ_GET_CLASS(obj)->finalize(cx, obj);
+//  STOBJ_GET_CLASS(obj)->finalize(cx, obj);
+    clasp = STOBJ_GET_CLASS(obj);
+    if (clasp) clasp->finalize(cx, obj);
 
 #ifdef INCLUDE_MOZILLA_DTRACE
     if (JAVASCRIPT_OBJECT_FINALIZE_ENABLED())
@@ -3014,7 +3016,7 @@ js_FinalizeObject(JSContext *cx, JSObject *obj)
 #endif
 
     /* Drop map and free slots. */
-    js_DropObjectMap(cx, map, obj);
+    if (map->nrefs > 0) js_DropObjectMap(cx, map, obj);
     FreeSlots(cx, obj);
 }
 

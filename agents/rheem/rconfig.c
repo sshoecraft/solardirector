@@ -28,8 +28,10 @@ static int set_readonly(void *ctx, config_property_t *p, void *old_value) {
 	if (!s->connected) return 0;
 	if (p->dest) conv_type(DATA_TYPE_BOOLEAN,&b,sizeof(b),p->type,p->dest,p->len);
 	else b = false;
+#ifdef MQTT
 	dprintf(1,"readonly: %d, mqtt_connected: %d\n", b, s->m->connected);
 	if (!s->readonly && !s->m->connected) rheem_connect_mqtt(s);
+#endif
 
 	return 0;
 }
@@ -45,6 +47,7 @@ static int rheem_refresh(void *ctx, list args, char *errmsg, json_object_t *resu
 	return 0;
 }
 
+#ifdef MQTT
 static int rheem_cb(void *ctx) {
 	rheem_session_t *s = ctx;
 
@@ -60,6 +63,7 @@ static int rheem_cb(void *ctx) {
 	}
 	return 0;
 }
+#endif
 
 int rheem_agent_init(int argc, char **argv, rheem_session_t *s) {
 	config_property_t rheem_props[] = {
@@ -77,7 +81,9 @@ int rheem_agent_init(int argc, char **argv, rheem_session_t *s) {
 
 	s->ap = agent_init(argc,argv,rheem_agent_version_string,0,&rheem_driver,s,0,rheem_props,rheem_funcs);
 	if (!s->ap) return 1;
+#ifdef MQTT
 	agent_set_callback(s->ap, rheem_cb, s);
+#endif
 	return 0;
 }
 
@@ -118,6 +124,7 @@ static json_value_t *rheem_get_info(rheem_session_t *s) {
 }
 
 static int rheem_set_enabled(void *ctx, config_property_t *p, void *old_value) {
+#ifdef MQTT
         rheem_device_t *d = ctx;
 	rheem_session_t *s = d->s;
 	json_object_t *o;
@@ -147,10 +154,12 @@ static int rheem_set_enabled(void *ctx, config_property_t *p, void *old_value) {
 	dprintf(dlevel,"str: %s\n", str);
 	if (!s->readonly && mqtt_pub(s->m, s->desired, str, 0, 0)) log_error("set_enabled: mqtt_pub failed!\n");
 	free(str);
+#endif
 	return 0;
 }
 
 static int rheem_set_mode(void *ctx, config_property_t *p, void *old_value) {
+#ifdef MQTT
         rheem_device_t *d = ctx;
 	rheem_session_t *s = d->s;
 	json_object_t *o;
@@ -190,10 +199,12 @@ static int rheem_set_mode(void *ctx, config_property_t *p, void *old_value) {
 	dprintf(dlevel,"str: %s\n", str);
 	if (mqtt_pub(s->m, s->desired, str, 0, 0)) log_error("set_mode: mqtt_pub failed!\n");
 	free(str);
+#endif /* MQTT */
 	return 0;
 }
 
 static int rheem_set_temp(void *ctx, config_property_t *p, void *old_value) {
+#ifdef MQTT
         rheem_device_t *d = ctx;
 	rheem_session_t *s = d->s;
 	json_object_t *o;
@@ -223,6 +234,7 @@ static int rheem_set_temp(void *ctx, config_property_t *p, void *old_value) {
 	dprintf(dlevel,"str: %s\n", str);
 	if (mqtt_pub(s->m, s->desired, str, 0, 0)) log_error("set_emp: mqtt_pub failed!\n");
 	free(str);
+#endif
 	return 0;
 }
 
@@ -263,6 +275,7 @@ void rheem_add_whprops(rheem_session_t *s) {
 			};
 			dprintf(dlevel,"adding props to section: %s\n", d->id);
 			config_add_props(s->ap->cp, d->id, rheem_wh_props, 0);
+//			free(p);
 			d->haveprops = true;
 			added = true;
 		}

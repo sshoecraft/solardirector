@@ -15,7 +15,7 @@ LICENSE file in the root directory of this source tree.
 #include "battery.h"
 //#include "inverter.h"
 
-struct mcu_agent {
+struct sc_agent {
 	bool managed;
 	char name[SOLARD_NAME_LEN];		/* Agent name */
 	char path[256];				/* Full path to agent */
@@ -32,15 +32,14 @@ struct mcu_agent {
 	time_t updated;
 	solard_agent_t *ap;			/* From client */
 };
-typedef struct mcu_agent mcu_agent_t;
+typedef struct sc_agent sc_agent_t;
 
-#define AGENTINFO_STATUS_STARTED 0x01		/* Agent has started */
-#define AGENTINFO_STATUS_WARNED 0x02		/* Agent has not reported */
-#define AGENTINFO_STATUS_ERROR 0x04		/* Agent is gone */
-#define AGENTINFO_STATUS_MASK 0x0F
-#define AGENTINFO_NOTIFY_GONE 0x10		/* Agent has not reported since XXX */
+#define SC_AGENT_STATUS_STARTED 0x01		/* Agent has started */
+#define SC_AGENT_STATUS_WARNED 0x02		/* Agent has not reported */
+#define SC_AGENT_STATUS_ERROR 0x04		/* Agent is gone */
+#define SC_AGENT_STATUS_GONE 0x10		/* Agent has not reported since XXX */
 
-struct mcu_session {
+struct sc_session {
 	solard_agent_t *ap;
 	solard_client_t *c;
 	char location[32];
@@ -62,14 +61,15 @@ struct mcu_session {
 #endif
 	int next_num;
 };
-typedef struct mcu_session mcu_session_t;
+typedef struct sc_session sc_session_t;
 
-extern solard_driver_t mcu_driver;
+extern solard_driver_t sc_driver;
 
-int mcu_config(void *h, int req, ...);
+int sc_agent_init(int argc, char **argv, opt_proctab_t *sd_opts, sc_session_t *sd);
+int sc_config(void *h, int req, ...);
 
 #ifdef JS
-int mcu_jsinit(mcu_session_t *);
+int sc_jsinit(sc_session_t *);
 #endif
 
 #endif

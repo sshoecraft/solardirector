@@ -622,3 +622,78 @@ int json_iter(char *name, json_value_t *v, json_ifunc_t *func, void *ctx) {
         return 0;
 }
 
+#ifdef JS
+#include "jsapi.h"
+#include "jsobj.h"
+static JSClass js_json_class = {
+	"myJSON",			/* Name */
+	0,			/* Flags */
+	JS_PropertyStub,	/* addProperty */
+	JS_PropertyStub,	/* delProperty */
+	JS_PropertyStub,	/* getProperty */
+	JS_PropertyStub,	/* setProperty */
+	JS_EnumerateStub,	/* enumerate */
+	JS_ResolveStub,		/* resolve */
+	JS_ConvertStub,		/* convert */
+	JS_FinalizeStub,	/* finalize */
+	JSCLASS_NO_OPTIONAL_MEMBERS
+};
+
+JSObject *js_json_toObject(JSContext *cx, JSObject *parent, json_value_t *v) {
+	JSObject *obj;
+
+//	obj = JS_NewObject(cx, 0, 0, parent); 
+	obj = JS_NewObject(cx, &js_ObjectClass, 0, parent); 
+
+	return obj;
+}
+
+static JSBool js_json_parse(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rval) {
+	json_value_t *v;
+	char *str;
+	JSObject *newobj;
+
+	str = 0;
+	if (!JS_ConvertArguments(cx, argc, argv, "s", &str)) return JS_FALSE;
+	dprintf(0,"str: %s\n", str);
+
+	v = json_parse(str);
+	JS_free(cx,str);
+	if (!v) {
+		JS_ReportError(cx,"error parsing JSON string", js_json_class.name);
+		return JS_FALSE;
+	}
+	newobj = js_json_toObject(cx, obj, v);
+	if (!newobj) {
+		JS_ReportError(cx,"error parsing JSON string", js_json_class.name);
+		return JS_FALSE;
+	}
+	*rval = OBJECT_TO_JSVAL(newobj);
+	return JS_TRUE;
+}
+
+JSObject *js_InitmyJSONClass(JSContext *cx, JSObject *parent) {
+	JSFunctionSpec js_json_funcs[] = {
+		JS_FS("parse",js_json_parse,1,1,0),
+//		JS_FS("stringify",js_json_stringify,3,1,0),
+		{0}
+	};
+	JSObject *newobj;
+
+#if 0
+	dprintf(2,"Creating %s class...\n", js_json_class.name);
+	newobj = JS_InitClass(cx, parent, 0, &js_json_class, 0, 0, 0, js_json_funcs, 0, 0);
+#endif
+	dprintf(0,"Creating %s object...\n", js_json_class.name);
+	newobj = JS_NewObject(cx, &js_json_class, NULL, parent);
+	if (!newobj) {
+		JS_ReportError(cx,"unable to initialize %s object", js_json_class.name);
+		return 0;
+	}
+        if (!JS_DefineProperty(cx, parent, js_json_class.name, OBJECT_TO_JSVAL(newobj), JS_PropertyStub, JS_PropertyStub, 0)) return NULL;
+        if (!JS_DefineFunctions(cx, newobj, js_json_funcs)) return NULL;
+
+//	dprintf(dlevel,"done!\n");
+	return newobj;
+}
+#endif

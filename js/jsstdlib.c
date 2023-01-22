@@ -1,3 +1,0 @@
-
-
-JS_GetGlobalObject(cx)

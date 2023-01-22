@@ -980,8 +980,7 @@ js_free_table_space(void *priv, void *item)
 JS_STATIC_DLL_CALLBACK(JSHashEntry *)
 js_alloc_sftbl_entry(void *priv, const void *key)
 {
-    size_t nbytes = offsetof(ScriptFilenameEntry, filename) +
-                    strlen((const char *) key) + 1;
+    size_t nbytes = offsetof(ScriptFilenameEntry, filename) + strlen((const char *) key) + 1;
 
     return (JSHashEntry *) malloc(JS_MAX(nbytes, sizeof(JSHashEntry)));
 }
@@ -989,8 +988,7 @@ js_alloc_sftbl_entry(void *priv, const void *key)
 JS_STATIC_DLL_CALLBACK(void)
 js_free_sftbl_entry(void *priv, JSHashEntry *he, uintN flag)
 {
-    if (flag != HT_FREE_ENTRY)
-        return;
+    if (flag != HT_FREE_ENTRY) return;
     free(he);
 }
 
@@ -1010,8 +1008,7 @@ js_InitRuntimeScriptState(JSRuntime *rt)
 #endif
     JS_ASSERT(!rt->scriptFilenameTable);
     rt->scriptFilenameTable =
-        JS_NewHashTable(16, JS_HashString, js_compare_strings, NULL,
-                        &sftbl_alloc_ops, NULL);
+        JS_NewHashTable(16, JS_HashString, js_compare_strings, NULL, &sftbl_alloc_ops, NULL);
     if (!rt->scriptFilenameTable) {
         js_FinishRuntimeScriptState(rt);    /* free lock if threadsafe */
         return JS_FALSE;

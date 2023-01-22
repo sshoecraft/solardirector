@@ -19,15 +19,16 @@
 
 #define TYPEOF(cx,v)    (JSVAL_IS_NULL(v) ? JSTYPE_NULL : JS_TypeOfValue(cx,v))
 
+#if 1
 char *jstypestr(JSContext *cx, jsval val) {
 //	dprintf(dlevel,"val: %x\n", val);
 	if (!val) return "(not set)";
 	return (char *)JS_GetTypeName(cx, JS_TypeOfValue(cx, val));
 }
-
-#if 0
+#else
 char *jstypestr(JSContext *cx, jsval v) {
-	if (v == JSTYPE-VOID) return "null";
+	dprintf(0,"v: %x\n", v);
+	if (v == JSTYPE_VOID) return "void";
 	else if (JSVAL_IS_NULL(v)) return "null";
 	else if (JSVAL_IS_VOID(v)) return "void";
 	else if (JSVAL_IS_OBJECT(v)) return "object";
@@ -35,6 +36,21 @@ char *jstypestr(JSContext *cx, jsval v) {
 	else if (JSVAL_IS_DOUBLE(v)) return "double";
 	else if (JSVAL_IS_STRING(v)) return "string";
 	else if (JSVAL_IS_BOOLEAN(v)) return "bool";
+	else return "unknown";
+}
+#endif
+
+#if 0
+static char *_tstr(int t) {
+	if (t == JSTYPE_VOID) return "void";
+	else if (t == JSTYPE_OBJECT) return "object";
+	else if (t == JSTYPE_FUNCTION) return "function";
+//	else if (t == JSTYPE_ARRAY) return "array";
+	else if (t == JSTYPE_STRING) return "string";
+	else if (t == JSTYPE_NUMBER) return "number";
+	else if (t == JSTYPE_BOOLEAN) return "bool";
+	else if (t == JSTYPE_NULL) return "null";
+	else if (t == JSTYPE_XML) return "xml";
 	else return "unknown";
 }
 #endif
@@ -74,7 +90,8 @@ jsval type_to_jsval(JSContext *cx, int type, void *src, int len) {
 	case DATA_TYPE_STRING:
 	case DATA_TYPE_STRINGP:
 		{
-			JSString *newstr = JS_InternString(cx,(char *)src);
+//			JSString *newstr = JS_InternString(cx,(char *)src);
+			JSString *newstr = JS_NewStringCopyZ(cx,(char *)src);
 			dprintf(dlevel,"newstr: %p\n", newstr);
 			if (newstr) val = STRING_TO_JSVAL(newstr);
 			else val = JSVAL_NULL;
@@ -185,16 +202,27 @@ int jsval_to_type(int dtype, void *dest, int dlen, JSContext *cx, jsval val) {
 	void *src;
 	int stype,slen;
 
+	if (dtype == DATA_TYPE_STRINGP) {
+		jstr = JS_ValueToString(cx, val);
+		char **strp = dest;
+
+		*strp = (char *)JS_EncodeString(cx, jstr);
+		dprintf(dlevel,"strp: %p, value: %s\n", *strp, *strp);
+		if (strcmp(*strp,"null") == 0) *(*strp) = 0;
+		return strlen(*strp);
+	}
+
 	jstype = TYPEOF(cx,val);
 	dprintf(dlevel,"jstype: %d(%s), dtype: %d(%s), dest: %p, dlen: %d\n", jstype, jstypestr(cx,val), dtype, typestr(dtype), dest, dlen);
 	r = 0;
 	slen = -1;
+//	dprintf(dlevel,"jstype: %s(%d)\n", _tstr(jstype), jstype);
 	switch (jstype) {
 	case JSTYPE_VOID:
 		src = 0;
 		stype = DATA_TYPE_VOID;
 		slen = 0;
-		break;
+
 	case JSTYPE_OBJECT:
 		if (dtype == DATA_TYPE_VOIDP) {
 			void **dp = dest;
@@ -300,8 +328,9 @@ int jsval_to_type(int dtype, void *dest, int dlen, JSContext *cx, jsval val) {
 		printf("jsval_to_type: unknown JS type: %d\n",jstype);
 		break;
 	}
-	dprintf(dlevel,"stype: %s, src: %p, slen: %d\n", typestr(stype), src, slen);
+	dprintf(dlevel,"dtype: %s, stype: %s, src: %p, slen: %d\n", typestr(dtype), typestr(stype), src, slen);
 
+#if 0
 	if (dtype == DATA_TYPE_STRINGP) {
 		jstr = JS_ValueToString(cx, val);
 		char **strp = dest;
@@ -309,8 +338,10 @@ int jsval_to_type(int dtype, void *dest, int dlen, JSContext *cx, jsval val) {
 		*strp = (char *)JS_EncodeString(cx, jstr);
 		dprintf(dlevel,"strp: %p, value: %s\n", *strp, *strp);
 		if (strcmp(*strp,"null") == 0) *(*strp) = 0;
-		else r = strlen(*strp);
+		r = strlen(*strp);
 	} else if (slen >= 0) {
+#endif
+	if (slen >= 0) {
 		r = conv_type(dtype,dest,dlen,stype,src,slen);
 		if (jstype == JSTYPE_STRING) JS_free(cx,str);
 	}

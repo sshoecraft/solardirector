@@ -7,42 +7,41 @@ This source code is licensed under the BSD-style license found in the
 LICENSE file in the root directory of this source tree.
 */
 
+function addstat(str,val,text) {
+	if (val) str += "[" + text + "]";
+	return str;
+}
+
 function pub_main() {
+	include(core_dir+"/utils.js");
 
 	let dlevel = 1;
 
-//	dprintf(dlevel,"can_connected: %s, smanet_connected: %s\n", si.can_connected, si.smanet_connected);
-//	if (!si.can_connected && !si.smanet_connected) return(0);
 	dprintf(dlevel,"running: %s\n", data.Run);
 	if (!data.Run) return;
 
-	function addstat(str,val,text) {
-		if (val) str += "[" + text + "]";
-		return str;
-	}
+	let pub = {};
+	pub.status = "";
+	pub.status = addstat(pub.status,si.can_connected,"can");
+	pub.status = addstat(pub.status,si.readonly,"readonly");
+	pub.status = addstat(pub.status,si.mirror,"mirror");
+	pub.status = addstat(pub.status,si.smanet_connected,"smanet");
+	pub.status = addstat(pub.status,data.GdOn,"grid");
+	pub.status = addstat(pub.status,data.GnOn,"gen");
+	pub.status = addstat(pub.status,si.charge_mode,"charge");
+	pub.status = addstat(pub.status,si.charge_mode == 1,"CC");
+	pub.status = addstat(pub.status,si.charge_mode == 2,"CV");
+	pub.status = addstat(pub.status,si.feed_enabled,"feed");
+	pub.status = addstat(pub.status,(si.input_source != CURRENT_SOURCE_NONE && si.feed_enabled && si.charge_mode && si.dynfeed && data.GdOn),"dynfeed");
+	pub.status = addstat(pub.status,(si.charge_mode && si.dyngrid && data.GdOn),"dyngrid");
+	pub.status = addstat(pub.status,(si.charge_mode && si.dyngen && data.GnOn),"dyngen");
 
-	var status = "";
-	status = addstat(status,si.can_connected,"can");
-	status = addstat(status,si.readonly,"readonly");
-	status = addstat(status,si.mirror,"mirror");
-	status = addstat(status,si.smanet_connected,"smanet");
-	status = addstat(status,data.GdOn,"grid");
-	status = addstat(status,data.GnOn,"gen");
-	status = addstat(status,si.charge_mode,"charge");
-	status = addstat(status,si.charge_mode == 1,"CC");
-	status = addstat(status,si.charge_mode == 2,"CV");
-	status = addstat(status,si.feed_enabled,"feed");
-	status = addstat(status,(si.input_source != CURRENT_SOURCE_NONE && si.feed_enabled && si.charge_mode && si.dynfeed && data.GdOn),"dynfeed");
-	status = addstat(status,(si.charge_mode && si.dyngrid && data.GdOn),"dyngrid");
-	status = addstat(status,(si.charge_mode && si.dyngen && data.GnOn),"dyngen");
-
-	avail = data.input_power;
-	if (avail < 0) avail = 0;
+	pub.avail = data.input_power;
+	if (pub.avail < 0) pub.avail = 0;
 
 if (0 == 1) {
 	// Calculate available power
         dprintf(dlevel,"input_source: %d, feed_enabled: %d, GdOn: %d\n", si.input_source, si.feed_enabled, data.GdOn);
-	var avail = 0;
         if (si.input_source != CURRENT_SOURCE_NONE && si.feed_enabled && data.GdOn) {
 		// We're feeding: use input power as a base
 		avail = data.input_power;
@@ -58,7 +57,7 @@ if (0 == 1) {
 	// In the event SI is powered off
 	if (si.soc < 0) si.soc = 0.0;
 
-	var tab = [
+	pub.tab = [
 			[ "name",		agent.name ],
 			[ "battery_voltage",	data.battery_voltage ],
 			[ "battery_current",	data.battery_current ],
@@ -78,49 +77,46 @@ if (0 == 1) {
 			[ "output_current",	data.output_current ],
 			[ "output_power",	data.output_power ],
 			[ "load_power",		data.load_power ],
-			[ "available_power",	avail ],
+			[ "available_power",	pub.avail ],
 			[ "remain_text",	si.remain_text ],
-			[ "status",		status ],
+			[ "status",		pub.status ],
 	];
-	var mydata = {};
-	for(let j=0; j < tab.length; j++) mydata[tab[j][0]] = tab[j][1];
-	//for(let key in mydata) printf("%20.20s: %s\n", key, mydata[key]);
+	pub.data = {};
+	for(let j=0; j < pub.tab.length; j++) pub.data[pub.tab[j][0]] = pub.tab[j][1];
+	//for(let key in pub.data) printf("%20.20s: %s\n", key, pub.data[key]);
 
-
-	var format = 3;
+	let format = 3;
 	switch(format) {
 	case 0:
-		out = sprintf("%s Battery: Voltage: %.1f, Current: %.1f, Level: %.1f",
-			status, mydata.battery_voltage, mydata.battery_current, mydata.battery_level);
+		pub.out = sprintf("%s Battery: Voltage: %.1f, Current: %.1f, Level: %.1f",
+			status, pub.data.battery_voltage, pub.data.battery_current, pub.data.battery_level);
 		break;
 	case 1:
-		out = sprintf("%s Battery: Voltage: %.1f, Current: %.1f, Power: %.1f, Level: %.1f",
-			status, mydata.battery_voltage, mydata.battery_current, mydata.battery_power, mydata.battery_level);
+		pub.out = sprintf("%s Battery: Voltage: %.1f, Current: %.1f, Power: %.1f, Level: %.1f",
+			status, pub.data.battery_voltage, pub.data.battery_current, pub.data.battery_power, pub.data.battery_level);
 		break;
 	case 2:
-		out = sprintf("%s Battery: Voltage: %.1f, Power: %.1f, Level: %.1f",
-			status, mydata.battery_voltage, mydata.battery_power, mydata.battery_level);
+		pub.out = sprintf("%s Battery: Voltage: %.1f, Power: %.1f, Level: %.1f",
+			status, pub.data.battery_voltage, pub.data.battery_power, pub.data.battery_level);
 		break;
 	case 3:
-		out = sprintf("%s Battery: Voltage: %.1f, Level: %.1f", status, mydata.battery_voltage, mydata.battery_level);
+		pub.out = sprintf("%s Battery: Voltage: %.1f, Level: %.1f", pub.status, pub.data.battery_voltage, pub.data.battery_level);
 		break;
 	}
 	if (typeof(last_out) == "undefined") last_out = "";
-	if (out != last_out) {
-		printf("%s\n",out);
-		last_out = out;
+	if (pub.out != last_out) {
+		printf("%s\n",pub.out);
+		last_out = pub.out;
 	}
 
 	// JSON.stringfy leaks a ton of mem
-	var j = JSON.stringify(mydata,fields,4);
-//	printf("j: %s\n", j);
+	pub.json = JSON.stringify(pub.data,fields,4);
+//	pub.json = toJSONString(pub.data,fields,4);
+//	printf("json: %s\n", pub.json);
 
-	mqtt.pub(data_topic,j,0);
+	if (mqtt) mqtt.pub(data_topic,pub.json,0);
 
-	dprintf(dlevel,"influx: enabled: %s\n", influx.enabled);
-	if (influx.enabled) {
-		dprintf(dlevel,"influx: connected: %s\n", influx.connected);
-		if (!influx.connected) influx.connect();
-		if (influx.connected) influx.write("inverter",mydata);
-	}
+	if (influx) dprintf(dlevel,"influx: enabled: %s, connected: %s\n", influx.enabled, influx.connected);
+	if (influx && influx.enabled && influx.connected) influx.write("inverter",pub.data);
+	for(let key in pub) delete pub[key];
 }

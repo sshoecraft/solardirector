@@ -366,32 +366,6 @@ static JSBool jssi_notify(JSContext *cx, uintN argc, jsval *vp) {
 	return JS_TRUE;
 }
 
-static JSBool js_si_register(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rval) {
-	si_session_t *s;
-	char *name, *func;
-
-	s = JS_GetPrivate(cx, obj);
-	if (!s) {
-		JS_ReportError(cx, "can_write: internal error: private is null!\n");
-		return JS_FALSE;
-	}
-
-	if (argc != 2) {
-		JS_ReportError(cx,"register requires 2 arguments (script_name:string, function:string)\n");
-		return JS_FALSE;
-	}
-
-	name = func = 0;
-	if (!JS_ConvertArguments(cx, argc, argv, "s s", &name, &func)) return JS_FALSE;
-	dprintf(0,"name: %s, func: %s\n", name, func);
-
-	s->eh.enabled = true;
-	strncpy(s->eh.name,name,sizeof(s->eh.name)-1);
-	strncpy(s->eh.func,func,sizeof(s->eh.func)-1);
-
-	return JS_TRUE;
-}
-
 JSBool si_callfunc(JSContext *cx, uintN argc, jsval *vp) {
 	JSObject *obj;
 	si_session_t *s;
@@ -427,7 +401,6 @@ static int js_si_init(JSContext *cx, JSObject *parent, void *priv) {
 	JSFunctionSpec si_funcs[] = {
 		JS_FN("can_read",jssi_can_read,1,1,0),
 		JS_FN("can_write",jssi_can_write,2,2,0),
-		JS_FS("register",js_si_register,2,2,0),
 		JS_FN("notify",jssi_notify,0,0,0),
 		{ 0 }
 	};

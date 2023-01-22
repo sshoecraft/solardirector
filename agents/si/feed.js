@@ -83,10 +83,10 @@ function feed_start(force) {
 
 	agent.event("Feed","Start");
 
-	if (si_smanet_set_value("GdMod","GridFeed",3)) {
+	if (si_smanet_set_value("GdMod","GridFeed",2)) {
 		dprintf(dlevel,"reconnecting...\n");
 		smanet.reconnect();
-		if (si_smanet_set_value("GdMod","GridFeed",2)) {
+		if (si_smanet_set_value("GdMod","GridFeed",1)) {
 			si.errmsg = "error setting GdMod to GridFeed";
 			log_error("%s\n",si.errmsg);
 			return 1;
@@ -113,10 +113,10 @@ function feed_stop(force) {
 
 	agent.event("Feed","Stop");
 
-	if (si_smanet_set_value("GdMod","GridCharge",3)) {
+	if (si_smanet_set_value("GdMod","GridCharge",2)) {
 		dprintf(dlevel,"reconnecting...\n");
 		smanet.reconnect();
-		if (si_smanet_set_value("GdMod","GridCharge",2)) {
+		if (si_smanet_set_value("GdMod","GridCharge",1)) {
 			si.errmsg = "error setting GdMod to GridCharge";
 			log_error("%s\n",si.errmsg);
 			return 1;

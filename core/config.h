@@ -73,11 +73,14 @@ struct config_function {
 	config_funccall_t *func;
 	void *ctx;
 	int nargs;
+	int flags;
 #ifdef JS
 	jsval jsval;
 #endif
 };
 typedef struct config_function config_function_t;
+
+#define CONFIG_FUNCTION_FLAG_ALLOCNAME 0x0001
 
 #define CONFIG_SECTION_NAME_SIZE 64
 struct config_section {
@@ -192,7 +195,8 @@ void config_dump_function(config_function_t *f, int level);
 
 void config_destroy_props(config_property_t *);
 void config_destroy_funcs(config_function_t *);
-void config_destroy(config_t *cp);
+void config_destroy_config(config_t *cp);
+void config_shutdown();
 
 int config_service_get_value(void *ctx, list args, char *errmsg, json_object_t *results);
 int config_service_set_value(void *ctx, list args, char *errmsg, json_object_t *results);

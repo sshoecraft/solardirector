@@ -1,1 +1,1 @@
-valgrind --leak-check=full --track-origins=yes ./rheem -c /opt/sd/etc/rheem.json
+valgrind --leak-check=full --track-origins=yes ./rheem -e 'agent.script_dir="."' -c /opt/sd/etc/rheem.json

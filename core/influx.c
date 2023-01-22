@@ -26,6 +26,7 @@ LICENSE file in the root directory of this source tree.
 
 #define INFLUX_INIT_BUFSIZE 4096
 #define SESSION_ID_SIZE 128
+static list influx_sessions = 0;
 
 struct influx_session {
 	bool enabled;
@@ -163,6 +164,8 @@ influx_session_t *influx_new(void) {
 		curl_easy_setopt(s->curl, CURLOPT_USERPWD, s->password);
 	}
 
+	if (!influx_sessions) influx_sessions = list_create();
+	list_add(influx_sessions, s, 0);
 	return s;
 }
 
@@ -226,12 +229,33 @@ static void influx_cleanup(influx_session_t *s) {
 	}
 }
 
-void influx_destroy(influx_session_t *s) {
+void influx_destroy_session(influx_session_t *s) {
+
+	dprintf(dlevel,"s: %s\n", s);
+	if (!s) return;
+
 	influx_cleanup(s);
 	if (s->buffer) free(s->buffer);
 	curl_slist_free_all(s->hs);
 	curl_easy_cleanup(s->curl);
+
+	if (influx_sessions) list_delete(influx_sessions,s);
 	free(s);
+}
+
+void influx_shutdown(void) {
+	influx_session_t *s;
+
+	if (influx_sessions) {
+		while(true) {
+			list_reset(influx_sessions);
+			s = list_get_next(influx_sessions);
+			if (!s) break;
+			influx_destroy_session(s);
+		}
+		list_destroy(influx_sessions);
+		influx_sessions = 0;
+	}
 }
 
 list influx_get_results(influx_session_t *s) {
@@ -1292,6 +1316,7 @@ static JSBool js_influx_write(JSContext *cx, uintN argc, jsval *vp) {
 			key = js_string(cx,ids[i]);
 			if (!key) continue;
 	//		dprintf(dlevel+1,"key: %s\n", key);
+			val = JSVAL_VOID;
 			if (!JS_GetProperty(cx,rec,key,&val)) {
 				JS_free(cx,key);
 				continue;

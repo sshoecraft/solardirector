@@ -2,7 +2,6 @@
 # Build options
 DEBUG?=yes
 DEBUG_MEM?=no
-MEMWATCH?=no
 STATIC?=no
 SHARED?=no
 

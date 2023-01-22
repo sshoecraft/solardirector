@@ -82,7 +82,7 @@ int main(int argc, char **argv) {
 #endif
 	s->ap->interval = 5;
 	agent_run(s->ap);
-	agent_destroy(s->ap);
+	agent_shutdown();
 	free(s);
 	return 0;
 }

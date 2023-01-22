@@ -34,6 +34,7 @@ LICENSE file in the root directory of this source tree.
 #include "jsdtracef.h"
 #include "jsobj.h"
 #include "jscntxt.h"
+#include "jsutil.h"
 
 #if SCRIPT_CACHE
 struct _scriptinfo {
@@ -259,7 +260,7 @@ JS_EngineNewContext_error:
 	dprintf(dlevel,"cx: %p\n", cx);
 	if (cx) {
 		dprintf(dlevel,"destroying CX!!\n");
-//		JS_DestroyContext(cx);
+		JS_DestroyContext(cx);
 	}
 	return 0;
 }
@@ -325,18 +326,25 @@ JSEngine *JS_DupEngine(JSEngine *old) {
 
 int JS_EngineDestroy(JSEngine *e) {
 	scriptinfo_t *sp;
-//	js_initfuncinfo_t *fp;
+	void *th;
 
 	dprintf(dlevel,"e: %p\n", e);
 	if (!e) return 1;
 
 	list_reset(e->scripts);
 	while((sp = list_get_next(e->scripts)) != 0) {
-		if (sp->script)
-			JS_RemoveRoot(e->cx, &sp->script->object);
+		if (sp->script) JS_RemoveRoot(e->cx, &sp->script->object);
 	}
-	if (e->cx) JS_GC(e->cx);
-	if (e->cx) JS_DestroyContext(e->cx);
+	dprintf(dlevel,"====> cx: %p\n", e->cx);
+	if (e->cx) {
+		JS_GC(e->cx);
+		JS_GlobalShutdown(e->cx);
+		JS_DestroyContext(e->cx);
+	}
+	JS_ShutDown();
+	th = js_GetCurrentThread(e->rt);
+	dprintf(dlevel,"====> th: %p\n", th);
+	if (th) free(th);
 	JS_DestroyRuntime(e->rt);
 	list_destroy(e->scripts);
 	list_destroy(e->initfuncs);
@@ -456,6 +464,7 @@ int _JS_EngineExec(JSEngine *e, char *filename, JSContext *cx, char *function_na
 			}
 		} else {
 			/* Call the function */
+			rval = JSVAL_VOID;
 			ok = JS_CallFunctionValue(cx, JS_GetGlobalObject(cx), fval, argc, argv, &rval);
 			dprintf(dlevel,"ok: %d, rval: %x (%s)\n", ok, rval, jstypestr(cx,rval));
 			if (ok && rval != JSVAL_VOID) {

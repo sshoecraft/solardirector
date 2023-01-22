@@ -1,1 +1,1 @@
-valgrind --leak-check=full --track-origins=yes ./si -n sidev -c sidev.json
+valgrind -s --leak-check=full --show-leak-kinds=all --track-origins=yes ./si -1 -n sidev -e 'agent.script_dir="."' -c sidev_full.json

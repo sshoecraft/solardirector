@@ -36,6 +36,11 @@ LICENSE file in the root directory of this source tree.
 #define _clear_flag(f,n)   ((f) &= (~CONFIG_FLAG_##n))
 #define _check_flag(f,n)   (((f) & CONFIG_FLAG_##n) != 0)
 
+static list configs = 0;
+#ifdef JS
+static list js_ctxs = 0;
+#endif
+
 char *config_get_errmsg(config_t *cp) { return cp->errmsg; }
 
 void config_dump_property(config_property_t *p, int level) {
@@ -306,7 +311,7 @@ int config_property_set_value(config_property_t *p, int type, void *src, int siz
 	dprintf(ldlevel,"p->dest: %p, p->dsize: %d\n", p->dest, p->dsize);
 //	dprintf(dlevel,"p->type: %s, src type: %s\n", typestr(p->type), typestr(type));
 	p->len = conv_type(p->type,p->dest,p->dsize,type,src,size);
-	_set_flag(p->flags,VALUE);
+	p->flags |= CONFIG_FLAG_VALUE;
 	p->dirty = dirty;
 //	config_dump_property(p,0);
 	dprintf(dlevel,"trigger: %d, p->dest: %p, p->trigger: %p\n", trigger, p->dest, p->trigger);
@@ -382,7 +387,10 @@ void config_destroy_property(config_property_t *p) {
 	if (p->values) free(p->values);
 	if (p->labels) free(p->labels);
 	if (p->units) free(p->units);
-	if (p->ctx) free(p->ctx);
+	if (p->ctx) {
+		if (js_ctxs) list_delete(js_ctxs,p->ctx);
+		free(p->ctx);
+	}
 	free(p);
 }
 
@@ -474,6 +482,7 @@ int config_section_add_property(config_t *cp, config_section_t *s, config_proper
 		_clear_flag(pp->flags,ALLOC);
 		_clear_flag(pp->flags,ALLOCDEST);
 		_clear_flag(pp->flags,VALUE);
+		_clear_flag(pp->flags,NOPUB);
 		flags |= pp->flags;
 //		if (pp->flags & CONFIG_FLAG_FILE) p->flags |= CONFIG_FLAG_FILE;
 		config_destroy_property(pp);
@@ -689,13 +698,17 @@ config_t *config_init(char *section_name, config_property_t *props, config_funct
 	cp->fctx = list_create();
 #endif
 
+	if (!configs) configs = list_create();
+	list_add(configs, cp, 0);
+
 	return cp;
 }
 
-void config_destroy(config_t *cp) {
+void config_destroy_config(config_t *cp) {
 	config_section_t *sp;
 	config_property_t *p;
 
+	dprintf(dlevel,"cp: %p\n", cp);
 #ifdef JS
 	/* must be done before destroying properties (which will free ctx) */
 	if (cp->roots) {
@@ -723,9 +736,46 @@ void config_destroy(config_t *cp) {
 		list_destroy(sp->items);
 	}
 	list_destroy(cp->sections);
+	dprintf(dlevel,"funcs count: %d\n", list_count(cp->funcs));
+	if (list_count(cp->funcs)) {
+		config_function_t *f;
+
+		list_reset(cp->funcs);
+		while((f = list_get_next(cp->funcs)) != 0) {
+			dprintf(dlevel,"name: %s, flags: %x\n", f->name, f->flags);
+			if (f->flags & CONFIG_FUNCTION_FLAG_ALLOCNAME)
+				free(f->name);
+		}
+	}
 	list_destroy(cp->funcs);
 	if (cp->map) free(cp->map);
+
+	if (configs) list_delete(configs,cp);
 	free(cp);
+}
+
+void config_shutdown(void) {
+        config_t *cp;
+
+	if (configs) {
+		while(true) {
+			list_reset(configs);
+			cp = list_get_next(configs);
+			if (!cp) break;
+			config_destroy_config(cp);
+		}
+		list_destroy(configs);
+		configs = 0;
+	}
+#ifdef JS
+	if (js_ctxs) {
+		void *p;
+		list_reset(js_ctxs);
+		while((p = list_get_next(js_ctxs)) != 0) free(p);
+		list_destroy(js_ctxs);
+		js_ctxs = 0;
+	}
+#endif
 }
 
 int config_read_ini(void *ctx) {
@@ -770,6 +820,7 @@ int config_read_ini(void *ctx) {
 	dprintf(dlevel,"building map...\n");
 	config_build_propmap(cp);
 
+	cfg_destroy(cfg);
 	return 0;
 }
 
@@ -1021,7 +1072,7 @@ json_value_t *config_to_json(config_t *cp, int noflags, int dirty) {
 	config_property_t *p;
 	json_object_t *co,*so;
 	json_value_t *v;
-	int count;
+	list l;
 
 	if (!cp) return 0;
 
@@ -1030,52 +1081,44 @@ json_value_t *config_to_json(config_t *cp, int noflags, int dirty) {
 	co = json_create_object();
 	list_reset(cp->sections);
 	while((s = list_get_next(cp->sections)) != 0) {
-		dprintf(dlevel,"s: name: %s, flags: %x, noflags: %x, result: %d\n", s->name, s->flags, noflags, (s->flags & noflags));
+		dprintf(dlevel,"section: name: %s, flags: %x, noflags: %x, result: %d\n", s->name, s->flags, noflags, (s->flags & noflags));
 		if (s->flags & noflags) continue;
 		dprintf(dlevel,"section: %s\n", s->name);
 		if (!list_count(s->items)) continue;
-		/* Count how many meet the criteria */
-		count = 0;
+		/* add ones that meet the criteria to temp list (so we dont add empty sections) */
+		l = list_create();
 		dprintf(dlevel,"item count: %d\n", list_count(s->items));
 		list_reset(s->items);
 		while((p = list_get_next(s->items)) != 0) {
-			dprintf(dlevel,"p: name: %s, flags: %x, dirty: %d\n", p->name, p->flags, p->dirty);
+			dprintf(dlevel,"p: name: %s, flags: %x, noflags: %x, dirty: %d, wantdirty: %d\n",
+				p->name, p->flags, noflags, p->dirty, dirty);
 			if (_check_flag(noflags,NOPUB) && _check_flag(p->flags,PUB)) {
-				count++;
+				list_add(l,p,0);
 				continue;
 			}
 			if (p->flags & noflags) continue;
-			dprintf(dlevel,"dest: %p\n", p->dest);
+//			dprintf(dlevel,"dest: %p\n", p->dest);
 			if (!p->dest) continue;
-			dprintf(dlevel,"p->dirty: %d, dirty: %d\n", p->dirty, dirty);
+//			dprintf(dlevel,"p->dirty: %d, dirty: %d\n", p->dirty, dirty);
 			if (dirty && !p->dirty && (!(p->flags & CONFIG_FLAG_FILE))) continue;
-			count++;
+			dprintf(dlevel,"adding...\n");
+			list_add(l,p,0);
 		}
-		dprintf(dlevel,"count: %d\n", count);
-		if (!count) continue;
-		so = json_create_object();
-		dprintf(dlevel,"so: %p\n", so);
-		list_reset(s->items);
-		while((p = list_get_next(s->items)) != 0) {
-			dprintf(dlevel,"p->name: %s, flags: %x, noflags: %x\n", p->name, p->flags, noflags);
-			if (_check_flag(noflags,NOPUB) && _check_flag(p->flags,PUB)) {
+		dprintf(dlevel,"count: %d\n", list_count(l));
+		if (list_count(l)) {
+			/* Add them */
+			so = json_create_object();
+			dprintf(dlevel,"so: %p\n", so);
+			list_reset(l);
+			while((p = list_get_next(l)) != 0) {
 				v = json_from_type(p->type,p->dest,p->len);
 				dprintf(dlevel,"v: %p\n", v);
 				if (!v) continue;
 				json_object_set_value(so,p->name,v);
-				continue;
 			}
-			if (p->flags & noflags) continue;
-			dprintf(dlevel,"dest: %p\n", p->dest);
-			if (!p->dest) continue;
-			dprintf(dlevel,"dirty: %d, p->dirty: %d, isfile: %d\n", dirty, p->dirty, (p->flags & CONFIG_FLAG_FILE));
-			if (dirty && !p->dirty && (!(p->flags & CONFIG_FLAG_FILE))) continue;
-			v = json_from_type(p->type,p->dest,p->len);
-			dprintf(dlevel,"v: %p\n", v);
-			if (!v) continue;
-			json_object_set_value(so,p->name,v);
+			list_destroy(l);
+			json_object_set_object(co,s->name,so);
 		}
-		json_object_set_object(co,s->name,so);
 	}
 	dprintf(dlevel,"returning: %p\n", co);
 
@@ -2022,6 +2065,7 @@ JSBool js_config_property_set_value(config_property_t *p, JSContext *cx, jsval v
 	case JSTYPE_STRING:
 		jsval_to_type(DATA_TYPE_STRINGP,&s,0,cx,val);
 		config_property_set_value(p,DATA_TYPE_STRING,s,strlen(s),true,trig);
+		if (s) JS_free(cx,s);
 		break;
 	case JSTYPE_NUMBER:
 		if (JSVAL_IS_INT(val)) {
@@ -2069,11 +2113,13 @@ JSBool js_config_common_setprop(JSContext *cx, JSObject *obj, jsval id, jsval *v
 			JS_ReportError(cx, "property %d not found", prop_id);
 			return JS_FALSE;
 		}
+#if 0
 		if (p) {
 			char value[1024];
 			jsval_to_type(DATA_TYPE_STRING,&value,sizeof(value),cx,*vp);
 			dprintf(dlevel,"name: %s, value: %s\n", p->name, value);
 		}
+#endif
 	} else if (JSVAL_IS_STRING(id)) {
 		char *sname, *name;
 		JSClass *classp = OBJ_GET_CLASS(cx, obj);
@@ -2115,6 +2161,7 @@ static int _js_config_trigger(void *_ctx, config_property_t *p, void *old_value)
 		argv[2] = JSVAL_VOID;
 
 	fname = JS_GetFunctionName(js_ValueToFunction(cx, &ctx->func, 0));
+	if (!fname) fname = JS_strdup(ctx->cx,"unknown");
 	dprintf(dlevel,"calling function: %s\n", fname);
 	ok = JS_CallFunctionValue(cx, JS_GetGlobalObject(cx), ctx->func, 3, argv, &rval);
 	dprintf(dlevel,"call ok: %d\n", ok);
@@ -2151,6 +2198,8 @@ int js_config_property_set_trigger(JSContext *cx, config_property_t *p, jsval fu
 		log_syserror("malloc trigctx\n");
 		return -1;
 	}
+	if (!js_ctxs) js_ctxs = list_create();
+	list_add(js_ctxs,ctx,0);
 	memset(ctx,0,sizeof(*ctx));
 	ctx->cx = cx;
 	ctx->func = func;
@@ -2914,6 +2963,8 @@ static int _js_config_get_prop(config_t *cp, JSContext *cx, JSObject *arr, confi
 
 	dprintf(dlevel,"prop: name: %s, type: %s, dest: %p, dsize: %d, def: %s, flags: %x, func: %x, arg: %x\n", name, typestr(type), 0, 0, def, flags, func, arg);
 	*p = config_new_property(cp,name,type,0,0,0,def,flags,scope,values,labels,units,scale,precision);
+	if (name) JS_free(cx,name);
+	if (def) JS_free(cx,def);
 	dprintf(dlevel,"func: %x, void: %x\n", func, JSVAL_VOID);
 	dprintf(dlevel,"isfunc: %d\n", VALUE_IS_FUNCTION(cx, func));
 	if (VALUE_IS_FUNCTION(cx, func) && js_config_property_set_trigger(cx,*p,func,arg)) return 1;
@@ -3148,6 +3199,7 @@ JSBool js_config_add_props(JSContext *cx, JSObject *obj, uintN argc, jsval *argv
 		JS_free(cx,sname);
 		return JS_FALSE;
 	}
+	JS_free(cx,sname);
 
 	arr = JSVAL_TO_OBJECT(argv[1]);
 	if (!js_GetLengthProperty(cx, arr, &acount)) {
@@ -3178,14 +3230,12 @@ JSBool js_config_add_props(JSContext *cx, JSObject *obj, uintN argc, jsval *argv
 		dprintf(dlevel,"val: %x, void: %x, trigger: %p, triggers: %d, NOTRIG: %d\n", val, JSVAL_VOID, p->trigger,
 			cp->triggers, _check_flag(p->flags,NOTRIG));
 		if (val != JSVAL_VOID && p->trigger && cp->triggers && !_check_flag(p->flags,NOTRIG) && p->trigger(p->ctx,p,0)) {
-			JS_free(cx,sname);
 			return JS_FALSE;
 		}
 	}
 	dprintf(dlevel,"building map...\n");
 	config_build_propmap(cp);
 
-	JS_free(cx,sname);
 	return JS_TRUE;
 
 config_add_args_badprop:
@@ -3194,7 +3244,6 @@ config_add_args_badprop:
 		sprintf(msg,"add_props: element %d: property elements must be: name(string), type(const), optional: default value(string), flags(number), on_update(function)", i);
 		JS_ReportError(cx, msg);
 	}
-	JS_free(cx,sname);
 	return JS_FALSE;
 }
 
@@ -3566,6 +3615,17 @@ static JSBool js_config_del(JSContext *cx, JSObject *obj, uintN argc, jsval *arg
 	return JS_TRUE;
 }
 
+static JSBool js_config_dump(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rval) {
+	config_t *cp;
+
+	cp = JS_GetPrivate(cx, obj);
+	dprintf(dlevel,"cp: %p\n", cp);
+	if (!cp) return JS_FALSE;
+
+	config_dump(cp);
+	return JS_TRUE;
+}
+
 static JSBool js_config_ctor(JSContext *cx, JSObject *parent, uintN argc, jsval *argv, jsval *rval) {
 	config_t *cp;
 	char *name, *filename;
@@ -3613,6 +3673,7 @@ JSObject *js_InitConfigClass(JSContext *cx, JSObject *parent) {
 		JS_FS("clear_trigger",js_config_clear_trigger,1,1,0),
 		JS_FS("get_flags",js_config_get_flags,1,1,0),
 		JS_FS("delete",js_config_del,2,2,0),
+		JS_FS("dump",js_config_dump,0,0,0),
 		{ 0 }
 	};
 	JSConstantSpec config_consts[] = {

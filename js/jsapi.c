@@ -241,7 +241,7 @@ JS_ConvertArgumentsVA(JSContext *cx, uintN argc, jsval *argv,
             if (!str) return JS_FALSE;
             *sp = STRING_TO_JSVAL(str);
             if (c == 's') {
-//		const char *bytes = js_GetStringBytes(cx, str);
+//		const char *bytes = JS_GetStringBytes(str);
 		const char *bytes = JS_EncodeString(cx, str);
 		if (!bytes) return JS_FALSE;
 		*va_arg(ap, const char **) = bytes;
@@ -1337,7 +1337,7 @@ JS_InitStandardClasses(JSContext *cx, JSObject *obj)
 #if JS_HAS_JSON_OBJECT
 		FUNC(js_InitJSONClass),
 #endif
-		FUNC(js_InitConsoleClass),
+//		FUNC(js_InitConsoleClass),
 #if JS_HAS_SOCKET_OBJECT
 		FUNC(js_InitSocketClass),
 #endif
@@ -3068,8 +3068,8 @@ JS_PUBLIC_API(JSObject *)
 JS_NewObject(JSContext *cx, JSClass *clasp, JSObject *proto, JSObject *parent)
 {
     CHECK_REQUEST(cx);
-    if (!clasp)
-        clasp = &js_ObjectClass;    /* default class is Object */
+    if (!clasp) clasp = &js_ObjectClass;    /* default class is Object */
+//	log_info("NewObject: %s\n", clasp->name);
     return js_NewObject(cx, clasp, proto, parent, 0);
 }
 
@@ -4368,9 +4368,8 @@ JS_PUBLIC_API(const char *)
 JS_GetFunctionName(JSFunction *fun)
 {
     if (!fun) return "";
-    return fun->atom
-           ? JS_GetStringBytes(ATOM_TO_STRING(fun->atom))
-           : js_anonymous_str;
+//           ? JS_GetStringBytes(ATOM_TO_STRING(fun->atom))
+    return fun->atom ? (char *)JS_GetStringBytes(ATOM_TO_STRING(fun->atom)) : js_anonymous_str;
 }
 
 JS_PUBLIC_API(JSString *)
@@ -4728,20 +4727,20 @@ JS_CompileFile(JSContext *cx, JSObject *obj, const char *filename)
     } else {
         fp = fopen(filename, "r");
         if (!fp) {
-            JS_ReportErrorNumber(cx, js_GetErrorMessage, NULL, JSMSG_CANT_OPEN,
-                                 filename, "No such file or directory");
+            JS_ReportErrorNumber(cx, js_GetErrorMessage, NULL, JSMSG_CANT_OPEN, filename, "No such file or directory");
             return NULL;
         }
 	{
 		char line[128];
+
+		*line = 0;
 		fgets(line,sizeof(line)-1,fp);
 		if (strncmp(line,"#!",2) != 0) rewind(fp);
 	}
     }
 
     tcflags = JS_HAS_COMPILE_N_GO_OPTION(cx) ? TCF_COMPILE_N_GO : 0;
-    script = js_CompileScript(cx, obj, NULL, tcflags,
-                              NULL, 0, fp, filename, 1);
+    script = js_CompileScript(cx, obj, NULL, tcflags, NULL, 0, fp, filename, 1);
     if (fp != stdin)
         fclose(fp);
     LAST_FRAME_CHECKS(cx, script);

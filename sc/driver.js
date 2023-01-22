@@ -1,0 +1,31 @@
+#!/opt/sd/bin/sdjs
+
+function driver_main() {
+	include(dirname(script_name)+"/../../core/utils.js");
+
+	dummy = new Driver("dummy");
+	dummy.init = function(tempagent) {
+		dprintf(0,"*** INIT ***\n");
+		dprintf(0,"tempagent: %s\n", tempagent);
+	//	dumpobj(tempagent);
+	}
+	dummy.read = function(control,buflen) {
+		dprintf(0,"read: control: %s, buflen: %s\n", control, buflen);
+	}
+	dummy.write = function(control,buflen) {
+		dprintf(0,"write: control: %s, buflen: %s\n", control, buflen);
+	}
+	dummy.run = function() {
+//		dprintf(0,"*** RUN ***\n");
+		return;
+	}
+	dummy.get_info = function() {
+		dprintf(0,"*** GET_INFO ****\n");
+		var info = {};
+		info.driver_name = "dummy";
+		info.driver_type = "Example";
+		var j = JSON.stringify(info);
+	//	printf("j: %s\n", j);
+		return j;
+	}
+}

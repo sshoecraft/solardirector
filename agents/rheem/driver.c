@@ -85,6 +85,7 @@ static size_t getdata(void *ptr, size_t size, size_t nmemb, void *ctx) {
 }
 
 json_value_t *rheem_request(rheem_session_t *s, char *func, char *fields) {
+#ifdef HAVE_CURL
 	char url[128],*p;
 	CURLcode res;
 
@@ -111,6 +112,9 @@ json_value_t *rheem_request(rheem_session_t *s, char *func, char *fields) {
 	/* Parse the buffer */
 	dprintf(dlevel,"bufidx: %d\n", s->bufidx);
 	return json_parse(s->buffer);
+#else
+	return 0;
+#endif
 }
 
 static void _getstring(json_object_t *o, char *dest, int dsize, char *name) {
@@ -220,6 +224,7 @@ static bool _getstats(rheem_session_t *s, json_object_t *o, rheem_device_t *d) {
 	return updated;
 }
 
+#ifdef MQTT
 static void rheem_getmsg(void *ctx, char *topic, char *message, int msglen, char *replyto) {
 	rheem_session_t *s = ctx;
 	json_value_t *v;
@@ -251,6 +256,7 @@ rheem_getmsg_done:
 	json_destroy_value(v);
 	return;
 }
+#endif /* MQTT */
 
 static int rheem_destroy(void *handle);
 static void *rheem_new(void *driver, void *driver_handle) {
@@ -262,6 +268,7 @@ static void *rheem_new(void *driver, void *driver_handle) {
 		return 0;
 	}
 
+#ifdef HAVE_CURL
 	s->curl = curl_easy_init();
 	if (!s->curl) {
 		log_syserror("rheem_new: curl_easy_init");
@@ -274,29 +281,36 @@ static void *rheem_new(void *driver, void *driver_handle) {
 	curl_easy_setopt(s->curl, CURLOPT_WRITEFUNCTION, getdata);
 	curl_easy_setopt(s->curl, CURLOPT_WRITEDATA, s);
 	sprintf(s->endpoint,REST_URL);
+#endif
 
 	s->buffer = malloc(RHEEM_INIT_BUFSIZE);
 	if (!s->buffer) {
 		log_syserror("rheem_new: malloc(%d)",RHEEM_INIT_BUFSIZE);
+#ifdef HAVE_CURL
 		curl_easy_cleanup(s->curl);
+#endif
 		free(s);
 		return 0;
 	}
 	s->bufsize = RHEEM_INIT_BUFSIZE;
 	s->bufidx = 0;
 
+#ifdef MQTT
 	s->m = mqtt_new(true, rheem_getmsg, s);
 	if (!s->m) {
 		log_syserror("rheem_new: mqtt_new");
 		rheem_destroy(s);
 		return 0;
 	}
+#endif
 
 	return s;
 }
 
 static int rheem_destroy(void *handle) {
 	rheem_session_t *s = handle;
+	rheem_device_t *d;
+	int i;
 
 #ifdef JS
 	if (s->props) free(s->props);
@@ -312,12 +326,19 @@ static int rheem_destroy(void *handle) {
 #endif
 #endif
 
-        if (s->ap) agent_destroy(s->ap);
-
-	if (s->m) mqtt_destroy(s->m);
+	for(i=0; i < s->devcount; i++) {
+		d = &s->devices[i];
+		if (d->class_name) free(d->class_name);
+	}
+        if (s->ap) agent_destroy_agent(s->ap);
+#ifdef MQTT
+	if (s->m) mqtt_destroy_session(s->m);
+#endif
 	if (s->buffer) free(s->buffer);
+#ifdef HAVE_CURL
 	if (s->hs) curl_slist_free_all(s->hs);
 	if (s->curl) curl_easy_cleanup(s->curl);
+#endif
 	free(s);
 	return 0;
 }
@@ -346,6 +367,7 @@ static int rheem_get_token(rheem_session_t *s, json_value_t *v) {
 	return 0;
 }
 
+#ifdef MQTT
 int rheem_connect_mqtt(rheem_session_t *s) {
 	char temp[1024];
 	char client_id[128];
@@ -369,9 +391,11 @@ int rheem_connect_mqtt(rheem_session_t *s) {
 //	mqtt_sub(s->m,s->desired);
 	return 0;
 }
+#endif
 
 static int rheem_close(void *handle);
 static int rheem_open(void *handle) {
+#ifdef HAVE_CURL
 	rheem_session_t *s = handle;
 	json_value_t *v;
 	json_object_t *o;
@@ -416,8 +440,10 @@ static int rheem_open(void *handle) {
 	s->hs = curl_slist_append(s->hs, temp);
 	curl_easy_setopt(s->curl, CURLOPT_HTTPHEADER, s->hs);
 
+#ifdef MQTT
 	/* Connect to the MQTT server for updates */
 	if (!s->readonly && rheem_connect_mqtt(s)) goto rheem_open_error;
+#endif
 
 	set_state(s,RHEEM_STATE_OPEN);
 	s->connected = 1;
@@ -426,6 +452,7 @@ static int rheem_open(void *handle) {
 
 rheem_open_error:
 	rheem_close(s);
+#endif
 	return 1;
 }
 
@@ -434,12 +461,15 @@ static int rheem_close(void *handle) {
 
 	if (!s) return 1;
 
+#ifdef HAVE_CURL
 	dprintf(dlevel,"hs: %p\n", s->hs);
 	if (s->hs) {
 		curl_slist_free_all(s->hs);
 		s->hs = 0;
 	}
 	dprintf(dlevel,"curl: %p\n", s->curl);
+#endif
+
 #if 0
 	if (s->curl) {
 		curl_easy_cleanup(s->curl);

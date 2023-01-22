@@ -53,5 +53,6 @@ int JS_EngineAddObject(JSEngine *e, jsobjinit_t *func, void *priv);
 //char *JS_EngineGetErrmsg(JSEngine *e);
 void JS_EngineCleanup(JSEngine *e);
 JSContext *JS_EngineGetCX(JSEngine *e);
+void JS_GlobalShutdown(JSContext *cx);
 
 #endif

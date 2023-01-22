@@ -70,7 +70,7 @@ int main(int argc,char **argv) {
 	argv = args;
 #endif
 
-	c = client_init(argc,argv,"1.0",opts,"sdconfig",CLIENT_FLAG_NOJS,props,0,0);
+	c = client_init(argc,argv,"1.0",opts,"sdconfig",CLIENT_FLAG_NOJS,props,0,0,0);
 	if (!c) return 1;
 //	c->addmq = true;
 	exact = cfg_exact;

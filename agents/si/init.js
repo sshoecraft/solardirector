@@ -32,7 +32,7 @@ data_topic = SOLARD_TOPIC_ROOT+"/Agents/"+si.agent.name+"/"+SOLARD_FUNC_DATA;
 // Notify all modules when location set
 function si_location_trigger() {
 
-	var dlevel = 1;
+	let dlevel = 1;
 
 	dprintf(dlevel,"location: %s\n", si.location);
 	if (!si.location) return;
@@ -42,10 +42,10 @@ function si_location_trigger() {
 
 function init_main() {
 
-	var dlevel = 1;
+	let dlevel = 1;
 
 	// Call init funcs
-	var init_funcs = [
+	let init_funcs = [
 		"mirror",
 		"charge",
 		"feed",
@@ -60,7 +60,7 @@ function init_main() {
 		run(script_dir+"/"+init_funcs[i]+".js",init_funcs[i]+"_init");
 	}
 
-	var props = [
+	let props = [
 		[ "location", DATA_TYPE_STRING, null, 0, si_location_trigger ],
 	];
 
@@ -68,6 +68,7 @@ function init_main() {
 
 	// re-publish info (in the case of scripts being disable then enabled after init)
 	agent.pubinfo();
+	agent.pubconfig();
 
 	dprintf(dlevel,"done!\n");
 	return 0;

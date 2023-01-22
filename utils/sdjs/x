@@ -1,0 +1,3 @@
+o=document;
+d = {};
+var u=o.getElementsByTagName("script"),x=u[0],v=u.length,B=/\/ext(\-[a-z\-]+)?\.js$/,z,r,s,w,A,t,y;d.hasReadyState=("readyState" in x);d.hasAsync=("async" in x);d.hasDefer=("defer" in x);d.hasOnLoad=("onload" in x);d.isIE8=d.hasReadyState&&!d.hasAsync&&d.hasDefer&&!d.hasOnLoad;d.isIE9=d.hasReadyState&&!d.hasAsync&&d.hasDefer&&d.hasOnLoad;d.isIE10p=d.hasReadyState&&d.hasAsync&&d.hasDefer&&d.hasOnLoad;d.isIE10=(new Function("/*@cc_on return @_jscript_version @*/")())===10;d.isIE10m=d.isIE10||d.isIE9||d.isIE8;d.isIE11=d.isIE10p&&!d.isIE10;for(t=0;t<v;t++){r=(x=u[t]).src;if(!r){continue}s=x.readyState||null;if(!w&&B.test(r)){w=r}if(!d.scripts[A=d.canonicalUrl(r)]){z=new j({key:A,url:r,done:s===null||s==="loaded"||s==="complete",el:x,prop:"src"})}}

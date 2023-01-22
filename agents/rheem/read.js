@@ -169,10 +169,7 @@ function read_main() {
 		if (inverter_type == "mqtt") {
 //			dumpobj(inverter_mqtt);
 			dprintf(dlevel,"connected: %s\n", inverter_mqtt.connected);
-			if (!inverter_mqtt.connected) {
-				inverter_mqtt.reconnect();
-				inverter_mqtt.resub();
-			}
+			if (!inverter_mqtt.connected) inverter_mqtt.reconnect();
 			let mq = inverter_mqtt.mq;
 			dprintf(dlevel,"mq.length: %d\n", mq.length);
 			for(let i=mq.length-1; i >= 0; i--) {

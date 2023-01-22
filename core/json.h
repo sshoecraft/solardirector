@@ -141,4 +141,8 @@ int json_iter(char *name, json_value_t *v, json_ifunc_t *func, void *ctx);
 
 
 //json_value_t *json_from_cfgtab(cfg_proctab_t *);
-#endif
+
+#ifdef JS
+JSObject *js_InitmyJSONClass(JSContext *cx, JSObject *parent);
+#endif /* JS */
+#endif /* __SOLARD_JSON_H */

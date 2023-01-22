@@ -27,6 +27,10 @@ LICENSE file in the root directory of this source tree.
 #include "uuid.h"
 
 #define TIMEOUT 10000L
+static list mqtt_sessions = 0;
+#ifdef JS
+static list js_ctxs = 0;
+#endif
 
 int mqtt_parse_config(mqtt_session_t *s, char *mqtt_info) {
 	dprintf(dlevel,"mqtt_info: %s\n", mqtt_info);
@@ -202,6 +206,9 @@ struct mqtt_session *mqtt_new(bool v3, mqtt_callback_t *cb, void *ctx) {
 	s->ctor = false;
 	s->mq = list_create();
 
+	if (!mqtt_sessions) mqtt_sessions = list_create();
+	list_add(mqtt_sessions, s, 0);
+
 	return s;
 }
 
@@ -355,7 +362,7 @@ int mqtt_reconnect(mqtt_session_t *s) {
 	dprintf(dlevel,"reconnecting...\n");
 	if (mqtt_disconnect(s,5)) return 1;
 	if (mqtt_connect(s,20)) return 1;
-//	if (mqtt_resub(s)) return 1;
+	if (mqtt_resub(s)) return 1;
 	dprintf(dlevel,"reconnect done!\n");
 	return 0;
 }
@@ -394,8 +401,9 @@ void mqtt_set_lwt(mqtt_session_t *s, char *new_topic) {
 	return;
 }
 
-int mqtt_destroy(mqtt_session_t *s) {
+int mqtt_destroy_session(mqtt_session_t *s) {
 
+	dprintf(dlevel,"s: %p\n", s);
 	if (!s) return 1;
 
 	mqtt_disconnect(s,0);
@@ -406,8 +414,35 @@ int mqtt_destroy(mqtt_session_t *s) {
 	s->c = 0;
 	list_destroy(s->subs);
 	list_destroy(s->mq);
+
+	if (mqtt_sessions) list_delete(mqtt_sessions,s);
 	free(s);
 	return 0;
+}
+
+void mqtt_shutdown(void) {
+	if (mqtt_sessions) {
+		mqtt_session_t *s;
+
+		while(true) {
+
+			list_reset(mqtt_sessions);
+			s = list_get_next(mqtt_sessions);
+			if (!s) break;
+			mqtt_destroy_session(s);
+		}
+		list_destroy(mqtt_sessions);
+		mqtt_sessions = 0;
+	}
+#ifdef JS
+	if (js_ctxs) {
+		void *p;
+		list_reset(js_ctxs);
+		while((p = list_get_next(js_ctxs)) != 0) free(p);
+		list_destroy(js_ctxs);
+		js_ctxs = 0;
+	}
+#endif
 }
 
 int mqtt_pub(mqtt_session_t *s, char *topic, char *message, int wait, int retain) {
@@ -959,6 +994,8 @@ static JSBool js_mqtt_ctor(JSContext *cx, JSObject *obj, uintN argc, jsval *argv
 	ctx->cx = cx;
 //	ctx->func = func;
 //	ctx->arg = arg;
+	if (!js_ctxs) js_ctxs = list_create();
+	list_add(js_ctxs,ctx,0);
 
 	ctx->s = mqtt_new(false, _js_mqtt_getmsg, ctx);
 	dprintf(dlevel,"s: %p\n", ctx->s);
@@ -967,7 +1004,10 @@ static JSBool js_mqtt_ctor(JSContext *cx, JSObject *obj, uintN argc, jsval *argv
 		return JS_FALSE;
 	}
 	ctx->s->ctor = true;
-	if (strlen(uri)) mqtt_parse_config(ctx->s,uri);
+	if (uri) {
+		mqtt_parse_config(ctx->s,uri);
+		JS_free(cx,uri);
+	}
 
 	newobj = js_mqtt_new(cx, obj, ctx->s);
 	dprintf(dlevel,"newobj: %p\n", newobj);

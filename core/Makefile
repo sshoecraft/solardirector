@@ -6,11 +6,7 @@ SRCS=common.c debug.c opts.c log.c utils.c battery.c pvinverter.c getpath.c daem
 SCRIPTS=*.js
 
 ifeq ($(DEBUG_MEM),yes)
-	ifeq ($(MEMWATCH),yes)
-		SRCS+=memwatch.c
-	else
-		SRCS+=debugmem.c
-	endif
+	SRCS+=debugmem.c
 endif
 
 include ../Makefile.sd

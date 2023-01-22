@@ -9,22 +9,20 @@ LICENSE file in the root directory of this source tree.
 
 function read_main() {
 
-	var dlevel = 1;
+	let dlevel = 1;
 
 	dprintf(dlevel,"mirroring: %s\n", si.mirror);
 	if (si.mirror) run(script_dir+"/mirror.js");
+//	else if (si.sim) run(script_dir+"/sim.js");
 
 	// If not running, leave now
 	dprintf(dlevel,"running: %s\n", data.Run);
 	if (!data.Run) return;
 
-//	printf("sim.enabled: %s\n", sim.enable);
-//	if (sim.enable) run(script_dir+"/sim.js");
-
 	// When connected to SMANET 1st time, get some info
 	if (typeof(si.have_smanet_info) == "undefined") si.have_smanet_info = false;
 	if (!si.have_smanet_info && smanet.connected) {
-		var vals = smanet.get([ "ExtSrc","BatCpyNom","ClstCfg" ]);
+		let vals = smanet.get([ "ExtSrc","BatCpyNom","ClstCfg" ]);
 		if (typeof(vals) == "undefined") {
 			log_error("unable to get smanet info: %s\n", smanet.errmsg);
 		} else {
@@ -83,7 +81,7 @@ function read_main() {
 	}
 
 	// Charge control
-	if (!si.mirror) run(script_dir+"/charge.js");
+	run(script_dir+"/charge.js");
 
 	// Set SoC / remain
 	run(script_dir+"/soc.js");
@@ -91,20 +89,20 @@ function read_main() {
 	// @ 2:01am, set the date + time
 	dprintf(1,"smanet.connected: %s\n", smanet.connected);
 	if (smanet.connected && 0 == 1) {
-		var d = new Date();
+		let d = new Date();
 		dprintf(1,"hours: %d, mins: %d\n", d.getHours(), d.getMinutes());
 		if (typeof(time_set) == "undefined") time_set = false;
 		if (d.getHours() == 2 && d.getMinutes() == 1) {
 			dprintf(1,"time_set: %s\n", time_set);
 			if (!time_set) {
 				// Date format: YYYYMMDD
-				var si_dt = d.getFullYear().toString() + sprintf("%02d",d.getMonth()+1) + sprintf("%02d",d.getDate());
+				let si_dt = d.getFullYear().toString() + sprintf("%02d",d.getMonth()+1) + sprintf("%02d",d.getDate());
 				dprintf(1,"si_dt: %s\n", si_dt);
 				if (smanet_set_and_verify("Dt",si_dt,3)) {
 					log_error("error setting date: %s\n",smanet.errmsg);
 				} else {
 					// Time format: HHMMSS
-					var si_tm = sprintf("%02d",d.getHours()) + sprintf("%02d",d.getMinutes()) + sprintf("%02d",d.getSeconds());
+					let si_tm = sprintf("%02d",d.getHours()) + sprintf("%02d",d.getMinutes()) + sprintf("%02d",d.getSeconds());
 					dprintf(1,"si_tm: %s\n", si_tm);
 					if (smanet_set_and_verify("Tm",si_tm,3)) log_error("error setting time: %s\n",si_tm);
 					else time_set = true;
@@ -115,6 +113,6 @@ function read_main() {
 		}
         }
 
-//	report_mem();
+	report_mem();
 	return 0;
 }

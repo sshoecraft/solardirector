@@ -53,6 +53,12 @@
 #include <stdlib.h>
 #include "prtypes.h"
 
+pthread_mutex_t *PR_NewLock(void);
+pthread_cond_t *PR_NewCondVar(PRLock *lock);
+void PR_DestroyLock(pthread_mutex_t *);
+void PR_DestroyCondVar(pthread_cond_t *);
+
+#if 0
 static inline pthread_mutex_t *PR_NewLock(void) {
 	pthread_mutex_t *lock;
 
@@ -70,6 +76,8 @@ static inline pthread_cond_t *PR_NewCondVar(PRLock *lock) {
 }
 #define PR_DestroyLock(lock) pthread_mutex_destroy(lock)
 #define PR_DestroyCondVar(lock) pthread_cond_destroy(lock)
+#endif
+
 #define PR_GetCurrentThread() pthread_self()
 #define PR_Lock(lock) pthread_mutex_lock(lock)
 static inline int PR_WaitCondVar(PRCondVar *cvar, PRIntervalTime timeout) {

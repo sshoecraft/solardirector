@@ -27,6 +27,8 @@ struct solard_agent {
 	char configfile[SOLARD_PATH_MAX];
 	config_t *cp;
 	char section_name[CFG_SECTION_NAME_SIZE];
+	config_property_t *props;
+	config_function_t *funcs;
 	solard_driver_t *driver;
 	void *handle;
 	json_value_t *info;
@@ -117,7 +119,8 @@ struct js_agent_rootinfo {
 solard_agent_t *agent_new(void);
 solard_agent_t *agent_init(int, char **, char *, opt_proctab_t *,
 		solard_driver_t *, void *, int flags, config_property_t *, config_function_t *);
-void agent_destroy(solard_agent_t *);
+void agent_destroy_agent(solard_agent_t *);
+void agent_shutdown(void);
 int agent_event_handler(solard_agent_t *ap, event_handler_t *func, void *ctx, char *name, char *module, char *action);
 config_property_t *agent_get_props(solard_agent_t *);
 int agent_run(solard_agent_t *ap);

@@ -1,0 +1,106 @@
+#!+BINDIR+/sdjs
+
+include(SOLARD_LIBDIR + "/core/utils.js");
+
+var remote;
+if (argv.length) {
+	remote = argv[0];
+} else {
+	var config = new Config(basename(script_name));
+	if (!config) {
+		printf("unable to get config object!\n");
+		exit(1);
+	}
+	var configfile = SOLARD_ETCDIR + "/si_mirror.conf";
+	config.read(configfile);
+//	dumpobj(config);
+	p = config.get_property("remote_host","si_mirror");
+//	dumpobj(p);
+	remote = p.data;
+}
+if (!remote) {
+	printf("no remote host specified\n");
+	abort(0);
+}
+
+printf("Mirroring from %s\n", remote);
+
+mqtt.disconnect();
+mqtt.host = remote;
+mqtt.connect();
+mqtt.resub();
+
+function get_batt() {
+
+	var dlevel = 1;
+
+	// Battery checkpoint file
+	var file = SOLARD_LIBDIR + "/agents/si/battcp.dat";
+	dprintf(dlevel,"file: %s\n", file);
+	battcp = new File(file,"text");
+	var opts = "readWrite";
+	if (!battcp.exists) {
+		dprintf(dlevel,"file doesnt exist\n");
+		return undefined;
+	}
+	dprintf(dlevel,"opts: %s\n", opts);
+	if (battcp.open(opts)) {
+		dprintf(dlevel,"size: %d\n", battcp.size);
+		if (battcp.size) {
+			var cpinfo = battcp.readln().split(",");
+			total_ah = parseFloat(cpinfo[0]);
+			dprintf(0,"restored battery_total_ah: %f\n", total_ah);
+			if (typeof(cpinfo[1]) != "undefined") {
+				var force_start = (cpinfo[1] === 'true');
+				dprintf(0,"restored force_start: %s\n", force_start);
+			}
+			return total_ah;
+		}
+	}
+	return undefined;
+}
+
+function si_event(name,module,action) {
+
+	let dlevel = 1;
+
+	dprintf(dlevel,"name: %s\n", name);
+//	if (name != "si") return;
+	dprintf(0,"%s: name: %s, module: %s, action: %s\n", timestamp(), name, module, action);
+	let opt = "";
+	if (module == "Charge" && action == "Start")
+		opt = "charge on";
+	else if (module == "Charge" && action == "StartCV")
+		opt = "charge cv";
+	else if (module == "Charge" && action == "Stop")
+		opt = "charge off";
+	else if (module == "Feed" && action == "Start")
+		opt = "set feed_enabled 1";
+	else if (module == "Feed" && action == "Stop")
+		opt = "set feed_enabled 0";
+	else if (module == "Battery" && action == "Empty")
+		opt = "force_start";
+	else if (module == "Battery" && action == "Full") {
+//		var ah = get_batt();
+//		if (ah) opt = "set battery_full_ah " + ah;
+		opt = "charge end";
+	}
+	dprintf(dlevel,"opt: %s\n", opt);
+	if (!opt.length) return;
+	let cmd = SOLARD_BINDIR + "/sdconfig si " + opt;
+	printf("%s\n", cmd);
+	system(cmd);
+}
+
+client.event_handler(si_event);
+while(1) {
+	if (!mqtt.connected) {
+		printf("reconnecting...\n");
+		mqtt.disconnect();
+		mqtt.host = remote;
+		mqtt.connect();
+		mqtt.resub();
+		last_connected = mqtt.connected;
+	}
+	sleep(10);
+}

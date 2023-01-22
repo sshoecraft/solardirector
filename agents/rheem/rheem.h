@@ -40,6 +40,7 @@ struct rheem_device {
 #ifdef JS
 	jsval modes_val;
 	JSObject *obj;
+	char *class_name;
 #endif
 	struct rheem_session *s;
 };
@@ -56,9 +57,13 @@ struct rheem_session {
 	char inverter_name[64];
 	char url[128];
 	char endpoint[128];
+#ifdef HAVE_CURL
 	CURL *curl;
 	struct curl_slist *hs;
+#endif
+#ifdef MQTT
 	mqtt_session_t *m;
+#endif
 	char *buffer;			/* Read buffer */
 	int bufsize;			/* Buffer size */
 	int bufidx;			/* Current write pos */

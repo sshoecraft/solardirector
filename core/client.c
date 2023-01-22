@@ -35,6 +35,8 @@ LICENSE file in the root directory of this source tree.
 #define _ST_DEBUG 0
 #endif
 
+static list clients = 0;
+
 #ifdef JS
 struct js_client_rootinfo {
 	JSContext *cx;
@@ -171,12 +173,12 @@ static void parse_funcs(client_agentinfo_t *info) {
 		if (json_value_get_type(a->items[i]) != JSON_TYPE_OBJECT) continue;
 		o = json_value_object(a->items[i]);
 		p = json_object_get_string(o,"name");
-		newfunc.name = malloc(strlen(p)+1);
+		newfunc.name = strdup(p);
 		if (!newfunc.name) {
-			log_syserror("parse_funcs: malloc(%d)",strlen(p)+1);
+			log_syserror("parse_funcs: strdup");
 			return;
 		}
-		strcpy(newfunc.name,p);
+		newfunc.flags |= CONFIG_FUNCTION_FLAG_ALLOCNAME;
 		newfunc.nargs = json_object_get_number(o,"nargs");
 		dprintf(dlevel+2,"adding: %s\n", newfunc.name);
 		list_add(funcs,&newfunc,sizeof(newfunc));
@@ -689,7 +691,7 @@ mptr = (c->flags & AGENT_FLAG_NOMQTT ? 0 : &c->m);
 //static int _rc = 0;
 
 solard_client_t *client_init(int argc,char **argv,char *version,opt_proctab_t *client_opts,char *Cname,int flags,
-			config_property_t *props,config_function_t *funcs,client_callback_t *initcb) {
+			config_property_t *props,config_function_t *funcs,client_callback_t *initcb, void *ctx) {
 	solard_client_t *c;
 	char mqtt_info[200],influx_info[200];
 	char configfile[256];
@@ -716,8 +718,8 @@ solard_client_t *client_init(int argc,char **argv,char *version,opt_proctab_t *c
 #endif
 #ifdef JS
 		{ "-e:%|exectute javascript",&jsexec,DATA_TYPE_STRING,sizeof(jsexec)-1,0,"" },
-                { "-U:#|javascript runtime size",&rtsize,DATA_TYPE_INT,0,0,"1048576" },
-                { "-K:#|javascript stack size",&stksize,DATA_TYPE_INT,0,0,"65536" },
+                { "-U:#|javascript runtime size",&rtsize,DATA_TYPE_INT,0,0,"1M" },
+                { "-K:#|javascript stack size",&stksize,DATA_TYPE_INT,0,0,"64K" },
 		{ "-X::|execute JS script and exit",&script,DATA_TYPE_STRING,sizeof(script)-1,0,"" },
 #endif
 		OPTS_END
@@ -755,6 +757,7 @@ solard_client_t *client_init(int argc,char **argv,char *version,opt_proctab_t *c
 		*mqtt_info = *configfile = *sname = *name = *influx_info = *jsexec = *script = 0;
 		config_from_mqtt = rtsize = stksize = 0;
 	}
+	if (opts) free(opts);
 
 	dprintf(dlevel,"creating session...\n");
 	c = calloc(1,sizeof(*c));
@@ -810,7 +813,7 @@ solard_client_t *client_init(int argc,char **argv,char *version,opt_proctab_t *c
 	if (client_startup(c,configfile,mqtt_info,influx_info,props,funcs)) goto client_init_error;
 
 	/* Call initcb if specified */
-	if (initcb && initcb(c)) goto client_init_error;
+	if (initcb && initcb(ctx,c)) goto client_init_error;
 
 #ifdef JS
 	/* Execute any command-line javascript code */
@@ -842,43 +845,90 @@ solard_client_t *client_init(int argc,char **argv,char *version,opt_proctab_t *c
 	usleep(50000);
 #endif
 
+	if (!clients) clients = list_create();
+	list_add(clients,c,0);
+
 	return c;
 client_init_error:
 	free(c);
 	return 0;
 }
 
-void client_destroy(solard_client_t *c) {
+void client_destroy_client(solard_client_t *c) {
+
+	dprintf(0,"c: %p\n", c);
 	if (!c) return;
-	if (c->cp) config_destroy(c->cp);
+
+#if 0
+	if (c->agents) {
+		solard_agent_t *ap;
+
+		list_reset(c->agents);
+		while((ap = list_get_next(c->agents)) != 0) {
+			dprintf(0,"ap: %p\n", ap);
+			agent_destroy_agent(ap);
+		}
+		list_destroy(c->agents);
+	}
+#endif
+
+	dprintf(0,"cp: %p\n", c->cp);
+	if (c->cp) {
+		config_function_t *f;
+
+		dprintf(0,"count: %d\n", list_count(c->cp->funcs));
+		list_reset(c->cp->funcs);
+		while((f = list_get_next(c->cp->funcs)) != 0) {
+			dprintf(0,"name: %s, flags: %x\n", f->name, f->flags);
+			if (f->flags & CONFIG_FUNCTION_FLAG_ALLOCNAME)
+				free(f->name);
+		}
+		config_destroy_config(c->cp);
+	}
 #ifdef MQTT
-	if (c->m) mqtt_destroy(c->m);
+	if (c->m) mqtt_destroy_session(c->m);
 	list_destroy(c->mq);
 #endif
 #ifdef INFLUX
-	if (c->i) influx_destroy(c->i);
+	if (c->i) influx_destroy_session(c->i);
 #endif
-	solard_common_shutdown();
-#if 0
 #ifdef JS
-	if (c->js.props) free(c->js.props);
-	if (c->js.funcs) free(c->js.funcs);
-	if (c->js.roots) {
+	if (c->props) free(c->props);
+//	if (c->funcs) free(c->funcs);
+	if (c->roots) {
 		struct js_agent_rootinfo *ri;
 
-		list_reset(c->js.roots);
-		while((ri = list_get_next(c->js.roots)) != 0) {
+		list_reset(c->roots);
+		while((ri = list_get_next(c->roots)) != 0) {
 			dprintf(dlevel,"removing root: %s\n", ri->name);
 			JS_RemoveRoot(ri->cx,ri->vp);
 			JS_free(ri->cx,ri->name);
 		}
-		list_destroy(c->js.roots);
+		list_destroy(c->roots);
         }
-	if (c->js.e) JS_EngineDestroy(c->js.e);
-#endif
+	if (c->js) JS_EngineDestroy(c->js);
 #endif
 	if (c->e) event_destroy(c->e);
+	if (clients) list_delete(clients,c);
 	free(c);
+}
+
+void client_shutdown(void) {
+	if (clients) {
+		solard_client_t *c;
+		while(true) {
+			list_reset(clients);
+			c = list_get_next(clients);
+			if (!c) break;
+			client_destroy_client(c);
+		}
+		list_destroy(clients);
+		clients = 0;
+	}
+	config_shutdown();
+	mqtt_shutdown();
+	influx_shutdown();
+	common_shutdown();
 }
 
 #ifdef JS
@@ -1153,7 +1203,7 @@ static JSBool js_client_event_handler(JSContext *cx, JSObject *obj, uintN argc, 
 	return JS_TRUE;
 }
 
-static int _js_client_ctor_init(solard_client_t *c) {
+static int _js_client_ctor_init(void *ctx, solard_client_t *c) {
 	dprintf(0,"c: %p\n", c);
 	return 0;
 }
@@ -1175,7 +1225,7 @@ static JSBool js_client_ctor(JSContext *cx, JSObject *obj, uintN argc, jsval *ar
 	if (!JS_ConvertArguments(cx, argc, argv, "/ s", &name)) return JS_FALSE;
 	dprintf(dlevel,"name: %s\n", name);
 
-	c = client_init(0,0,0,0,name ? name : "client",CLIENT_FLAG_NOJS,0,0,_js_client_ctor_init);
+	c = client_init(0,0,0,0,name ? name : "client",CLIENT_FLAG_NOJS,0,0,_js_client_ctor_init,0);
 	dprintf(dlevel,"c: %p\n", c);
 	if (!c) {
 		JS_ReportError(cx, "client_init returned null\n");

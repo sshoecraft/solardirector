@@ -7,18 +7,18 @@ This source code is licensed under the BSD-style license found in the
 LICENSE file in the root directory of this source tree.
 */
 
-#include "mcu.h"
+#include "sc.h"
 
-#define dlevel 1
+#define dlevel 0
 
 extern char *sd_version_string;
 
-static void *mcu_new(void *driver, void *driver_handle) {
-	mcu_session_t *s;
+static void *sc_new(void *driver, void *driver_handle) {
+	sc_session_t *s;
 
 	s = malloc(sizeof(*s));
 	if (!s) {
-		perror("mcu_new: malloc");
+		perror("sc_new: malloc");
 		return 0;
 	}
 	memset(s,0,sizeof(*s));
@@ -28,8 +28,8 @@ static void *mcu_new(void *driver, void *driver_handle) {
 	return s;
 }
 
-static int mcu_destroy(void *h) {
-	mcu_session_t *s = h;
+static int sc_destroy(void *h) {
+	sc_session_t *s = h;
 
 	if (!s) return 1;
 
@@ -48,8 +48,8 @@ static int mcu_destroy(void *h) {
 #endif
 #endif
 
-        if (s->ap) agent_destroy(s->ap);
-        if (s->c) client_destroy(s->c);
+	if (s->ap) agent_destroy_agent(s->ap);
+	if (s->c) client_destroy_client(s->c);
 
 	dprintf(dlevel,"freeing session!\n");
         free(s);
@@ -57,8 +57,8 @@ static int mcu_destroy(void *h) {
 	return 0;
 }
 
-static int mcu_open(void *h) {
-	mcu_session_t *s = h;
+static int sc_open(void *h) {
+	sc_session_t *s = h;
 	int r;
 
 	dprintf(dlevel,"s: %p\n", s);
@@ -78,8 +78,8 @@ static int mcu_open(void *h) {
 	return r;
 }
 
-static int mcu_close(void *handle) {
-	mcu_session_t *s = handle;
+static int sc_close(void *handle) {
+	sc_session_t *s = handle;
 
 	dprintf(dlevel,"s: %p\n", s);
 //	if (check_state(s,SI_STATE_OPEN) && s->can->close(s->can_handle) == 0) clear_state(s,SI_STATE_OPEN);
@@ -112,8 +112,8 @@ static double _get_influx_value(influx_session_t *s, char *query) {
 #endif
 #endif
 
-static int mcu_read(void *handle, uint32_t *control, void *buf, int buflen) {
-//	mcu_session_t *s = handle;
+static int sc_read(void *handle, uint32_t *control, void *buf, int buflen) {
+//	sc_session_t *s = handle;
 
 //	dprintf(dlevel,"disable_driver_read: %d\n", s->disable_driver_read);
 //	if (s->disable_driver_read) return 0;
@@ -121,8 +121,8 @@ static int mcu_read(void *handle, uint32_t *control, void *buf, int buflen) {
 	return 0;
 }
 
-static int mcu_write(void *handle, uint32_t *control, void *buffer, int len) {
-//	mcu_session_t *s = handle;
+static int sc_write(void *handle, uint32_t *control, void *buffer, int len) {
+//	sc_session_t *s = handle;
 
 //	dprintf(dlevel,"disable_driver_write: %d\n", s->disable_driver_write);
 //	if (s->disable_driver_write) return 0;
@@ -130,13 +130,13 @@ static int mcu_write(void *handle, uint32_t *control, void *buffer, int len) {
 	return 0;
 }
 
-solard_driver_t mcu_driver = {
-	"mcu",
-	mcu_new,	/* New */
-	mcu_destroy,	/* Free */
-	mcu_open,	/* Open */
-	mcu_close,	/* Close */
-	mcu_read,	/* Read */
-	mcu_write,	/* Write */
-	mcu_config,	/* Config */
+solard_driver_t sc_driver = {
+	"sc",
+	sc_new,	/* New */
+	sc_destroy,	/* Free */
+	sc_open,	/* Open */
+	sc_close,	/* Close */
+	sc_read,	/* Read */
+	sc_write,	/* Write */
+	sc_config,	/* Config */
 };

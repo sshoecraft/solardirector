@@ -208,17 +208,20 @@ function run_command(str) {
 	return out;
 }
 
-function toJSONString(obj) {
-	var str = "{\n";
-	var first = true;
-	for(var key in obj) {
-		if (first) {
-			str += "    ";
-			first = false;
-		} else {
-			str += ",\n    ";
-		}
-		str += "    \"" + key + "\":";
+function toJSONString(obj,fields,numspaces) {
+
+	if (!numspaces) numspaces = 0;
+	let str = "{";
+	if (numspaces) str += "\n";
+	let first = true;
+	let sformat = "%" + sprintf("%d",numspaces) + "s";
+	let spaces = sprintf(sformat,"");
+
+	addkey = function() {
+		if (!first) str += ",";
+		else first = false;
+		if (numspaces) str += "\n";
+		str += spaces+"\"" + key + "\":";
 		var type = typeof(obj[key]);
 		switch(type) {
 		case 'undefined':
@@ -237,7 +240,19 @@ function toJSONString(obj) {
 			break;
 		}
 	}
-	str += "\n}";
+
+	var key;
+	if (fields) {
+		for(var index in fields) {
+			key = fields[index];
+			if (key in obj) addkey();
+		}
+	} else {
+		for(let key in obj)
+			addkey();
+	}
+	if (numspaces) str += "\n";
+	str += "}";
 	return str;
 }
 
@@ -457,12 +472,14 @@ function report_mem() {
 		last_memused = memused();
 	}
 
+if (0) {
 	if (typeof(last_sysmemused) == "undefined") last_sysmemused = 0;
 	if (sysmemused() != last_sysmemused) {
 		var udiff = sysmemused() - last_sysmemused;
 		printf("sysmem: %d (%s%d)\n", sysmemused(), (udiff > 0 ? "+" : ""), udiff);
 		last_sysmemused = sysmemused();
 	}
+}
 }
 
 function set_trigger(name,func,arg) {

@@ -1,23 +1,23 @@
 {
     "si": {
-        "charge_mode": 1,
+        "charge_mode": 2,
         "min_voltage": 41,
         "max_voltage": 58.100000000000001,
         "name": "sidev",
-        "interval": 10,
         "script_dir": ".",
         "influx_database": "dev",
-        "location": "31.809158,-95.144338",
+        "debug_mem": true,
         "mirror": true,
         "mirror_source": "mqtt,192.168.1.142,si",
         "charge_feed": true,
-        "charge_start_level": 22,
+        "charge_start_level": 24,
         "charge_end_level": 88,
         "dynfeed": true,
         "dyngrid": false,
         "dyngen": false,
         "discharge_efficiency": 0.90054299718270414,
         "charge_efficiency": 0.93611973426839201,
-        "battery_capacity": 1050
+        "battery_capacity": 1050,
+        "location": "31.809158,-95.144338"
     }
 }

@@ -73,27 +73,11 @@ void getpv(pvc_session_t *s, char *name, char *data) {
 	return;
 };
 
+#ifdef MQTT
 static int pvc_cb(void *h) {
 	pvc_session_t *s = h;
-	solard_message_t *msg;
-	client_agentinfo_t *info;
-	char *p;
-
-	dprintf(dlevel,"agent count: %d\n", list_count(s->c->agents));
-	list_reset(s->c->agents);
-	while((info = list_get_next(s->c->agents)) != 0) {
-		p = client_getagentrole(info);
-		dprintf(dlevel,"agent: %s, role: %s\n", info->name, p);
-		if (p && strcmp(p,SOLARD_ROLE_PVINVERTER) == 0) {
-			dprintf(dlevel,"count: %d\n", list_count(info->mq));
-			while((msg = list_get_next(info->mq)) != 0) {
-				getpv(s,msg->name,msg->data);
-			}
-		}
-		list_purge(info->mq);
-	}
-	return 0;
 }
+#endif
 
 static void *pvc_new(void *driver, void *driver_handle) {
 	pvc_session_t *s;
@@ -120,6 +104,24 @@ static int pvc_read(void *handle, uint32_t *control, void *buf, int buflen) {
 	solard_pvinverter_t pv,*pvp;
 	json_value_t *v;
 	int count;
+
+	solard_message_t *msg;
+	client_agentinfo_t *info;
+	char *p;
+
+	dprintf(dlevel,"agent count: %d\n", list_count(s->c->agents));
+	list_reset(s->c->agents);
+	while((info = list_get_next(s->c->agents)) != 0) {
+		p = client_getagentrole(info);
+		dprintf(dlevel,"agent: %s, role: %s\n", info->name, p);
+		if (p && strcmp(p,SOLARD_ROLE_PVINVERTER) == 0) {
+			dprintf(dlevel,"count: %d\n", list_count(info->mq));
+			while((msg = list_get_next(info->mq)) != 0) {
+				getpv(s,msg->name,msg->data);
+			}
+		}
+		list_purge(info->mq);
+	}
 
 	count = list_count(s->pvs);
 	dprintf(dlevel,"count: %d\n", count);
@@ -204,22 +206,25 @@ static int pvc_config(void *h, int req, ...) {
 	r = 1;
 	switch(req) {
 	case SOLARD_CONFIG_INIT:
-		{
-		char mqtt_info[256];
-
 		s->ap = va_arg(va,solard_agent_t *);
-		agent_set_callback(s->ap,pvc_cb,s);
-		s->c = client_init(0,0,pvc_agent_version_string,0,"pvc",CLIENT_FLAG_NOJS,0,0,0);
-		if (!s->c) return 1;
-		s->c->addmq = true;
-		mqtt_disconnect(s->c->m,1);
-		mqtt_get_config(mqtt_info,sizeof(mqtt_info)-1,s->ap->m,0);
-		mqtt_parse_config(s->c->m,mqtt_info);
-		mqtt_newclient(s->c->m);
-		mqtt_connect(s->c->m,10);
-		mqtt_resub(s->c->m);
-		r = 0;
+//		if (s->ap->js.e) JS_EngineAddInitFunc(s->ap->js.e,"pvc_jsinit",pvc_jsinit,s);
+#ifdef MQTT
+		{
+			char mqtt_info[256];
+
+			agent_set_callback(s->ap,pvc_cb,s);
+			s->c = client_init(0,0,pvc_agent_version_string,0,"pvc",CLIENT_FLAG_NOJS,0,0,0,0);
+			if (!s->c) return 1;
+			s->c->addmq = true;
+			mqtt_disconnect(s->c->m,1);
+			mqtt_get_config(mqtt_info,sizeof(mqtt_info)-1,s->ap->m,0);
+			mqtt_parse_config(s->c->m,mqtt_info);
+			mqtt_newclient(s->c->m);
+			mqtt_connect(s->c->m,10);
+			mqtt_resub(s->c->m);
 		}
+#endif
+		r = 0;
 		break;
 	case SOLARD_CONFIG_GET_INFO:
 		{

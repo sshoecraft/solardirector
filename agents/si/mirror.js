@@ -11,50 +11,75 @@ function mirror_event(data) {
 	else if (m.module == "Charge" && m.action == "Stop") charge_stop(false);
 	else if (m.module == "Feed" && m.action == "Start") feed_start(false);
 	else if (m.module == "Feed" && m.action == "Stop") feed_stop(false);
-	else if (m.module == "Battery" && m.action == "Empty") charge_empty();
-	else if (m.module == "Battery" && m.action == "Full") charge_full();
+	else if (m.module == "Battery" && m.action == "Empty") soc_battery_empty();
+	else if (m.module == "Battery" && m.action == "Full") soc_battery_full();
 }
 
 function mirror_get_data() {
 
 	let dlevel = 1;
 
-	let inverter = undefined;
-	if (mirror_type == "mqtt") {
-		dprintf(dlevel,"connected: %s\n", mirror_mqtt.connected);
-		if (!mirror_mqtt.connected) {
-			mirror_mqtt.reconnect();
-			mirror_mqtt.resub();
+	dprintf(dlevel,"mirror_info: %s\n", si.mirror_info);
+	if (!si.mirror_info) return 1;
+	info = si.mirror_info;
+//	dumpobj(info);
+
+	if (!info.init) {
+		if (info.type == "influx") {
+			info.db = new Influx(info.conx,info.db_name);
+			if (!info.db.connected) log_error("unable to connect to mirror_source %s: %s\n",
+				info.conx, info.db.errmsg);
+		} else if (info.type == "mqtt") {
+			info.mqtt = new MQTT(info.conx);
+			info.mqtt.enabled = true;
+			info.mqtt.connect();
+			if (!info.mqtt.connected) log_error("unable to connect to mirror_source %s: %s\n",
+				info.conx, info.mqtt.errmsg);
+			info.topic = SOLARD_TOPIC_ROOT+"/"+SOLARD_TOPIC_AGENTS+"/" + info.name;
+			info.mqtt.sub(info.topic + "/" + SOLARD_FUNC_DATA);
+			info.mqtt.sub(info.topic + "/" + SOLARD_FUNC_EVENT);
 		}
-		if (!mirror_mqtt.connected) return 1;
-		let mq = mirror_mqtt.mq;
-		let inverter_data = undefined;
+		info.init = true;
+	}
+//	dumpobj(info);
+
+	let inverter = undefined;
+	if (info.type == "mqtt") {
+		dprintf(dlevel,"connected: %s\n", info.mqtt.connected);
+		if (!info.mqtt.connected) info.mqtt.reconnect();
+		let mq = info.mqtt.mq;
 		dprintf(dlevel,"mq.length: %d\n", mq.length);
 		for(let i=0; i < mq.length; i++) {
 			dprintf(dlevel,"mq[%d].func: %s\n", i, mq[i].func);
 			if (mq[i].func == "Event") mirror_event(mq[i].data);
-			else if (mq[i].func == "Data") inverter_data = mq[i].data;
 		}
-		dprintf(dlevel+2,"inverter_data: %s\n", inverter_data);
-		if (inverter_data) inverter = JSON.parse(inverter_data);
-		mirror_mqtt.purgemq();
-	} else if (mirror_type == "influx") {
-		let query = "select last(*) from inverter";
-		if (mirror_name && mirror_name.length) query += " WHERE \"name\" = '" + mirror_name + "'";
+		for(let i=mq.length-1; i >= 0; i--) {
+			if (mq[i].func == "Data") {
+				inverter = JSON.parse(mq[i].data);
+				break;
+			}
+		}
+		info.mqtt.purgemq();
+	} else if (info.type == "influx") {
+		query = "select last(*) from inverter";
+		if (info.name && info.name.length) query += " WHERE \"name\" = '" + info.name + "'";
 		dprintf(dlevel,"query: %s\n", query);
-		inverter = influx2obj(mirror_influx.query(query));
+		inverter = influx2obj(info.db.query(query));
 	}
 
 	// Convert inverter to si_data
+	dprintf(dlevel,"inverter: %s\n", inverter);
 	if (!inverter) {
-		dprintf(dlevel,"diff: %d, timeout: %d\n", time() - last_inverter_time, si.mirror_timeout);
-		if (time() - last_inverter_time > si.mirror_timeout) return 1;
-		inverter = last_inverter;
+		dprintf(dlevel,"diff: %d, timeout: %d\n", time() - info.last_inverter_time, si.mirror_timeout);
+		if (time() - info.last_inverter_time > si.mirror_timeout) return 1;
+		inverter = info.last_inverter;
 	} else {
-		last_inverter = inverter;
-		last_inverter_time = time();
+		info.last_inverter = inverter;
+		info.last_inverter_time = time();
 	}
 //	dumpobj(inverter);
+
+	if (!inverter) return;
 
 	data.Run = true;
 	data.battery_voltage = inverter.battery_voltage;
@@ -75,69 +100,89 @@ function mirror_get_data() {
 //	dprintf(0,"status: %s\n", inverter.status);
 	data.GdOn = inverter.status.search("grid") >= 0 ? true : false;
 	data.GnOn = inverter.status.search("gen") >= 0 ? true : false;
-//	if (inverter.status.search("CC") >= 0 && si.charge_mode != 1) charge_start(false);
-//	else if (inverter.status.search("CV") >= 0 && si.charge_mode != 2) charge_start_cv(false);
+	if (inverter.status.search("CC") >= 0 && si.charge_mode != 1) charge_start(false);
+	else if (inverter.status.search("CV") >= 0 && si.charge_mode != 2) charge_start_cv(false);
 	si.feed_enabled = inverter.status.search("feed") >= 0 ? true : false;
 	si.dynfeed = inverter.status.search("dynfeed") >= 0 ? true : false;
 	si.dyngrid = inverter.status.search("dyngrid") >= 0 ? true : false;
 	si.dyngen = inverter.status.search("dyngen") >= 0 ? true : false;
-
 	return 0;
+}
+
+function mirror_enabled_trigger(a,p,o) {
+	let n = p ? p.value : undefined;
+	dprintf(0,"new val: %s, old val: %s\n", n, o);
+
+	if (n == false && o == true) {
+		info = si.mirror_info;
+		dprintf(0,"type: %s\n", info.type);
+		if (info.type == "mqtt") {
+			dprintf(0,"connected: %s\n", info.mqtt.connected);
+			info.mqtt.disconnect();
+			info.mqtt.purgemq();
+		} else if (info.type == "influx") {
+			dprintf(0,"connected: %s\n", info.db.connected);
+			info.db.disconnect();
+		}
+	}
 }
 
 function mirror_source_trigger() {
 
 	let dlevel = 1;
 
-	mirror_conx = undefined;
-
 	dprintf(dlevel,"mirror_source(%d): %s\n", si.mirror_source.length, si.mirror_source);
-	if (si.mirror_info) delete si.mirror_info;
+	if (si.mirror_info) {
+		// Delete the old objects
+		delete si.mirror_info.mqtt;
+		delete si.mirror_info.db;
+		delete si.mirror_info;
+	}
 	if (!si.mirror_source.length) return;
+	si.mirror_info = new Object();
+	info = si.mirror_info;
+
 	// Source,conx,name
 	// influx,192.168.1.142,power
 	// mqtt,192.168.1.4,si
 	let tf = si.mirror_source.split(",");
-	mirror_type = tf[0];
-	dprintf(dlevel,"type: %s\n", mirror_type);
-	if (mirror_type != 'influx' && mirror_type != 'mqtt') {
+	info.type = tf[0];
+	dprintf(dlevel,"type: %s\n", info.type);
+	if (info.type != 'influx' && info.type != 'mqtt') {
 		log_error("mirror_source type must be mqtt or influx\n");
-		si.mirror = false;
+		delete si.mirror_info;
+		si.mirror_info = undefined;
 		return;
 	}
-	let conx = tf[1];
-	dprintf(dlevel,"conx: %s\n", conx);
-	if (!conx) conx = "localhost";
+	info.conx = tf[1];
+	dprintf(dlevel,"conx: %s\n", info.conx);
+	if (!info.conx) info.conx = "localhost";
 
-	if (mirror_type == "influx") {
-		let mirror_db = tf[2];
-		dprintf(dlevel,"db: %s\n", mirror_db);
-		if (!mirror_db) mirror_db = "solardirector";
-		mirror_name = tf[3];
-		dprintf(dlevel,"name: %s\n", mirror_name);
-		mirror_influx = new Influx(conx,mirror_db);
-	} else if (mirror_type == "mqtt") {
-		mirror_name = tf[2];
-		dprintf(dlevel,"name: %s\n", mirror_name);
-		mirror_mqtt = new MQTT(conx);
-		mirror_mqtt.enabled = true;
-		mirror_mqtt.connect();
-		if (!mirror_mqtt.connected) log_error("unable to connect to mirror_source %s: %s\n", conx, mirror_mqtt.errmsg);
-		mirror_mqtt.sub(SOLARD_TOPIC_ROOT+"/"+SOLARD_TOPIC_AGENTS+"/" + mirror_name + "/"+SOLARD_FUNC_DATA);
-		mirror_mqtt.sub(SOLARD_TOPIC_ROOT+"/"+SOLARD_TOPIC_AGENTS+"/" + mirror_name + "/"+SOLARD_FUNC_EVENT);
+	if (info.type == "influx") {
+		info.db = tf[2];
+		dprintf(dlevel,"db: %s\n", info.db_name);
+		if (!info.db_name) info.db_name = "solardirector";
+		info.name = tf[3];
+	} else if (info.type == "mqtt") {
+		info.name = tf[2];
 	}
+	dprintf(dlevel,"name: %s\n", info.name);
+	info.init = false;
+//	dumpobj(info);
 }
 
 function mirror_init() {
 	var mirror_props = [
-		[ "mirror", DATA_TYPE_BOOL, "false", 0 ],
+		[ "mirror", DATA_TYPE_BOOL, "false", 0, mirror_enabled_trigger ],
 		[ "mirror_source", DATA_TYPE_STRING, null, 0, mirror_source_trigger ],
 		[ "mirror_timeout", DATA_TYPE_INT, 30, 0 ],
 	];
 
 	config.add_props(si,mirror_props);
-	last_inverter = undefined;
-	last_inverter_time = 0;
+	if (si.mirror_info) {
+		si.mirror_info.last_inverter = undefined;
+		si.mirror_info.last_inverter_time = 0;
+	}
 }
 
 function mirror_main() {

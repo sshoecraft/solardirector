@@ -170,7 +170,7 @@ void mem_free(void *mem, char *file, int line) {
 	info = mem - sizeof(meminfo_t);
 	if (info->sig != SIG) {
 		log_error("mem_free(%s:%d): not our mem, aborting\n",file,line);
-		free(mem);
+//		free(mem);
 		return;
 	}
 	used -= info->size;

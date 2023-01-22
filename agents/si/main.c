@@ -28,11 +28,13 @@ int main(int argc, char **argv) {
 #ifdef SMANET
 	char smatpinfo[256];
 #endif
+	bool norun;
 	opt_proctab_t si_opts[] = {
 		{ "-t::|CAN transport,target,opts",&cantpinfo,DATA_TYPE_STRING,sizeof(cantpinfo)-1,0,"" },
 #ifdef SMANET
 		{ "-u::|SMANET transport,target,opts",&smatpinfo,DATA_TYPE_STRING,sizeof(smatpinfo)-1,0,"" },
 #endif
+		{ "-1|dont enter run loop",&norun,DATA_TYPE_BOOL,0,0,"no" },
 		OPTS_END
 	};
 	si_session_t *s;
@@ -80,11 +82,13 @@ int main(int argc, char **argv) {
 #endif
 
 	/* Go */
-	agent_run(s->ap);
+	if (norun) si_driver.read(s,0,0,0);
+	else agent_run(s->ap);
 
 si_done:
 	/* Teardown */
 	si_driver.destroy(s);
+	agent_shutdown();
 #ifdef DEBUG_MEM
 	log_info("final mem used: %ld\n", mem_used());
 #endif

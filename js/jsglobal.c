@@ -84,7 +84,7 @@ static JSBool _error(JSContext *cx, char *fmt, ...) {
 	return JS_FALSE;
 }
 
-static const char *get_script_name(JSContext *cx) {
+const char *get_script_name(JSContext *cx) {
 	JSStackFrame *fp;
 
 	/* Get the currently executing script's name. */
@@ -570,6 +570,26 @@ static JSClass global_class = {
 	JS_FinalizeStub,	/* finalize */
 	JSCLASS_NO_OPTIONAL_MEMBERS
 };
+
+void JS_GlobalShutdown(JSContext *cx) {
+	JSEngine *e;
+	jswindow_t *w;
+
+	e = JS_GetPrivate(cx,JS_GetGlobalObject(cx));
+	if (!e) return;
+	w = e->private;
+	dprintf(dlevel,"location_val: %x\n", w->location_val);
+	if (w->location_val) {
+		JSObject *lobj;
+		void *p;
+
+		lobj = JSVAL_TO_OBJECT(w->location_val);
+		dprintf(dlevel,"lobj: %p\n", lobj);
+		p = JS_GetPrivate(cx,lobj);
+		dprintf(dlevel,"p: %p\n", p);
+		free(p);
+	}
+}
 
 /******************************** WINDOW ***********************************/
 

@@ -43,6 +43,7 @@
 #include "jsdbgapi.h"
 #include "jsdtracef.h"
 #include "jsprf.h"
+#include "jsutil.h"
 
 #define DEBUG_JSPRINTF 0
 #define dlevel 8
@@ -1149,20 +1150,22 @@ JSBool JS_DPrintf(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *
 	*prefix = 0;
 	p = prefix;
 	fp = JS_GetScriptedCaller(cx, NULL);
-//	dprintf(dlevel,"fp: %p\n", fp);
+//	printf("fp: %p\n", fp);
 	if (fp) {
 		char *f = jsdtrace_filename(fp);
-//		dprintf(dlevel,"f: %p\n", f);
+//		printf("f: %p\n", f);
 		if (f) p += sprintf(p, "%s(%d)", f, jsdtrace_linenumber(cx, fp));
-//		dprintf(dlevel,"fp->fun: %p\n", fp->fun);
+//		printf("fp->fun: %p\n", fp->fun);
 		if (fp->fun) {
-			const char *fname = JS_GetFunctionName(fp->fun);
+			char *fname = (char *)JS_GetFunctionName(fp->fun);
+//			printf("fname: %s\n", fname);
 			if (fname && strcmp(fname,"anonymous") != 0) {
 				p += sprintf(p, " %s", fname);
+//				JS_free(cx,fname);
 			}
 		}
 	}
-//	dprintf(dlevel,"prefix: %s\n", prefix);
+//	printf("prefix: %s\n", prefix);
 
 	if (e->output) ret = e->output("%s: %s",prefix,buf.ptr);
 	*rval = INT_TO_JSVAL(ret);

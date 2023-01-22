@@ -154,13 +154,17 @@ static JSBool rheem_device_setprop(JSContext *cx, JSObject *obj, jsval id, jsval
 			}
 			break;
 		case RHEEM_DEVICE_PROPERTY_ID_MODE:
-			{
+			p = config_get_property(s->ap->cp,d->id,"mode");
+			dprintf(dlevel,"p: %p\n", p);
+			if (p) {
 				char *str;
 
 				jsval_to_type(DATA_TYPE_STRINGP,&str,sizeof(str),cx,*vp);
-				p = config_get_property(s->ap->cp,d->id,"mode");
-				dprintf(dlevel,"p: %p\n", p);
-				if (p) config_property_set_value(p,DATA_TYPE_STRING,str,strlen(str),true,true);
+				dprintf(dlevel,"str: %p\n", str);
+				if (str) {
+					config_property_set_value(p,DATA_TYPE_STRING,str,strlen(str),true,true);
+					JS_free(cx,str);
+				}
 			}
 			break;
 		case RHEEM_DEVICE_PROPERTY_ID_TEMP:
@@ -224,6 +228,7 @@ JSObject *js_rheem_device_new(JSContext *cx, JSObject *parent, rheem_device_t *d
 	}
 
 	JS_SetPrivate(cx,obj,d);
+	d->class_name = (char *)rheem_device_class.name;
 	dprintf(dlevel,"done!\n");
 	d->obj = obj;
 	return obj;

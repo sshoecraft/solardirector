@@ -26,4 +26,8 @@ typedef struct pvc_session pvc_session_t;
 
 extern solard_driver_t pvc_driver;
 
+#ifdef JS
+int pvc_jsinit(JSContext *cx, JSObject *parent, void *priv);
+#endif
+
 #endif
