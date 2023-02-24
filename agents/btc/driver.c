@@ -7,9 +7,10 @@ This source code is licensed under the BSD-style license found in the
 LICENSE file in the root directory of this source tree.
 */
 
-#include "btc.h"
+#define dlevel 2
+#include "debug.h"
 
-#define dlevel 0
+#include "btc.h"
 
 extern char *btc_agent_version_string;
 
@@ -81,33 +82,6 @@ static void getbat(btc_session_t *s, char *name, json_value_t *json) {
 	return;
 };
 
-#if 0
-static int btc_cb(void *h) {
-	btc_session_t *s = h;
-	solard_message_t *msg;
-	client_agentinfo_t *info;
-	char *p;
-
-	dprintf(dlevel,"agent count: %d\n", list_count(s->c->agents));
-	list_reset(s->c->agents);
-	while((info = list_get_next(s->c->agents)) != 0) {
-		p = client_getagentrole(info);
-		dprintf(dlevel,"agent: %s, role: %s\n", info->name, p);
-		if (p && strcmp(p,SOLARD_ROLE_BATTERY) == 0) {
-#if 1
-			dprintf(dlevel,"count: %d\n", list_count(info->mq));
-			while((msg = list_get_next(info->mq)) != 0) getbat(s,msg->name,msg->data);
-#else
-			dprintf(dlevel,"info->private: %p\n", info->private);
-			if (info->private) getbat(s,info->name,(json_value_t *)info->private);
-#endif
-		}
-		list_purge(info->mq);
-	}
-	return 0;
-}
-#endif
-
 static void *btc_new(void *driver, void *driver_handle) {
 	btc_session_t *s;
 
@@ -159,12 +133,11 @@ static int btc_read(void *handle, uint32_t *control, void *buf, int buflen) {
 
 	memset(&bat,0,sizeof(bat));
 	strcpy(bat.name,"bcombiner");
-	list_reset(s->bats);
-	/* unlike pvc we average everything */
 	count = 0;
 	min = 9999990.0;
 	max = 0.0;
 	time(&cur);
+	list_reset(s->bats);
 	while((bp = list_get_next(s->bats)) != 0) {
 //		battery_dump(bp,0);
 		/* ignore any that havent reported in 120 seconds */
@@ -181,7 +154,7 @@ static int btc_read(void *handle, uint32_t *control, void *buf, int buflen) {
 		ADD(voltage);
 		ADD(current);
 		ADD(power);
-		dprintf(0,"%s: ntemps: %d\n", bp->name, bp->ntemps);
+		dprintf(dlevel,"%s: ntemps: %d\n", bp->name, bp->ntemps);
 		for(i=0; i < bp->ntemps; i++) {
 			dprintf(dlevel+1,"%s: temp[%d]: %f\n", bp->name, i, bp->temps[i]);
 			if (bp->temps[i] < min) min = bp->temps[i];
@@ -205,7 +178,7 @@ static int btc_read(void *handle, uint32_t *control, void *buf, int buflen) {
 	bat.ntemps = 2;
 	bat.temps[0] = pround(min,1);
 	bat.temps[1] = pround(max,1);
-	dprintf(0,"min: %f, max: %f\n", min, max);
+	dprintf(dlevel,"min: %f, max: %f\n", min, max);
 	for(i=0; i < bat.ncells; i++) {
 		bat.cellvolt[i] = pround(bat.cellvolt[i] / count, 3);
 		bat.cellres[i] = pround(bat.cellres[i] / count, 3);
@@ -217,7 +190,7 @@ static int btc_read(void *handle, uint32_t *control, void *buf, int buflen) {
 	bat.cell_total = pround(bat.cell_total / count,1);
 	bat.cell_avg = pround(bat.cell_total / bat.ncells,3);
 	bat.cell_diff = pround(bat.cell_max - bat.cell_min,3);;
-	battery_dump(&bat,dlevel+1);
+//	battery_dump(&bat,dlevel+1);
 
 #ifdef JS
 	/* If read script exists, we'll use that */
@@ -225,6 +198,7 @@ static int btc_read(void *handle, uint32_t *control, void *buf, int buflen) {
 #endif
 
 #ifdef MQTT
+	dprintf(dlevel,"mqtt_connected: %d\n", mqtt_connected(s->ap->m));
 	if (mqtt_connected(s->ap->m)) {
 		v = battery_to_json(&bat);
 		if (v) {
@@ -234,6 +208,7 @@ static int btc_read(void *handle, uint32_t *control, void *buf, int buflen) {
 	}
 #endif
 #ifdef INFLUX
+	dprintf(dlevel,"influx_connected: %d\n", influx_connected(s->ap->i));
 	if (influx_connected(s->ap->i)) {
 		v = battery_to_flat_json(&bat);
 		if (v) {

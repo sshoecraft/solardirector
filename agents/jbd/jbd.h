@@ -10,8 +10,6 @@ LICENSE file in the root directory of this source tree.
 #ifndef __JBD_H
 #define __JBD_H
 
-#define TARGET_ENDIAN BIG_ENDIAN
-
 #include "agent.h"
 #include "battery.h"
 #include "jbd_regs.h"

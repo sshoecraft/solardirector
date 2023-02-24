@@ -1,16 +1,20 @@
 
-# Build options
+# Build with debug enabled
 DEBUG?=yes
+
+# Trace memory alloc
 DEBUG_MEM?=no
+
+# Build static programs?
 STATIC?=no
-SHARED?=no
+
+# Library build type
+LIBTYPE?=standard
 
 # Components
 JS?=yes
 MQTT?=yes
 INFLUX?=yes
-BLUETOOTH?=no
 
-# Wait for these services (used when creating service templates)
-AFTER+=mosquitto.service
-AFTER+=influxdb.service
+# Global setting to append to logfile or not
+SERVICE_APPEND?=yes

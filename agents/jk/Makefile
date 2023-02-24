@@ -1,9 +1,9 @@
 
 PROGNAME=jk
-SRCS=main.c driver.c io.c info.c config.c jsfuncs.c bt.c
+SRCS=main.c driver.c io.c info.c config.c jsfuncs.c
 SCRIPTS=*.js
 
-BLUETOOTH=yes
-#vpath %.c ../../transports
+JS=no
+BLUETOOTH=no
 
 include ../../Makefile.sd

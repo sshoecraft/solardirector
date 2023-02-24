@@ -7,11 +7,12 @@ This source code is licensed under the BSD-style license found in the
 LICENSE file in the root directory of this source tree.
 */
 
+#define dlevel 2
+#include "debug.h"
+
 #include "sdconfig.h"
 #include "client.h"
 #include "uuid.h"
-
-#define dlevel 2
 
 #define NAME_FORMAT "%-30.30s  "
 #define TYPE_FORMAT "%-10.10s  "

@@ -1,4 +1,12 @@
 
+/*
+Copyright (c) 2022, Stephen P. Shoecraft
+All rights reserved.
+
+This source code is licensed under the BSD-style license found in the
+LICENSE file in the root directory of this source tree.
+*/
+
 function soc_battery_capacity_trigger() {
 
 	var dlevel = 1;
@@ -65,19 +73,21 @@ function soc_checkpoint() {
 
 function soc_battery_empty() {
 
-	let dlevel = 1;
+	let dlevel = -1;
 
 	dprintf(dlevel,"battery_ah: %f, charge_start_ah: %f\n", si.battery_ah, si.charge_start_ah);
 
 	dprintf(dlevel,"battery_full: %s\n", si.battery_full);
 	if (si.battery_full) {
 		let ov = si.discharge_efficiency;
-		let real_ah = si.battery_ah * si.discharge_efficiency;
-		dprintf(dlevel,"real_ah: %f\n", real_ah);
-		val = si.discharge_start_ah / real_ah;
+		dprintf(dlevel,"ov: %f\n", ov);
+		let m = si.charge_start_ah / si.battery_ah;
+		dprintf(dlevel,"m: %f\n", m);
+		val = ov * m;
 		dprintf(dlevel,"val: %f\n", val);
+		if (val > 1.0) val = 1.0;
 		if (influx.enabled && influx.connected) influx.write(si.discharge_efficiency_table,{} = { value: val });
-		let nv = kf_deff.filter(val,1);
+		let nv = soc_kf_deff.filter(val,1);
 		dprintf(dlevel,"nv: %f, ov: %f\n", nv, ov);
 		if (!double_equals(nv,ov)) {
 			printf("Setting discharge_effiency to: %f\n", nv);
@@ -85,9 +95,6 @@ function soc_battery_empty() {
 			config.save();
 		}
 	}
-	// If the battery was full save the out
-	si.battery_full_out = (si.battery_full ? si.battery_out : 0);
-
 	si.battery_full = false;
 	si.battery_empty = true;
 
@@ -100,23 +107,23 @@ function soc_battery_empty() {
 
 function soc_battery_full() {
 
-	let dlevel = 1;
+	let dlevel = -1;
 
 	dprintf(dlevel,"battery_ah: %f, charge_end_ah: %f\n", si.battery_ah, si.charge_end_ah);
 
 	dprintf(dlevel,"battery_empty: %s\n", si.battery_empty);
 	if (si.battery_empty) {
-		let ov = si.charge_efficiency;
-		let real_ah = si.battery_ah * si.charge_efficiency;
-		dprintf(dlevel,"real_ah: %f\n", real_ah);
-		val = real_ah / si.charge_end_ah;
+		let ov = si.charge_factor;
+		let m = si.charge_end_ah / si.battery_ah;
+		dprintf(dlevel,"m: %f\n", m);
+		val = ov * m;
 		dprintf(dlevel,"val: %f\n", val);
-		if (influx.enabled && influx.connected) influx.write(si.charge_efficiency_table,{} = { value: val });
-		let nv = kf_ceff.filter(val,1);
+		if (influx.enabled && influx.connected) influx.write(si.charge_factor_table,{} = { value: val });
+		let nv = soc_kf_ceff.filter(val,1);
 		dprintf(dlevel,"nv: %f, ov: %f\n", nv, ov);
 		if (!double_equals(nv,ov)) {
 			printf("Setting charge_effiency to: %f\n", nv);
-			si.charge_efficiency = nv;
+			si.charge_factor = nv;
 			config.save();
 		}
 	}
@@ -127,7 +134,6 @@ function soc_battery_full() {
 	if (si.full_command.length > 0) system(si.full_command);
 
 	// pin AH to charge end (fix SOC)
-//	if (si.battery_ah < si.charge_end_ah) si.battery_ah = si.charge_end_ah;
 	si.battery_ah = si.charge_end_ah;
 }
 
@@ -170,8 +176,15 @@ function soc_event_handler(name,module,action) {
 
 	let dlevel = 1;
 
-	dprintf(dlevel,"name: %s, agent.name: %s, module: %s, action: %s\n", name, agent.name, module, action);
+	dprintf(dlevel,"name: %s, agent.name: %s\n", name, agent.name);
 	if (name != agent.name) return;
+
+	dprintf(dlevel,"module: %s\n", module);
+	if (module == "Battery") {
+		dprintf(dlevel,"action: %s\n", action);
+		if (action == "Full") soc_battery_full();
+		else if (action == "Empty") soc_battery_empty();
+	}
 
 	// Any change in charge status reset the time remaining kalman filter */
 	if (module == "Charge" && soc_kf_secs) soc_kf_secs.reset();
@@ -182,8 +195,8 @@ function soc_init() {
 	var soc_props = [
 		[ "discharge_efficiency_table", DATA_TYPE_STRING, "si_discharge_efficiency", 0 ],
 		[ "discharge_efficiency", DATA_TYPE_DOUBLE, 0.945, 0 ],
-		[ "charge_efficiency_table", DATA_TYPE_STRING, "si_charge_efficiency", 0 ],
-		[ "charge_efficiency", DATA_TYPE_DOUBLE, 0.96, 0 ],
+		[ "charge_factor_table", DATA_TYPE_STRING, "si_charge_factor", 0 ],
+		[ "charge_factor", DATA_TYPE_DOUBLE, 1.04, 0 ],
 		[ "battery_capacity", DATA_TYPE_DOUBLE, null, 0, soc_battery_capacity_trigger ],
 		[ "battery_ah", DATA_TYPE_DOUBLE, NaN, CONFIG_FLAG_PRIVATE ],
 		[ "battcp", DATA_TYPE_BOOL, "true", 0 ],
@@ -209,13 +222,13 @@ function soc_init() {
 	if (si.battcp) soc_open_battcp();
 
 	soc_kf_secs = new KalmanFilter();
-	soc_kf_deff = new KalmanFilter();
-	soc_kf_ceff = new KalmanFilter();
+	soc_kf_deff = new KalmanFilter(1.5);
+	soc_kf_ceff = new KalmanFilter(1.5);
 
 	soc_prime_kf(soc_kf_deff,si.discharge_efficiency_table,config.get_property("discharge_efficiency"));
-	dprintf(0,"initial discharge efficiency: %f\n", si.discharge_efficiency);
-	soc_prime_kf(soc_kf_ceff,si.charge_efficiency_table,config.get_property("charge_efficiency"));
-	dprintf(0,"initial charge_efficiency: %f\n", si.charge_efficiency);
+	printf("Initial discharge efficiency: %f\n", si.discharge_efficiency);
+	soc_prime_kf(soc_kf_ceff,si.charge_factor_table,config.get_property("charge_factor"));
+	printf("Initial charge_factor: %f\n", si.charge_factor);
 }
 
 function report_remain(func,secs) {
@@ -299,9 +312,9 @@ function soc_main() {
 
 	// battery AH counter
 	let amps = data.battery_current;
-	dprintf(dlevel,"amps: %f, discharge_efficiency: %f, charge_efficiency: %f\n",
-		amps, si.discharge_efficiency, si.charge_efficiency);
-	let val = (amps > 0 ? amps / si.discharge_efficiency : amps * si.charge_efficiency);
+	dprintf(dlevel,"amps: %f, discharge_efficiency: %f, charge_factor: %f\n",
+		amps, si.discharge_efficiency, si.charge_factor);
+	let val = (amps > 0 ? amps / si.discharge_efficiency : amps * si.charge_factor);
 	dprintf(dlevel,"val: %f\n", val);
 	let mult = (si.interval / 3600);
 	dprintf(dlevel,"mult: %f\n", mult);
@@ -310,15 +323,19 @@ function soc_main() {
 	si.battery_ah -= ah;
 	dprintf(dlevel,"NEW battery_ah: %f\n", si.battery_ah);
 	var obt = si.battery_ah;
+	// something went wrong
+	if (isNaN(si.battery_ah)) si.battery_ah = si.charge_start_ah;
 	if (si.battery_ah < 0) si.battery_ah = 0;
-	if (si.battery_capacity && si.battery_ah > si.battery_capacity) si.battery_ah = si.battery_capacity;
+	if (si.battery_ah > si.battery_capacity) si.battery_ah = si.battery_capacity;
 	if (si.battery_ah != obt) dprintf(dlevel,"FIXED battery_ah: %f\n", si.battery_ah);
 
 	// XXX sanity check
+if (0) {
 	if (si.battery_ah < si.charge_start_ah && pround(data.battery_voltage,1) > si.charge_start_voltage) {
 		si.battery_ah = si.charge_start_ah;
 		dprintf(dlevel,"FIXED battery_ah: %f\n", si.battery_ah);
 	}
+}
 
 	// Checkpoint in case restart
 	soc_checkpoint();
@@ -340,9 +357,12 @@ if (0) {
 
 	// Dont let level < 0 or > 100
 	let obl = new_soc;
-	if (new_soc < 0) new_soc = 0;
+	if (new_soc < 10) new_soc = 10;
 	if (new_soc > 100.0) new_soc = 100;
-	if (new_soc != obl) dprintf(dlevel,"FIXED: new_soc: %.1f\n", new_soc);
+	if (new_soc != obl) {
+		printf(">>>> NEW SOC FIX:  old: %s, new: %s\n", obl, new_soc);
+		dprintf(dlevel,"FIXED: new_soc: %.1f\n", new_soc);
+	}
 	si.soc = new_soc;
 
 	// Calculate remaining ah

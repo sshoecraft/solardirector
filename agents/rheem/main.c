@@ -7,14 +7,15 @@ This source code is licensed under the BSD-style license found in the
 LICENSE file in the root directory of this source tree.
 */
 
+#define dlevel 2
+#include "debug.h"
+
 #include "rheem.h"
 
 #define TESTING 0
 #define TESTLVL 3
 
 char *rheem_agent_version_string = "1.0";
-
-#define dlevel 1
 
 int main(int argc, char **argv) {
 	rheem_session_t *s;

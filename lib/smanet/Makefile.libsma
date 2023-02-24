@@ -1,0 +1,15 @@
+
+ifeq ($(JS),yes)
+	_NJ=-js
+	_OJ=.js
+endif
+LIBNAME=smanet$(_NJ)
+SRCS=session.c frame.c packet.c command.c channel.c value.c jsfuncs.c
+CFLAGS+=-DTARGET_ENDIAN=LITTLE_ENDIAN
+OBJSUFFIX=$(_OJ)
+
+CLEANFILES+=try mktab
+
+INFLUX=no
+
+include ../../Makefile.sd

@@ -1,33 +1,40 @@
 
-#TARGET=pi3
-#TARGET=win64
-
 ID:=$(shell id -u)
 
-ifneq "$(findstring win,$(TARGET))" ""
-ISWIN=yes
-endif
+# We use pthreads in a lot of things
+PTHREADS=yes
 
 ifeq ($(ID),0)
-INSTALL_USER=-o root -g root
 PREFIX?=/opt/sd
 else
-PREFIX?=$(shell echo $$HOME)
+PREFIX?=$(shell echo ~)
 endif
 
 # Define SRC_ROOT
 current_makefile := $(lastword $(MAKEFILE_LIST))
 SRC_ROOT=$(shell echo $$(dirname $(current_makefile)))
 
-include $(SRC_ROOT)/make.opts
+ifeq ($(RELEASE),yes)
+DEBUG=no
+DEBUG_MEM=no
+LIBTYPE=shared
+JS?=yes
+MQTT?=yes
+INFLUX?=yes
+endif
 
+include $(SRC_ROOT)/make.opts
 
 TOOLS?=$(SRC_ROOT)/tools
 
-CFLAGS+=-I.
+# Static build requires standard lib
+ifeq ($(STATIC),yes)
+	LIBTYPE=standard
+endif
 
-ifeq ($(SHARED),yes)
-	ifeq ($(ISWIN),yes)
+# We need to define LIBEXT for DEPS
+ifeq ($(LIBTYPE),shared)
+	ifneq "$(findstring win,$(TARGET))" ""
 		LIBEXT=.dll
 	else
 		LIBEXT=.so
@@ -36,80 +43,60 @@ else
 	LIBEXT=.a
 endif
 
-# Uses libsmanet? must be included before sdcore as it refs
-ifeq ($(SMANET),yes)
-	CFLAGS+=-I$(SRC_ROOT)/smanet -DSMANET
-	LIBS+=-L$(SRC_ROOT)/smanet -lsmanet
-	DEPS+=$(SRC_ROOT)/smanet/libsmanet$(LIBEXT)
+ifeq ($(JS),yes)
+	_NJ=-js
 endif
-
-ifneq ($(LIBNAME),core)
-	CFLAGS+=-I$(SRC_ROOT)/core
-	LIBS+=-L$(SRC_ROOT)/core -lcore
-	DEPS+=$(SRC_ROOT)/core/libcore$(LIBEXT)
+ifeq ($(MQTT),yes)
+	_NM=-mqtt
 endif
-
-ifneq ($(LIBNAME),transports)
-	CFLAGS+=-I$(SRC_ROOT)/transports
-	LIBS+=-L$(SRC_ROOT)/transports -ltransports
-	DEPS+=$(SRC_ROOT)/transports/libtransports$(LIBEXT)
+ifeq ($(INFLUX),yes)
+	_NI=-influx
+endif
+LIBSDNAME=sd$(_NJ)$(_NM)$(_NI)
+ifneq ($(LIBSD),yes)
+	CFLAGS+=-I$(SRC_ROOT)/lib/sd
+	LIBS+=-L$(SRC_ROOT)/lib/sd -l$(LIBSDNAME)$(LIBSUFFIX)
+	DEPS+=$(SRC_ROOT)/lib/sd/lib$(LIBSDNAME)$(LIBSUFFIX)$(LIBEXT)
+	MATH=yes
 endif
 
 ifeq ($(JS),yes)
-	CFLAGS+=-I$(SRC_ROOT)/js -DJS
-	ifeq ($(ISWIN),yes)
+	CFLAGS+=-I$(SRC_ROOT)/lib/js -DJS
+	LIBS+=-L$(SRC_ROOT)/lib/js -ljs
+	MATH=yes
+	DEPS+=$(SRC_ROOT)/lib/js/libjs$(LIBEXT)
+#	ifeq ($(OS),Windows)
+	ifneq "$(findstring win,$(TARGET))" ""
 		CFLAGS+=-DXP_WIN
 	else
 		CFLAGS+=-DXP_UNIX
 	endif
-	LIBS+=-L$(SRC_ROOT)/js -ljs -lm 
-	DEPS+=$(SRC_ROOT)/js/libjs$(LIBEXT)
+	NEED_LIBSD=yes
 endif
 
-ifneq ($(LIBNAME),transports)
-	LIBS+=-L$(SRC_ROOT)/transports -ltransports
-endif
-
-ifneq ($(LIBNAME),core)
-	LIBS+=-L$(SRC_ROOT)/core -lcore -lm
-endif
-
-ifneq ($(LIBNAME),transports)
-	LIBS+=-L$(SRC_ROOT)/transports -ltransports
-endif
-
-# Paho MQTT
-ifeq ($(MQTT),yes)
-	CFLAGS+=-DMQTT
-	ifeq ($(STATIC),yes)
-		_PAHOLDADD=-lssl -lcrypto -lz -ldl
-		ifeq ($(TARGET),win32)
-			_PAHOSTATIC=-static
-			_PAHOLDADD+=-lgdi32 -lcrypt32 -lrpcrt4 -lkernel32
-		else ifeq ($(TARGET),win64)
-			_PAHOSTATIC=-static
-			_PAHOLDADD+=-lgdi32 -lcrypt32 -lrpcrt4
-		endif
-	endif
-	ifeq ($(MQTTSSL),yes)
-		_PAHOSSL=s
-	endif
-	LIBS+=-lpaho-mqtt3c$(_PAHOSSL)$(_PAHOSTATIC) $(_PAHOLDADD)
-endif
-
-ifeq ($(INFLUX),yes)
-	CURL=yes
-	CFLAGS+=-DINFLUX
+ifeq ($(SMANET),yes)
+	CFLAGS+=-I$(SRC_ROOT)/lib/smanet -DSMANET
+	LIBS+=-L$(SRC_ROOT)/lib/smanet -lsmanet$(_NJ)
+	DEPS+=$(SRC_ROOT)/lib/smanet/libsmanet$(_NJ)$(LIBEXT)
+	NEED_LIBSD=yes
 endif
 
 # Bluetooth
 ifeq ($(BLUETOOTH),yes)
-	ifneq ($(ISWIN),yes)
+	ifneq ($(OS),Windows)
 		CFLAGS+=-DBLUETOOTH
-		LIBS+=-lgattlib -lglib-2.0 -lgobject-2.0 -lgio-2.0 -lbluetooth
+		LIBS+=-L$(SRC_ROOT)/lib/bt -lbt -lgattlib -lglib-2.0 -lgobject-2.0 -lgio-2.0 -lbluetooth
+		NEED_LIBSD=yes
 	endif
 endif
 
-PTHREADS=yes
+ifeq ($(NEED_LIBSD),yes)
+	LIBS+=-L$(SRC_ROOT)/lib/sd -l$(LIBSDNAME)$(LIBSUFFIX)
+endif
 
-include $(SRC_ROOT)/Makefile.inc
+include $(SRC_ROOT)/Makefile.sys
+
+main.o: $(SRCS)
+	@mkdir -p .deps
+	@echo "#define __SD_BUILD $$(date '+%Y%m%d%H%M')" > __sd_build.h
+	$(FULLCC) -c main.c

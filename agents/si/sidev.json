@@ -1,9 +1,10 @@
 {
     "si": {
-        "charge_mode": 2,
+        "charge_mode": 1,
         "min_voltage": 41,
         "max_voltage": 58.100000000000001,
         "name": "sidev",
+        "interval": 10,
         "script_dir": ".",
         "influx_database": "dev",
         "debug_mem": true,
@@ -15,8 +16,8 @@
         "dynfeed": true,
         "dyngrid": false,
         "dyngen": false,
-        "discharge_efficiency": 0.90054299718270414,
-        "charge_efficiency": 0.93611973426839201,
+        "discharge_efficiency": 0.82999999999999996,
+        "charge_factor": 1.0600000000000001,
         "battery_capacity": 1050,
         "location": "31.809158,-95.144338"
     }

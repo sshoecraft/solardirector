@@ -6,4 +6,6 @@ PROGNAME=pvc_mirror
 #SERVICE_DESC=PV Combiner Mirror
 #SERVICE_AFTER=pvc.service
 
+JS=no
+
 include ../../Makefile.sd

@@ -8,5 +8,6 @@ systemctl stop sb3
 systemctl stop pvc
 systemctl stop btc
 systemctl stop rheem
+systemctl stop pvc_mirror
 exit 0
 systemctl stop si

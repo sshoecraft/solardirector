@@ -2,6 +2,6 @@
     "btc": {
         "log_power": true,
         "interval": 15,
-        "influx_database": "power",
+        "influx_database": "power"
     }
 }

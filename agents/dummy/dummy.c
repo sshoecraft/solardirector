@@ -1,6 +1,16 @@
 
+/*
+Copyright (c) 2022, Stephen P. Shoecraft
+All rights reserved.
+
+This source code is licensed under the BSD-style license found in the
+LICENSE file in the root directory of this source tree.
+*/
+
+#define dlevel 2
+#include "debug.h"
+
 #include "agent.h"
-#include "jsobj.h"
 
 #define TESTING 0
 #define TESTLVL 3
@@ -10,15 +20,9 @@ struct dummy_session {
 };
 typedef struct dummy_session dummy_session_t;
 
-int dummy_jsinit(JSContext *cx, JSObject *parent, void *ctx) {
-	dummy_session_t *s = ctx;
-
-	JS_DefineProperty(cx, parent, "agent", OBJECT_TO_JSVAL(js_agent_new(cx,parent,s->ap)), 0, 0, JSPROP_ENUMERATE);
-	JS_DefineProperty(cx, parent, "config", s->ap->js.config_val, 0, 0, JSPROP_ENUMERATE);
-	JS_DefineProperty(cx, parent, "mqtt", s->ap->js.mqtt_val, 0, 0, JSPROP_ENUMERATE);
-	JS_DefineProperty(cx, parent, "influx", s->ap->js.influx_val, 0, 0, JSPROP_ENUMERATE);
-	return 0;
-}
+#ifdef JS
+int dummy_jsinit(JSContext *cx, JSObject *parent, void *ctx);
+#endif
 
 int dummy_config(void *h, int req, ...) {
 	dummy_session_t *s = h;
@@ -29,7 +33,9 @@ int dummy_config(void *h, int req, ...) {
 	switch(req) {
 	case SOLARD_CONFIG_INIT:
 		s->ap = va_arg(va,solard_agent_t *);
+#ifdef JS
 		if (s->ap->js.e) JS_EngineAddInitFunc(s->ap->js.e,"dummy_jsinit",dummy_jsinit,s);
+#endif
 		break;
 	case SOLARD_CONFIG_GET_INFO:
 		{
@@ -86,3 +92,16 @@ int main(int argc, char **argv) {
 	free(s);
 	return 0;
 }
+
+#ifdef JS
+#include "jsobj.h"
+int dummy_jsinit(JSContext *cx, JSObject *parent, void *ctx) {
+	dummy_session_t *s = ctx;
+
+	JS_DefineProperty(cx, parent, "agent", OBJECT_TO_JSVAL(js_agent_new(cx,parent,s->ap)), 0, 0, JSPROP_ENUMERATE);
+	JS_DefineProperty(cx, parent, "config", s->ap->js.config_val, 0, 0, JSPROP_ENUMERATE);
+	JS_DefineProperty(cx, parent, "mqtt", s->ap->js.mqtt_val, 0, 0, JSPROP_ENUMERATE);
+	JS_DefineProperty(cx, parent, "influx", s->ap->js.influx_val, 0, 0, JSPROP_ENUMERATE);
+	return 0;
+}
+#endif

@@ -7,13 +7,16 @@ This source code is licensed under the BSD-style license found in the
 LICENSE file in the root directory of this source tree.
 */
 
+#include "osendian.h"
+#define TARGET_ENDIAN LITTLE_ENDIAN
+#include "types.h"
+
 #define dlevel 5
+#include "debug.h"
 
 #define DISABLE_WRITE 0
 #define DEBUG_BITS 1
 
-#define TARGET_ENDIAN LITTLE_ENDIAN
-#include "types.h"
 #include "si.h"
 #include <pthread.h>
 #ifndef __WIN32
@@ -544,6 +547,8 @@ void si_can_disconnect(si_session_t *s) {
 	dprintf(dlevel,"done!\n");
 }
 
+extern int agent_pubconfig(solard_agent_t *ap);
+
 int si_can_init(si_session_t *s) {
 
 	/* Find the driver */
@@ -579,10 +584,9 @@ int si_can_init(si_session_t *s) {
 	/* Set inteval to 10s */
 	if (s->ap && s->ap->interval != 10) {
 		config_property_t *p = config_get_property(s->ap->cp,si_driver.name,"interval");
-		printf("p: %p\n", p);
+		dprintf(dlevel,"p: %p\n", p);
 		if (p) {
 			config_property_set_value(p,DATA_TYPE_STRING,"10",2,true,true);
-//			printf("int: %d\n", s->ap->interval);
 //			config_dump_property(p,0);
 			agent_pubconfig(s->ap);
 		}

@@ -2,6 +2,9 @@
 PROGNAME=$(shell basename $(shell pwd))
 SRCS=main.c display.c web.c
 
+JS=no
+INFLUX=no
+
 include ../../Makefile.sd
 
 #install:

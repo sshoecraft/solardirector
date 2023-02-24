@@ -1,8 +1,17 @@
-
 #ifdef SMANET
-#include "si.h"
+
+/*
+Copyright (c) 2022, Stephen P. Shoecraft
+All rights reserved.
+
+This source code is licensed under the BSD-style license found in the
+LICENSE file in the root directory of this source tree.
+*/
 
 #define dlevel 4
+#include "debug.h"
+
+#include "si.h"
 
 void get_runstate(si_session_t *s, smanet_multreq_t *mr) {
 	if (mr->text && strcmp(mr->text,"Run") == 0) s->data.Run = true;

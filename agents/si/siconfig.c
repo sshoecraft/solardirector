@@ -7,13 +7,14 @@ This source code is licensed under the BSD-style license found in the
 LICENSE file in the root directory of this source tree.
 */
 
+#define dlevel 2
+#include "debug.h"
+
 #include "si.h"
 #include "transports.h"
 
 extern char *si_version_string;
 extern solard_driver_t si_driver;
-
-#define dlevel 1
 
 static void _getsource(si_session_t *s, si_current_source_t *spec) {
 	char line[128],method[64],*p,*v;

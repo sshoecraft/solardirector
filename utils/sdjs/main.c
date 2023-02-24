@@ -1,18 +1,30 @@
-
 #ifdef JS
 
-#include <libgen.h>
+/*
+Copyright (c) 2022, Stephen P. Shoecraft
+All rights reserved.
 
-#include "client.h"
-#include "agent.h"
-#include "smanet.h"
-#include "jsengine.h"
+This source code is licensed under the BSD-style license found in the
+LICENSE file in the root directory of this source tree.
+*/
 
-#ifdef MQTTx
-#undef MQTT
+#define dlevel 0
+#include "debug.h"
+
+#define SDJS_CLIENT 0
+
+#ifdef DEBUG_MEM
+#undef DEBUG_MEM
 #endif
 
-#define dlevel 2
+#if SDJS_CLIENT
+#include "client.h"
+#else
+#include "agent.h"
+#endif
+#include "smanet.h"
+#include "jsengine.h"
+#include <libgen.h>
 
 #ifdef WINDOWS
 #include "wineditline/editline.c"
@@ -34,7 +46,7 @@
 struct sdjs_private {
         int argc;
         char **argv;
-#ifdef MQTT
+#if SDJS_CLIENT
         solard_client_t *c;
 #else
         solard_agent_t *ap;
@@ -55,9 +67,6 @@ static JSBool GetLine(JSContext *cx, char *bufp, FILE *file, const char *prompt)
         if (linep[0] != '\0') add_history(linep);
         strcpy(bufp, linep);
 //      DISPOSE(linep);
-#ifdef free
-#undef free
-#endif
 	free(linep);
         bufp += strlen(bufp);
         *bufp++ = '\n';
@@ -166,7 +175,7 @@ JSObject *mkargv(JSContext *cx, JSObject *parent, void *ctx) {
 	return obj;
 }
 
-#ifdef MQTT
+#if SDJS_CLIENT
 int sdjs_jsinit(JSContext *cx, JSObject *parent, void *ctx) {
 	sdjs_private_t *p = ctx;
 
@@ -177,14 +186,13 @@ int sdjs_jsinit(JSContext *cx, JSObject *parent, void *ctx) {
 	JS_DefineProperty(cx, parent, "config", p->c->config_val, 0, 0, JSPROP_ENUMERATE);
 	JS_DefineProperty(cx, parent, "mqtt", p->c->mqtt_val, 0, 0, JSPROP_ENUMERATE);
 	JS_DefineProperty(cx, parent, "influx", p->c->influx_val, 0, 0, JSPROP_ENUMERATE);
-	smanet_jsinit(p->c->js);
 	return 0;
 }
 
 int sdjs_init(void *ctx, solard_client_t *c) {
 	sdjs_private_t *p = ctx;
 
-	JS_EngineAddInitFunc(p->e, "sdjs_jsinit", sdjs_jsinit, p);
+	JS_EngineAddInitFunc(c->js, "sdjs_jsinit", sdjs_jsinit, p);
 	return 0;
 
 }
@@ -212,7 +220,10 @@ int sdjs_config(void *h, int req, ...) {
 	switch(req) {
 	case SOLARD_CONFIG_INIT:
 		p->ap = va_arg(va,solard_agent_t *);
-		if (p->ap->js.e) JS_EngineAddInitFunc(p->ap->js.e,"sdjs_jsinit",sdjs_jsinit,p);
+		if (p->ap->js.e) {
+			JS_EngineAddInitFunc(p->ap->js.e,"sdjs_jsinit",sdjs_jsinit,p);
+			smanet_jsinit(p->ap->js.e);
+		}
 		break;
 	case SOLARD_CONFIG_GET_INFO:
 		{
@@ -227,6 +238,7 @@ int sdjs_config(void *h, int req, ...) {
 		}
 		break;
 	}
+	va_end(va);
 	return 0;
 }
 #endif
@@ -246,16 +258,15 @@ int main(int argc, char **argv) {
 		{ "load", DATA_TYPE_STRING, load, sizeof(load)-1, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0 },
 		{ 0 }
 	};
-#ifndef MQTT
+#if !SDJS_CLIENT
 	solard_driver_t driver;
 #endif
 
 #if TESTING
-	char *args[] = { "js", "-d", "7", "json.js" };
+	char *args[] = { "sdjs", "-d", "7", "json.js" };
 	argc = (sizeof(args)/sizeof(char *));
 	argv = args;
 #endif
-
 
 	p = malloc(sizeof(*p));
 	dprintf(dlevel,"p: %p\n", p);
@@ -268,18 +279,19 @@ int main(int argc, char **argv) {
 	p->argv = argv;
 
 	*script = *func = *load = 0;
-#ifdef MQTT
+#if SDJS_CLIENT
 	p->c = client_init(argc,argv,"1.0",opts,"sdjs",CLIENT_FLAG_JSGLOBAL,sdjs_props,0,sdjs_init,p);
 	if (!p->c) {
 		log_error("unable to initialize client\n");
 		return 1;
 	}
 	p->e = p->c->js;
+	smanet_jsinit(p->c->js);
 #else
 	memset(&driver,0,sizeof(driver));
 	driver.name = "sdjs";
 	driver.config = sdjs_config;
-	p->ap = agent_init(argc,argv,"1.0",opts,&driver,p,0,sdjs_props,0);
+	p->ap = agent_init(argc,argv,"1.0",opts,&driver,p,AGENT_FLAG_AUTOCONFIG,sdjs_props,0);
 	if (!p->ap) {
 		log_error("unable to initialize agent\n");
 		return 1;
@@ -295,7 +307,6 @@ int main(int argc, char **argv) {
 //		char cmd[1024];
 		char *name;
 		int i = 0;
-		JSBool ok;
 		dprintf(dlevel,"load: %s\n", load);
 		while(1) {
 			char fixedname[1024];
@@ -305,8 +316,7 @@ int main(int argc, char **argv) {
 			if (!strlen(name)) break;
 			strncpy(fixedname,name,sizeof(fixedname)-1);
 	                fixpath(fixedname,sizeof(fixedname)-1);
-			ok = JS_EngineExec(p->e,fixedname,0,0,0,0);
-			dprintf(dlevel,"ok: %d\n", ok);
+			JS_EngineExec(p->e,fixedname,0,0,0,0);
 		}
 	}
 
@@ -315,8 +325,10 @@ int main(int argc, char **argv) {
 		if (access(script,0) < 0) {
 			printf("%s: %s\n",script,strerror(errno));
 		} else {
-#ifdef MQTT
+#if SDJS_CLIENT
 			strcpy(p->c->name,basename(script));
+#else
+			strcpy(p->ap->instance_name,basename(script));
 #endif
 			dprintf(dlevel,"executing script: %s\n",script);
 			JS_EngineExec(p->e,script,func,0,0,0);
@@ -325,7 +337,7 @@ int main(int argc, char **argv) {
 		shell(JS_EngineGetCX(p->e));
 	}
 	dprintf(dlevel,"shutting down...\n");
-#ifdef MQTT
+#if SDJS_CLIENT
 	client_shutdown();
 #else
 	agent_shutdown();

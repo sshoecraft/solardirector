@@ -1,9 +1,9 @@
 
 function mirror_event(data) {
 
-	let dlevel = 1;
+	let dlevel = 0;
 
-	dprintf(dlevel,"data: %s\n", data);
+	dprintf(dlevel+1,"data: %s\n", data);
 	m = JSON.parse(data);
 	dprintf(dlevel,"agent: %s, module: %s, action: %s\n", m.agent, m.module, m.action);
 	if (m.module == "Charge" && m.action == "Start") charge_start(false);
@@ -31,14 +31,16 @@ function mirror_get_data() {
 				info.conx, info.db.errmsg);
 		} else if (info.type == "mqtt") {
 			info.mqtt = new MQTT(info.conx);
-			info.mqtt.enabled = true;
-			info.mqtt.connect();
+			dprintf(dlevel,"connected: %s\n", info.mqtt.connected);
 			if (!info.mqtt.connected) log_error("unable to connect to mirror_source %s: %s\n",
 				info.conx, info.mqtt.errmsg);
 			info.topic = SOLARD_TOPIC_ROOT+"/"+SOLARD_TOPIC_AGENTS+"/" + info.name;
 			info.mqtt.sub(info.topic + "/" + SOLARD_FUNC_DATA);
 			info.mqtt.sub(info.topic + "/" + SOLARD_FUNC_EVENT);
+		} else {
+			return 1;
 		}
+		printf("Mirroring from: %s\n",si.mirror_source);
 		info.init = true;
 	}
 //	dumpobj(info);
@@ -111,17 +113,17 @@ function mirror_get_data() {
 
 function mirror_enabled_trigger(a,p,o) {
 	let n = p ? p.value : undefined;
-	dprintf(0,"new val: %s, old val: %s\n", n, o);
+	dprintf(1,"new val: %s, old val: %s\n", n, o);
 
 	if (n == false && o == true) {
 		info = si.mirror_info;
-		dprintf(0,"type: %s\n", info.type);
+		dprintf(1,"type: %s\n", info.type);
 		if (info.type == "mqtt") {
-			dprintf(0,"connected: %s\n", info.mqtt.connected);
+			dprintf(1,"connected: %s\n", info.mqtt.connected);
 			info.mqtt.disconnect();
 			info.mqtt.purgemq();
 		} else if (info.type == "influx") {
-			dprintf(0,"connected: %s\n", info.db.connected);
+			dprintf(1,"connected: %s\n", info.db.connected);
 			info.db.disconnect();
 		}
 	}
@@ -165,6 +167,9 @@ function mirror_source_trigger() {
 		info.name = tf[3];
 	} else if (info.type == "mqtt") {
 		info.name = tf[2];
+	} else {
+		log_error("unknown mirror type: %s\n", info.type);
+		info.error = 1;
 	}
 	dprintf(dlevel,"name: %s\n", info.name);
 	info.init = false;

@@ -7,6 +7,9 @@ This source code is licensed under the BSD-style license found in the
 LICENSE file in the root directory of this source tree.
 */
 
+#define dlevel 2
+#include "debug.h"
+
 #include "solard.h"
 #include "uuid.h"
 
@@ -57,7 +60,7 @@ void agentinfo_getcfg(cfg_info_t *cfg, char *sname, solard_agentinfo_t *info) {
 
 	dprintf(1,"getting tab...\n");
 	cfg_get_tab(cfg,info_tab);
-	if (debug) cfg_disp_tab(info_tab,"info",0);
+	if (debug > 0) cfg_disp_tab(info_tab,"info",0);
 	*info->id = 0;
 	strncat(info->id,sname,sizeof(info->id)-1);
 }
@@ -67,7 +70,7 @@ void agentinfo_setcfg(cfg_info_t *cfg, char *section_name, solard_agentinfo_t *i
 
 	dprintf(1,"setting tab...\n");
 	cfg_set_tab(cfg,info_tab,0);
-	if (debug) cfg_disp_tab(info_tab,"info",0);
+	if (debug > 0) cfg_disp_tab(info_tab,"info",0);
 }
 #endif
 

@@ -1,0 +1,27 @@
+
+load("/opt/sd/lib/core/kalman.js");
+soc_kf_deff = new KalmanFilter(1.5);
+si = {};
+si.battery_ah = 309.558159;
+si.charge_start_ah = 252;
+// battery_ah: 309.558159, charge_start_ah: 252.000000
+dlevel = -1;
+si.discharge_efficiency = 0.906573;
+
+        dprintf(dlevel,"battery_ah: %f, charge_start_ah: %f\n", si.battery_ah, si.charge_start_ah);
+
+                let ov = si.discharge_efficiency;
+                let m = si.charge_start_ah / si.battery_ah;
+                dprintf(dlevel,"m: %f\n", m);
+                val = ov * m;
+                dprintf(dlevel,"val: %f\n", val);
+                if (val > 1.0) val = 1.0;
+                let nv = soc_kf_deff.filter(val,1);
+                dprintf(dlevel,"nv: %f, ov: %f\n", nv, ov);
+                if (!double_equals(nv,ov)) {
+                        printf("Setting discharge_effiency to: %f\n", nv);
+                        si.discharge_efficiency = nv;
+                        config.save();
+                }
+
+

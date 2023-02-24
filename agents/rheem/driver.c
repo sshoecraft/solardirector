@@ -1,3 +1,4 @@
+
 /*
 Copyright (c) 2022, Stephen P. Shoecraft
 All rights reserved.
@@ -6,13 +7,13 @@ This source code is licensed under the BSD-style license found in the
 LICENSE file in the root directory of this source tree.
 */
 
+#define dlevel 2
+#include "debug.h"
+
 #include "rheem.h"
 #include <ctype.h>
 
 #define RHEEM_INIT_BUFSIZE 4092
-
-#define dlevel 1
-
 #define RHEEM_STATE_OPEN 0x0001
 
 #define HOST "rheem.clearblade.com"

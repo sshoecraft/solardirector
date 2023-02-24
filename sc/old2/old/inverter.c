@@ -7,6 +7,9 @@ This source code is licensed under the BSD-style license found in the
 LICENSE file in the root directory of this source tree.
 */
 
+#define dlevel 2
+#include "debug.h"
+
 #include "solard.h"
 
 static solard_inverter_t *find_by_name(solard_config_t *conf, char *name) {

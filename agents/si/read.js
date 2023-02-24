@@ -113,6 +113,5 @@ function read_main() {
 		}
         }
 
-	report_mem();
 	return 0;
 }

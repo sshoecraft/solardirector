@@ -126,6 +126,7 @@ function feed_stop(force) {
 	si_stop_grid(false);
 
 	si.feed_enabled = false;
+	si.feed_timeout_start = 0;
 
 	return 0;
 }

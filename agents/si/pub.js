@@ -13,7 +13,7 @@ function addstat(str,val,text) {
 }
 
 function pub_main() {
-	include(core_dir+"/utils.js");
+	include(core_dir+"utils.js");
 
 	let dlevel = 1;
 

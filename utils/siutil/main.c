@@ -7,6 +7,9 @@ This source code is licensed under the BSD-style license found in the
 LICENSE file in the root directory of this source tree.
 */
 
+#define dlevel 2
+#include "debug.h"
+
 #include "common.h"
 #include "transports.h"
 #include "siutil.h"
@@ -133,7 +136,7 @@ int main(int argc, char **argv) {
 
 	*configfile = *cantpinfo = *smatpinfo = 0;
 	if (solard_common_init(argc,argv,siutil_version,opts,logopts)) return 1;
-	if (debug) logopts |= LOG_DEBUG|LOG_DEBUG2;
+	if (debug >= 0) logopts |= LOG_DEBUG|LOG_DEBUG2;
 	log_open("siutil",0,logopts);
 
 	argc -= optind;
@@ -217,7 +220,7 @@ int main(int argc, char **argv) {
 			CFG_PROCTAB_END
 		};
 		cfg_get_tab(cfg,tab);
-		if (debug) cfg_disp_tab(tab,"can",0);
+		if (debug > 0) cfg_disp_tab(tab,"can",0);
 	}
         if (!strlen(s->can_transport) || !strlen(s->can_target)) {
 #if defined(WINDOWS)
@@ -262,7 +265,7 @@ int main(int argc, char **argv) {
 			CFG_PROCTAB_END
 		};
 		cfg_get_tab(cfg,tab);
-		if (debug) cfg_disp_tab(tab,"smanet",0);
+		if (debug > 0) cfg_disp_tab(tab,"smanet",0);
 	}
         if (!strlen(s->smanet_transport) || !strlen(s->smanet_target)) {
 #if defined(WINDOWS)

@@ -7,6 +7,9 @@ This source code is licensed under the BSD-style license found in the
 LICENSE file in the root directory of this source tree.
 */
 
+#define dlevel 2
+#include "debug.h"
+
 #include "solard.h"
 #include <sys/types.h>
 #include <sys/stat.h>
@@ -107,7 +110,7 @@ int agent_start(solard_session_t *s, solard_agentinfo_t *info) {
 	conf2path(prog,sizeof(prog),info->path);
 	args[i++] = prog;
 #if 0
-	if (debug) {
+	if (debug > 0) {
 		args[i++] = "-d";
 		sprintf(dval,"%d",debug);
 		args[i++] = dval;

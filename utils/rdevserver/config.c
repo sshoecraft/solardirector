@@ -1,8 +1,17 @@
 
-#include "rdevserver.h"
-#include "transports.h"
+/*
+Copyright (c) 2022, Stephen P. Shoecraft
+All rights reserved.
+
+This source code is licensed under the BSD-style license found in the
+LICENSE file in the root directory of this source tree.
+*/
 
 #define dlevel 2
+#include "debug.h"
+
+#include "rdevserver.h"
+#include "transports.h"
 
 #if defined(__WIN32) || defined(__WIN64)
 static solard_driver_t *transports[] = { &serial_driver, 0 };
@@ -30,7 +39,7 @@ int rdev_add_device(rdev_config_t *conf, char *name) {
 
 	dprintf(dlevel,"reading...\n");
 	cfg_get_tab(conf->cfg,tab);
-	if (debug) cfg_disp_tab(tab,name,0);
+	if (debug > 0) cfg_disp_tab(tab,name,0);
 
 	dprintf(dlevel,"transport: %s, target: %s, topts: %s\n", transport, target, topts);
 	if (!strlen(transport) || !strlen(target)) {
@@ -90,7 +99,7 @@ int rdev_get_config(rdev_config_t *conf, char *configfile) {
 		goto init_error;
 	}
 	cfg_get_tab(conf->cfg,tab);
-	if (debug) cfg_disp_tab(tab,"rdev",0);
+	if (debug > 0) cfg_disp_tab(tab,"rdev",0);
 
 	dprintf(dlevel,"devices count: %d\n", list_count(devices));
 	list_reset(devices);

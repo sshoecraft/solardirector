@@ -7,6 +7,7 @@ LICENSE file in the root directory of this source tree.
 */
 
 #define dlevel 4
+#include "debug.h"
 
 #include "sb.h"
 

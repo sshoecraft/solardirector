@@ -7,6 +7,9 @@ This source code is licensed under the BSD-style license found in the
 LICENSE file in the root directory of this source tree.
 */
 
+#define dlevel 2
+#include "debug.h"
+
 #include "jbd.h"
 #include "transports.h"
 #include <pthread.h>
@@ -141,8 +144,8 @@ int jbd_verify(uint8_t *buf, int len) {
 	pkt_crc = jbd_getshort(&buf[i]);
 	dprintf(5,"my_crc: %x, pkt_crc: %x\n", my_crc, pkt_crc);
 	if (my_crc != pkt_crc) {
-		dprintf(1,"CRC ERROR: my_crc: %x, pkt_crc: %x\n", my_crc, pkt_crc);
-		bindump("data",buf,len);
+		log_error("CRC ERROR: my_crc: %x, pkt_crc: %x\n", my_crc, pkt_crc);
+//		bindump("data",buf,len);
 		return 1;
 	}
 	i += 2;

@@ -1,8 +1,17 @@
-
 #ifdef JS
-#include "jk.h"
+
+/*
+Copyright (c) 2022, Stephen P. Shoecraft
+All rights reserved.
+
+This source code is licensed under the BSD-style license found in the
+LICENSE file in the root directory of this source tree.
+*/
 
 #define dlevel 5
+#include "debug.h"
+
+#include "jk.h"
 
 enum JK_HW_PROPERTY_ID {
 	JK_HW_PROPERTY_ID_MF,

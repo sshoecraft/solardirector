@@ -1,13 +1,16 @@
-
 #ifdef JS
-#define DEBUG_JSFUNCS 1
-#define dlevel 5
 
-#ifdef DEBUG
-#undef DEBUG
-#endif
-#define DEBUG DEBUG_JSFUNCS
+/*
+Copyright (c) 2022, Stephen P. Shoecraft
+All rights reserved.
+
+This source code is licensed under the BSD-style license found in the
+LICENSE file in the root directory of this source tree.
+*/
+
+#define dlevel 4
 #include "debug.h"
+
 #include "si.h"
 #include "jsobj.h"
 #include "jsjson.h"

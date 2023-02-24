@@ -21,5 +21,6 @@ systemctl restart sb3
 systemctl restart pvc
 systemctl restart btc
 systemctl restart rheem
+systemctl restart pvc_mirror
 exit 0
 systemctl restart si

@@ -87,7 +87,7 @@ do
 	elif test "$t" = "/"; then
 		:
 	else
-		echo "unknown type: $t"
+#		echo "unknown type: $t"
 		continue
 	fi
 #	if test $count -gt 0; then

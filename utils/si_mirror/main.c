@@ -1,3 +1,14 @@
+#ifdef MQTT
+/*
+Copyright (c) 2022, Stephen P. Shoecraft
+All rights reserved.
+
+This source code is licensed under the BSD-style license found in the
+LICENSE file in the root directory of this source tree.
+*/
+
+#define dlevel 2
+#include "debug.h"
 
 #include "client.h"
 
@@ -34,13 +45,29 @@ int main(int argc, char **argv) {
 		/* name, type, dest, dsize, def, flags, scope, values, labels, units, scale, precision, trigger, ctx */
 		{0}
 	};
+	event_session_t *e;
+#ifdef MQTT
 	solard_client_t *c;
 
 	c = client_init(argc,argv,"1.0",opts,"si_mirror",CLIENT_FLAG_NOJS,props,0,0,0);
 	if (!c) return 1;
-//	config_dump(c->cp);
+	e = c->e;
+#else
+	solard_driver_t driver;
+	solard_agent_t *ap;
 
-	event_handler(c->e, si_mirror_event, c, "si", "*", "*");
+	memset(&driver,0,sizeof(driver));
+	driver.name = "si_mirror";
+//	driver.config = si_mirror_config;
+	ap = agent_init(argc,argv,"1.0",opts,&driver,0,AGENT_FLAG_NOJS,props,0);
+	if (!ap) {
+		log_error("unable to initialize agent\n");
+		return 1;
+	}
+	e = ap->e;
+#endif
+
+	event_handler(e, si_mirror_event, 0, "si", "*", "*");
 
 	log_info("Mirroring from host: %s\n", c->m->uri);
 	while(1) {
@@ -50,3 +77,7 @@ int main(int argc, char **argv) {
 	}
 	return 0;
 }
+#else
+#include <stdio.h>
+int main(void) { printf("error: compiled without mqtt support\n"); }
+#endif

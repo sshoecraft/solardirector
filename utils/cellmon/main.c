@@ -7,6 +7,9 @@ This source code is licensed under the BSD-style license found in the
 LICENSE file in the root directory of this source tree.
 */
 
+#define dlevel 2
+#include "debug.h"
+
 #include "cellmon.h"
 
 #define TESTING 0
@@ -51,7 +54,7 @@ void getpack(cellmon_config_t *conf, char *name, char *data) {
 		return;
 	}
 	dprintf(1,"dumping...\n");
-	battery_dump(&bat,1);
+//	battery_dump(&bat,1);
 	set_state((&bat),BATTERY_STATE_UPDATED);
 	time(&bat.last_update);
 	if (!strlen(bat.name)) return;

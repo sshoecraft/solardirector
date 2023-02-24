@@ -5,6 +5,10 @@ SRCS=main.c config.c server.c devserver.c
 #Restrict can IDs to SI frames (0x300-0x30F)
 CFLAGS+=-DRDEV_SI_FRAMES
 
+JS=no
+MQTT=no
+INFLUX=no
+
 include ../../Makefile.sd
 
 test: test.c devserver.c config.c $(DEPS)

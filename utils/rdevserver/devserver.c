@@ -7,6 +7,9 @@ This source code is licensed under the BSD-style license found in the
 LICENSE file in the root directory of this source tree.
 */
 
+#define dlevel 4
+#include "debug.h"
+
 #include "common.h"
 #include "rdevserver.h"
 #include "socket.h"
@@ -23,8 +26,6 @@ struct devserver_session {
 	int unit_count;
 };
 typedef struct devserver_session devserver_session_t;
-
-#define dlevel 4
 
 static devserver_session_t *devserver_new(rdev_config_t *conf, int c) {
 	devserver_session_t *s;

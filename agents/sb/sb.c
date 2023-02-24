@@ -1,3 +1,4 @@
+
 /*
 Copyright (c) 2021, Stephen P. Shoecraft
 All rights reserved.
@@ -7,6 +8,7 @@ LICENSE file in the root directory of this source tree.
 */
 
 #define dlevel 1
+#include "debug.h"
 
 #include "sb.h"
 #include "pvinverter.h"

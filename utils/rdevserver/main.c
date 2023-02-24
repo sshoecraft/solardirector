@@ -7,6 +7,9 @@ This source code is licensed under the BSD-style license found in the
 LICENSE file in the root directory of this source tree.
 */
 
+#define dlevel 2
+#include "debug.h"
+
 #include "rdevserver.h"
 #include <pthread.h>
 #include "transports.h"
@@ -20,8 +23,6 @@ LICENSE file in the root directory of this source tree.
 #else
 #define _ST_DEBUG 0
 #endif
-
-#define dlevel 1
 
 char *rdevserver_version = "1.0-" STRINGIFY(__SD_BUILD);
 

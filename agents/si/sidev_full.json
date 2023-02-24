@@ -1,7 +1,7 @@
 {
     "si": {
         "readonly": true,
-        "charge_mode": 2,
+        "charge_mode": 1,
         "grid_charge_amps": 3,
         "min_voltage": 41,
         "max_voltage": 58.100000000000001,
@@ -15,11 +15,10 @@
         "name": "sidev",
         "script_dir": ".",
         "influx_endpoint": "http:\/\/localhost:8086",
-        "influx_database": "power",
+        "influx_database": "dev",
         "empty_feed": true,
         "remain_samples": 0,
         "battery_full_ah": 894.50343082377856,
-        "charge_factor": 0.90937604162181629,
         "charge_start_time": "sunrise+75",
         "charge_source": "GenGrid",
         "charge_method": 1,
@@ -39,8 +38,6 @@
         "grid_max_power": 9600,
         "dyngen": true,
         "gen_max_power": 12100,
-        "discharge_efficiency": 0.90387128853951004,
-        "charge_efficiency": 0.93611973426839201,
         "battery_capacity": 1050,
         "location": "31.809158,-95.144338"
     }

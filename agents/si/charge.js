@@ -291,8 +291,9 @@ function charge_init() {
 
 	if (typeof(si) == "undefined") {
 		include("./utils.js");
-		include("../../core/utils.js");
-		include("../../core/suncalc.js");
+		core_dir="../../lib/sd/";
+		include(core_dir+"utils.js");
+		include(core_dir+"suncalc.js");
 		si = {};
 		si.script_dir = ".";
 		si.interval = 10;
@@ -504,6 +505,8 @@ function charge_end() {
 
 	var dlevel = 1;
 
+	if (si.mirror) return;
+
 	agent.event("Battery","Full");
 
 	charge_stop();
@@ -587,6 +590,8 @@ function cv_check_ah() {
 function battery_is_empty() {
 
 	let dlevel = 1;
+
+	if (si.mirror) return false;
 
 	dprintf(dlevel,"battery_voltage: %f, charge_start_voltage: %f\n",
 		pround(data.battery_voltage,1), si.charge_start_voltage);

@@ -1,3 +1,4 @@
+
 /*
 Copyright (c) 2022, Stephen P. Shoecraft
 All rights reserved.
@@ -6,9 +7,10 @@ This source code is licensed under the BSD-style license found in the
 LICENSE file in the root directory of this source tree.
 */
 
-#include "rheem.h"
+#define dlevel 2
+#include "debug.h"
 
-#define dlevel 1
+#include "rheem.h"
 
 extern char *rheem_agent_version_string;
 

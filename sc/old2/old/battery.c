@@ -7,6 +7,9 @@ This source code is licensed under the BSD-style license found in the
 LICENSE file in the root directory of this source tree.
 */
 
+#define dlevel 2
+#include "debug.h"
+
 #include "solard.h"
 
 solard_battery_t *find_pack_by_name(solard_config_t *conf, char *name) {

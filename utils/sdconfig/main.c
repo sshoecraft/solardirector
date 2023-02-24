@@ -7,12 +7,13 @@ This source code is licensed under the BSD-style license found in the
 LICENSE file in the root directory of this source tree.
 */
 
+#define dlevel 2
+#include "debug.h"
+
 #include "sdconfig.h"
 
 #define TESTING 0
 #define TESTLVL 4
-
-#define dlevel 2
 
 #define AGENT_CALLED		0x1000
 #define STATUS_CHECKED		0x2000

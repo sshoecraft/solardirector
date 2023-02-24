@@ -7,9 +7,10 @@ This source code is licensed under the BSD-style license found in the
 LICENSE file in the root directory of this source tree.
 */
 
-#include "pvc.h"
-
 #define dlevel 4
+#include "debug.h"
+
+#include "pvc.h"
 
 extern char *pvc_agent_version_string;
 #define PVINVERTER_STATE_UPDATED 0x2000
@@ -72,12 +73,6 @@ void getpv(pvc_session_t *s, char *name, char *data) {
 	}
 	return;
 };
-
-#ifdef MQTT
-static int pvc_cb(void *h) {
-	pvc_session_t *s = h;
-}
-#endif
 
 static void *pvc_new(void *driver, void *driver_handle) {
 	pvc_session_t *s;
@@ -212,7 +207,6 @@ static int pvc_config(void *h, int req, ...) {
 		{
 			char mqtt_info[256];
 
-			agent_set_callback(s->ap,pvc_cb,s);
 			s->c = client_init(0,0,pvc_agent_version_string,0,"pvc",CLIENT_FLAG_NOJS,0,0,0,0);
 			if (!s->c) return 1;
 			s->c->addmq = true;

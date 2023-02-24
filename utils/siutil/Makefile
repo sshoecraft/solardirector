@@ -2,7 +2,9 @@
 PROGNAME=$(shell basename $(shell pwd))
 SRCS=main.c driver.c can.c smanet.c info.c display.c
 
-SMANET=$(shell cat ../../agents/si/Makefile | grep ^SMANET= | awk -F= '{ print $2 }')
+JS=no
+MQTT=no
+INFLUX=no
 SMANET=yes
 
 include ../../Makefile.sd

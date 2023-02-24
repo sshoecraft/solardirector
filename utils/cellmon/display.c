@@ -7,6 +7,9 @@ This source code is licensed under the BSD-style license found in the
 LICENSE file in the root directory of this source tree.
 */
 
+#define dlevel 2
+#include "debug.h"
+
 #include "cellmon.h"
 
 #define COLUMN_WIDTH 7
@@ -115,14 +118,15 @@ void display(cellmon_config_t *conf) {
 		x++;
 	}
 
-	if (!debug) {
-#ifdef __WIN32
+//	if (!debug) {
+#ifdef WINDOWS
 		system("cls");
 		system("time /t");
 #else
+		printf("*** running clear ***\n");
 		system("clear; echo \"**** $(date) ****\"");
 #endif
-	}
+//	}
 
 	sprintf(format,"%%-%d.%ds ",COLUMN_WIDTH,COLUMN_WIDTH);
 	/* Header */

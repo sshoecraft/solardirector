@@ -1,0 +1,450 @@
+
+ifeq ($(TARGET),)
+	TARGET=linux
+endif
+
+CFLAGS+=-I.
+
+UID=$(shell id -u)
+ifeq ($(UID),0)
+PREFIX?=/usr/local
+INSTALL_USER?=-o root -g root
+else
+PREFIX?=$(shell echo ~)
+endif
+ETCDIR?=$(PREFIX)/etc
+BINDIR?=$(PREFIX)/bin
+SBINDIR?=$(PREFIX)/sbin
+LIBDIR?=$(PREFIX)/lib
+LOGDIR?=$(PREFIX)/log
+INCDIR?=$(PREFIX)/include
+SERVICE_APPEND?=no
+
+# If INCDIR exists, include it
+ifeq ($(shell test -d $(INCDIR) && echo yes),yes)
+	CFLAGS+=-I$(INCDIR)
+endif
+
+INSTALL=install
+ifeq ($(TARGET),pi3)
+	ARCH=pi
+	OS=Linux
+	BITS=32
+	CVERS=arm-linux-gnueabihf
+	CBINDIR=/usr/$(CVERS)/bin
+	CC=$(CBINDIR)/$(CVERS)-gcc
+	AR=$(CBINDIR)/$(CVERS)-ar
+	RANLIB=$(CBINDIR)/$(CVERS)-ranlib
+	STRIP=$(CBINDIR)/$(CVERS)-strip
+#	CFLAGS+=-DNULLDEV=\"/dev/null\" -D__USE_FILE_OFFSET64
+	DEST_BASE=/usr/$(CVERS)
+	DEST_PREFIX=$(DEST_BASE)/$(CVERS)/sysroot
+	DEST_BINDIR=$(DEST_PREFIX)/bin
+	DEST_INCDIR=$(DEST_IPREFIX)/include
+	DEST_LIBDIR=$(DEST_IPREFIX)/lib
+else ifeq ($(TARGET),win64)
+	ARCH=win64
+	OS=Windows
+	BITS=64
+	EXE=.exe
+	CBINDIR=/bin
+	CVERS=x86_64-w64-mingw32
+	CC=$(CBINDIR)/$(CVERS)-gcc
+	AR=$(CBINDIR)/$(CVERS)-ar
+	RANLIB=$(CBINDIR)/$(CVERS)-ranlib
+	STRIP=$(CBINDIR)/$(CVERS)-strip
+	CFLAGS+=-DWINDOWS -DWIN32 -DWIN64
+	DEST_BASE=/usr/$(CVERS)
+	DEST_PREFIX=$(DEST_BASE)/sys-root/mingw
+	DEST_BINDIR=$(DEST_PREFIX)/bin
+	DEST_INCDIR=$(DEST_IPREFIX)/include
+	DEST_LIBDIR=$(DEST_IPREFIX)/lib
+	DYNAMIC=no
+else ifeq ($(TARGET),win32)
+	ARCH=win32
+	OS=Windows
+	BITS=32
+  	EXE=.exe
+	CBINDIR=/bin
+	CVERS=i686-w64-mingw32
+	CC=$(CBINDIR)/$(CVERS)-gcc
+	AR=$(CBINDIR)/$(CVERS)-ar
+	RANLIB=$(CBINDIR)/$(CVERS)-ranlib
+	STRIP=$(CBINDIR)/$(CVERS)-gcc
+	STRIP=$(BASE)/bin/$(VERS)-strip
+	CFLAGS+=-DWINDOWS -DWIN32 -D_FILE_OFFSET_BITS=64
+	DEST_BASE=/usr/$(CVERS)
+	DEST_PREFIX=$(DEST_BASE)/sys-root/mingw
+	DEST_BINDIR=$(DEST_PREFIX)/bin
+	DEST_INCDIR=$(DEST_IPREFIX)/include
+	DEST_LIBDIR=$(DEST_IPREFIX)/lib
+	DYNAMIC=no
+else ifeq ($(TARGET),solaris)
+	MACH := $(shell uname -p)
+	ARCH=solaris_$(MACH)
+	CC=$(shell if test -x /opt/csw/gcc4/bin/gcc; then echo /opt/csw/gcc4/bin/gcc; else echo gcc; fi)
+	INSTALL=ginstall
+else
+	ARCH=linux
+	OS=Linux
+	CC=gcc
+	AR=ar
+	RANLIB=ranlib
+	STRIP=strip
+#	CFLAGS+=-DNULLDEV=\"/dev/null\" -D__USE_FILE_OFFSET64
+	DEST_BASE=/usr/local
+	DEST_PREFIX=$(DEST_BASE)
+	DEST_BINDIR=$(DEST_PREFIX)/bin
+	DEST_INCDIR=$(DEST_IPREFIX)/include
+	DEST_LIBDIR=$(DEST_IPREFIX)/lib
+	TARGET=linux
+endif
+
+ifeq ($(BITS),)
+	MACH := $(shell uname -m)
+	ifeq ($(MACH),x86_64)
+		BITS=64
+	else
+		ifeq ($(MACH),i686)
+			BITS=32
+		else ifeq ($(MACH),i386)
+			BITS=32
+		endif
+	endif
+	ifneq "$(findstring armv7l,$(MACH))" ""
+		BITS=32
+	endif
+endif
+
+# SRC_ROOT is wherever we are at
+current_makefile := $(lastword $(MAKEFILE_LIST))
+SRC_ROOT ?= $(shell echo $$(dirname $(current_makefile)))
+
+# Local system overrides
+ifneq ("$(wildcard /usr/local/lib/make.opts)","")
+include /usr/local/lib/make.opts
+endif
+
+# Deps
+DEPDIR := .deps
+CLEANFILES+=.deps
+DEPFLAGS = -MT $@ -MMD -MP -MF $(DEPDIR)/$*$(OBJSUFFIX).d
+
+FULLCC = $(CC) $(DEPFLAGS) $(CFLAGS) $(CPPFLAGS)
+
+.SUFFIXES: .c .o .so
+
+##%.o : %.c
+%$(OBJSUFFIX).o : %.c $(DEPDIR)/%$(OBJSUFFIX).d | $(DEPDIR)
+	$(FULLCC) -c $< -o $@
+
+#%.so : %.c
+%$(OBJSUFFIX).so : %.c $(DEPDIR)/%$(OBJSUFFIX).d | $(DEPDIR)
+	$(FULLCC) -fPIC -c $< -o $@
+
+$(DEPDIR): ; @mkdir -p $@
+
+DEPFILES := $(SRCS:%.c=$(DEPDIR)/%$(OBJSUFFIX).d)
+
+# Debugging?
+ifeq ($(DEBUG),yes)
+	CFLAGS+=-Wall -DDEBUG -D_DEBUG -g -O0
+else
+	CFLAGS+=-O2 -pipe
+endif
+
+ifeq ($(DEBUG_MEM),yes)
+	CFLAGS+=-DDEBUG_MEM
+	ifeq ($(MEMWATCH),yes)
+		CFLAGS+=-DMEMWATCH
+	endif
+endif
+
+ifeq ($(STATIC),yes)
+	_DOSTATIC=yes
+else
+	_DOSTATIC=no
+endif
+
+# Paho MQTT
+ifeq ($(MQTT),yes)
+	CFLAGS+=-DMQTT
+	ifeq ($(STATIC),yes)
+		_PAHOLDADD=-lssl -lcrypto -lz -ldl
+		ifeq ($(TARGET),win32)
+			_PAHOSTATIC=-static
+			_PAHOLDADD+=-lgdi32 -lcrypt32 -lrpcrt4 -lkernel32
+		else ifeq ($(TARGET),win64)
+			_PAHOSTATIC=-static
+			_PAHOLDADD+=-lgdi32 -lcrypt32 -lrpcrt4
+		endif
+	endif
+	ifeq ($(MQTTSSL),yes)
+		_PAHOSSL=s
+	endif
+	LIBS+=-lpaho-mqtt3c$(_PAHOSSL)$(_PAHOSTATIC) $(_PAHOLDADD)
+	PTHREADS=yes
+endif
+
+ifeq ($(INFLUX),yes)
+	CURL=yes
+	CFLAGS+=-DINFLUX
+endif
+
+ifeq ($(CURL),yes)
+	CFLAGS+=-DHAVE_CURL
+	LIBS+=-lcurl
+#	LIBS+=-L/opt/sd/lib -lcurl
+#	LIBS+=-lnghttp2 -lcrypto -lssl -lldap -llber -lidn2 -lbrotlidec -lz
+	ifeq ($(_DOSTATIC),yes)
+#		_DOSTATIC=no
+#		CFLAGS+=$(shell pkg-config --cflags --static libcurl)
+#		LIBS+=$(shell pkg-config --libs --static libcurl)
+	endif
+#	LIBS+=-lnghttp2 -lidn2 -lssl -lcrypto -lssl -lcrypto -lldap -llber -lbrotlidec
+#	LIBS+=-lffi -lpcre -lpthread -lmount -ldl -lblkid -lresolv -lz -lselinux
+endif
+
+# Uses pthreads? (needed @ end)
+ifeq ($(PTHREADS),yes)
+	ifeq ($(OS),Windows)
+#		LIBS+=-lwinpthread
+		ENDLIBS+=-lpthread
+	else
+		ENDLIBS+=-lpthread
+	endif
+endif
+
+ifeq ($(OS),Windows)
+	LIBS+=-lws2_32
+endif
+
+ifeq ($(DEBUGMEM),yes)
+	LIBS+=-lmcheck
+endif
+
+ifeq ($(MATH),yes)
+	ENDLIBS+=-lm
+endif
+
+#####################
+
+#
+# End of mods
+#
+
+OBJS+=$(SRCS:%.c=%$(OBJSUFFIX).o)
+#OBJS?=$(patsubst %.c,%.o,$(patsubst %.cpp,%.o,$(SRCS)))
+
+# XXX DO NOT INDENT ANYTHING AFTER THIS UNTIL _all
+.PHONY: _all _prebuild _dobuild _postbuild _preinstall _doinstall _postinstall _preclean _doclean _postclean
+
+##############################
+#
+##################### LIB
+#
+##############################
+
+ifneq ($(LIBNAME),)
+
+# Shared lib
+ifeq ($(LIBTYPE),shared)
+ifeq ($(OS),Windows)
+LIBEXT=.dll
+SHLDADD+=-Wl,--export-all-symbols -Wl,--enable-auto-import
+else
+LIBEXT=.so
+endif
+SLIB=lib$(LIBNAME)$(LIBSUFFIX)$(LIBEXT)
+CLEANFILES+=$(SLIB) $(SOBJS)
+SOBJS+=$(SRCS:%.c=%$(OBJSUFFIX).so)
+_all: $(SLIB)
+
+$(SLIB): $(SOBJS)
+#	$(CC) $(LDADD) $(SHLDADD) -shared -o $(SLIB) $(SOBJS) $(SHAREDLIBS)
+	$(FULLCC) $(LDADD) $(SHLDADD) -shared -o $(SLIB) $(SOBJS) $(SHAREDLIBS)
+
+else # LIBTYPE
+
+# Standard(static) lib
+LIBEXT=.a
+ALIB=lib$(LIBNAME)$(LIBSUFFIX)$(LIBEXT)
+CLEANFILES+=$(ALIB) $(OBJS)
+_all: $(ALIB)
+
+$(ALIB): $(OBJS)
+	$(AR) cr $(ALIB) $(OBJS)
+	$(RANLIB) $(ALIB)
+
+endif
+
+_doinstall:
+ifeq ($(LIBTYPE),shared)
+	@mkdir -p $(LIBDIR)
+	$(INSTALL) -m 755 $(INSTALL_USER) $(SLIB) $(LIBDIR)
+endif
+ifneq ("$(wildcard $(SCRIPTS))","")
+	@mkdir -p $(LIBDIR)/$(LIBNAME)
+	$(INSTALL) -m 755 $(INSTALL_USER) $(SCRIPTS) $(LIBDIR)/$(LIBNAME)
+endif
+
+else #  LIBNAME
+##############################
+#
+##################### PROG
+#
+##############################
+
+ifneq ($(PROGNAME),)
+# Static binary?
+ifeq ($(_DOSTATIC),yes)
+LDADD+=-static
+else
+# Dynamic binary?
+ifeq ($(DYNAMIC),yes)
+LDADD+=-rdynamic
+LIBS+=-ldl
+endif
+endif
+PROG=$(PROGNAME)$(EXE)
+CLEANFILES+=$(PROG) $(OBJS)
+_all: $(PROG)
+
+_PROG_SCRIPT=
+ifneq ("$(wildcard $(PROGNAME).sh)","")
+_PROG_SCRIPT=$(PROGNAME).sh
+else
+ifneq ("$(wildcard $(PROGNAME).js)","")
+_PROG_SCRIPT=$(PROGNAME).js
+endif
+endif
+ifneq ($(_PROG_SCRIPT),)
+$(PROG): $(_PROG_SCRIPT)
+#	cp $(_PROG_SCRIPT) $(PROG)
+	cat $< | sed -e "s:+PREFIX+:$(PREFIX):g" \
+		-e "s:+BINDIR+:$(BINDIR):g" \
+		-e "s:+ETCDIR+:$(ETCDIR):g" \
+		-e "s:+LIBDIR+:$(LIBDIR):g" \
+		-e "s:+LOGDIR+:$(LOGDIR):g" \
+		-e "s:+PROG+:$(PROG):g" \
+		> $@
+	chmod +x $(PROG)
+else
+$(PROG): $(OBJS) $(DEPS)
+#	$(FULLCC) $(LDADD) -o $(PROG) $(OBJS) $(LIBS) $(ENDLIBS)
+	$(CC) $(CFLAGS) $(LDADD) -o $(PROG) $(OBJS) $(LIBS) $(ENDLIBS)
+endif
+
+debug: $(PROG)
+	gdb ./$(PROG)
+
+ifneq ($(SERVICE_NAME),)
+SERVICE_T=$(SRC_ROOT)/etc/service.template
+SERVICE=$(SERVICE_NAME).service
+else
+SERVICE_T=$(PROGNAME).service.template
+SERVICE=$(PROGNAME).service
+endif
+PROGCONF=$(PROGNAME).conf
+
+ifneq ("$(wildcard $(SERVICE_T))","")
+	_SERVICE=/etc/systemd/system/$(SERVICE)
+else
+	ifneq ("$(wildcard $(SERVICE))","")
+		_SERVICE=/etc/systemd/system/$(SERVICE)
+	endif
+endif
+
+_doinstall: $(PROG) $(_SERVICE)
+	mkdir -p $(BINDIR)
+	$(INSTALL) -m 755 $(INSTALL_USER) $(PROG) $(BINDIR)/$(PROG)
+ifneq ("$(wildcard $(PROGCONF))","")
+	mkdir -p $(ETCDIR)
+	$(INSTALL) -m 644 $(INSTALL_USER) $(PROGCONF) $(ETCDIR)/$(PROGCONF)
+endif
+ifneq ("$(wildcard $(SCRIPTS))","")
+	mkdir -p $(LIBDIR)/agents/$(PROGNAME)
+	$(INSTALL) -m 755 $(INSTALL_USER) $(SCRIPTS) $(LIBDIR)/agents/$(PROGNAME)
+endif
+ifneq ("$(wildcard $(FILES))","")
+	mkdir -p $(LIBDIR)
+	$(INSTALL) -m 644 $(INSTALL_USER) $(FILES) $(LIBDIR)
+endif
+
+uninstall:
+ifneq ("$(wildcard $(SCRIPTS))","")
+	rm -f $(LIBDIR)/agents/$(PROGNAME)/$(SCRIPTS)
+endif
+ifneq ("$(wildcard $(FILES))","")
+	rm -f $(LIBDIR)/$(FILES)
+endif
+ifneq ("$(wildcard $(_SERVICE))","")
+	systemctl stop $(SERVICE)
+	systemctl disable $(SERVICE)
+	rm -f $(_SERVICE)
+	systemctl daemon-reload
+endif
+	rm -f $(BINDIR)/$(PROG)
+
+ifneq ("$(wildcard $(SERVICE_T))","")
+CLEANFILES+=$(SERVICE)
+ifeq ($(SERVICE_DESC),)
+	_DESC=$(SERVICE_NAME)
+else
+	_DESC=$(SERVICE_DESC)
+endif
+ifeq ($(SERVICE_APPEND),yes)
+	_APPEND=-a
+else
+	_APPEND=
+endif
+ifeq ($(MQTT),yes)
+        AFTER+=mosquitto.service
+endif
+ifeq ($(INFLUX),yes)
+        AFTER+=influxdb.service
+endif
+ifneq ("$(wildcard $(SERVICE_AFTER))","")
+	AFTER+=$(SERVICE_AFTER)
+endif
+$(SERVICE): $(SERVICE_T)
+	cat $< | sed -e "s:+PREFIX+:$(PREFIX):g" \
+		-e "s:+BINDIR+:$(BINDIR):g" \
+		-e "s:+ETCDIR+:$(ETCDIR):g" \
+		-e "s:+LIBDIR+:$(LIBDIR):g" \
+		-e "s:+LOGDIR+:$(LOGDIR):g" \
+		-e "s:+PROG+:$(PROG):g" \
+		-e "s:+NAME+:$(SERVICE_NAME):g" \
+		-e "s:+DESC+:$(_DESC):g" \
+		-e "s:+APPEND+:$(_APPEND):g" \
+		-e "s:+AFTER+:$(AFTER):g" \
+		> $@
+endif
+
+$(_SERVICE): $(SERVICE)
+ifeq ($(UID),0)
+	$(INSTALL) -m 644 $(INSTALL_USER) $< $@
+	systemctl daemon-reload
+#	systemctl enable $(SERVICE)
+endif
+
+#release: $(PROG)
+#	mkdir -p $(SRC_ROOT)/releases/$(TARGET)
+#	$(MAKE) PREFIX=$(SRC_ROOT)/releases/$(TARGET) TARGET=$(TARGET) install
+
+else # not PROGNAME
+all:
+
+endif # PROGNAME
+
+endif # LIBNAME
+
+install: _preinstall _doinstall _postinstall
+
+clean: _preclean _doclean _postclean
+
+_doclean:
+	rm -rf $(CLEANFILES) __sd_build.h
+
+$(DEPFILES):
+include $(wildcard $(DEPFILES))
