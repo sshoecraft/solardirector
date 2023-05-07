@@ -60,8 +60,8 @@ int os_exists(char *path, char *name);
 
 //bool fequal(float a, float b);
 //int float_equals(float a, float b);
-//int double_equals(double a, double b);
-#define double_equals(a,b) ((fabs(a) - fabs(b)) < 10e-7)
+int double_equals(double a, double b);
+//#define double_equals(a,b) ((fabs(a) - fabs(b)) < 10e-7)
 int double_isint(double z);
 double pround(double val, int places);
 

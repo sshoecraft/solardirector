@@ -529,7 +529,7 @@ static JSBool smanet_ctor(JSContext *cx, JSObject *obj, uintN argc, jsval *argv,
 	dprintf(dlevel,"transport: %s, target: %s, topts:%s\n", transport, target, topts);
 
 //	s = smanet_init(transport,target,topts);
-	s = smanet_init();
+	s = smanet_init(false);
 	dprintf(dlevel,"s: %p\n", s);
 	if (!s) return JS_FALSE;
 	smanet_connect(s,transport,target,topts);

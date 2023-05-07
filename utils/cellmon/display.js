@@ -1,4 +1,4 @@
-include(dirname(script_name)+"/../../core/utils.js");
+include(agent.libdir+"/sd/utils.js");
 
 COLUMN_WIDTH = 7
 

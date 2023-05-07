@@ -22,7 +22,8 @@ int smanet_command(smanet_session_t *s, int cmd, smanet_packet_t *p, uint8_t *bu
 	if (cmd <= 0 || cmd > 60) return 1;
 
 	/* open if not already */
-	if (smanet_open(s)) return 1;
+	dprintf(dlevel,"opened: %d\n", s->opened);
+	if (!s->opened && smanet_open(s)) return 1;
 
 	time(&s->last_command);
 

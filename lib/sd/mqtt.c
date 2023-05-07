@@ -476,7 +476,7 @@ int mqtt_pub(mqtt_session_t *s, char *topic, char *message, int wait, int retain
 	token = 0;
 	retry = 0;
 again:
-//	dprintf(dlevel,"publishing...\n");
+	dprintf(dlevel,"publishing...\n");
 	if (s->v3) {
 		rc = MQTTClient_publishMessage(s->c, topic, &pubmsg, &token);
 	} else {
@@ -484,9 +484,9 @@ again:
 		rc = response.reasonCode;
 		MQTTResponse_free(response);
 	}
-//	dprintf(dlevel,"rc: %d\n", rc);
+	dprintf(dlevel,"rc: %d\n", rc);
 	if (rc != MQTTCLIENT_SUCCESS) {
-//		dprintf(dlevel,"publish error\n");
+		dprintf(dlevel,"publish error\n");
 		if (!retry) {
 			mqtt_reconnect(s);
 			retry = 1;
@@ -496,13 +496,14 @@ again:
 		}
 	}
 	if (wait) {
-//		dprintf(dlevel,"waiting...\n");
+		dprintf(dlevel,"waiting...\n");
 		rc = MQTTClient_waitForCompletion(s->c, token, TIMEOUT);
-//		dprintf(dlevel,"rc: %d\n", rc);
+		dprintf(dlevel,"rc: %d\n", rc);
 		if (rc != MQTTCLIENT_SUCCESS) return 1;
 	}
-//	dprintf(dlevel,"delivered message... token: %d\n",token);
+	dprintf(dlevel,"delivered message... token: %d\n",token);
 	if (rt) MQTTProperties_free(&pubmsg.properties);
+	dprintf(dlevel,"done!\n");
 	return 0;
 }
 
@@ -804,8 +805,10 @@ static JSBool js_mqtt_pub(JSContext *cx, JSObject *obj, uintN argc, jsval *argv,
 	dprintf(dlevel,"topic: %s, message: %s, retain: %d\n", topic, message, retain);
 
         mqtt_pub(s,topic,message,1,retain);
+	dprintf(dlevel,"freeing args...\n");
 	JS_free(cx,topic);
 	JS_free(cx,message);
+	dprintf(dlevel,"done!\n");
     	return JS_TRUE;
 }
 

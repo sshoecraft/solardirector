@@ -9,14 +9,17 @@ LICENSE file in the root directory of this source tree.
 
 // Dirs
 script_dir = dirname(script_name);
-core_dir = si.libdir + "/sd/";
+lib_dir = (script_dir == "." ? "../../lib" : si.libdir);
+//printf("script_dir: %s, lib_dir: %s\n", script_dir, lib_dir);
+core_dir = lib_dir + "/sd";
+//printf("core_dir: %s\n", core_dir);
 
 // Core
-include(core_dir+"init.js");
-include(core_dir+"utils.js");
-include(core_dir+"kalman.js");
-include(core_dir+"inverter.js");
-include(core_dir+"charger.js");
+include(core_dir+"/init.js");
+include(core_dir+"/utils.js");
+include(core_dir+"/kalman.js");
+include(core_dir+"/inverter.js");
+include(core_dir+"/charger.js");
 
 // Our utils
 include(script_dir+"/utils.js");

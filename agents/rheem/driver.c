@@ -232,6 +232,7 @@ static void rheem_getmsg(void *ctx, char *topic, char *message, int msglen, char
 	json_object_t *o;
 	rheem_device_t *d;
 	char *name;
+	int old_enabled;
 
 	dprintf(dlevel,"message: %s\n", message);
 	v = json_parse(message);
@@ -249,9 +250,24 @@ static void rheem_getmsg(void *ctx, char *topic, char *message, int msglen, char
 	dprintf(dlevel+1,"d: %p\n", d);
 	if (!d) goto rheem_getmsg_done;
 
+	/* Save current enabled setting */
+	old_enabled = d->enabled;
+
 	if (_getstats(s,o,d)) s->repub = true;
 	if (d->mode >= 0 && d->mode < d->modecount) strncpy(d->modestr,d->modes[d->mode],sizeof(d->modestr)-1);
 //	rheem_dump_device(d);
+
+	/* Did something else enable the unit */
+	dprintf(dlevel,"enabled: %d, old_enabled: %d\n", d->enabled, old_enabled);
+	if (d->enabled != old_enabled) {
+		config_property_t *p = config_get_property(s->ap->cp,d->id,(d->enabled ? "auto_started" : "auto_stopped"));
+		dprintf(dlevel,"p: %p\n", p);
+		if (p) {
+			bool t = true;
+			config_property_set_value(p,DATA_TYPE_BOOL,&t,0,true,true);
+			s->ap->refresh = true;
+		}
+	}
 
 rheem_getmsg_done:
 	json_destroy_value(v);

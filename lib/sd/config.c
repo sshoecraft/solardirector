@@ -3623,19 +3623,25 @@ static JSBool js_config_ctor(JSContext *cx, JSObject *parent, uintN argc, jsval 
 	JSObject *newobj;
 
 	name = filename = 0;
+	filetype = CONFIG_FILE_FORMAT_AUTO;
 	if (!JS_ConvertArguments(cx, argc, argv, "s / s d", &filename, &filetype)) return JS_FALSE;
 	dprintf(dlevel,"name: %s, file: %s, type: %d\n", name, filename, filetype);
 
-//	config_t *config_init(char *section_name, config_property_t *props, config_function_t *funcs) {
 	cp = config_init(name, 0, 0);
 	dprintf(dlevel,"cp: %p\n", cp);
 	if (!cp) {
 		JS_ReportError(cx, "js_config_ctor: config_init returned null\n");
 		return JS_FALSE;
 	}
+	if (name) JS_free(cx,name);
 
 	newobj = js_config_new(cx,parent,cp);
 	*rval = OBJECT_TO_JSVAL(newobj);
+
+	if (filename) {
+		config_set_filename(cp, filename, filetype);
+		JS_free(cx,filename);
+	}
 
 	return JS_TRUE;
 }

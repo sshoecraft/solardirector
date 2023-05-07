@@ -41,11 +41,8 @@ static int set_readonly(void *ctx, config_property_t *p, void *old_value) {
 static int rheem_refresh(void *ctx, list args, char *errmsg, json_object_t *results) {
 	rheem_session_t *s = ctx;
 
-	dprintf(dlevel,"refreshing...\n");
-	if (!rheem_driver.read(ctx,0,0,0)) {
-		agent_start_script(s->ap,s->ap->js.read_script);
-		if (!rheem_driver.write(ctx,0,0,0)) agent_start_script(s->ap,s->ap->js.write_script);
-	}
+	dprintf(dlevel,"s: %p\n", s);
+	if (s && s->ap) s->ap->refresh = true;
 	return 0;
 }
 
@@ -71,7 +68,7 @@ int rheem_agent_init(int argc, char **argv, rheem_session_t *s) {
 	config_property_t rheem_props[] = {
 		/* name, type, dest, dsize, def, flags, scope, values, labels, units, scale, precision, trigger, ctx */
 		{ "email", DATA_TYPE_STRING, &s->email, sizeof(s->email)-1, 0, 0 },
-		{ "password", DATA_TYPE_STRING, &s->password, sizeof(s->password)-1, 0, 0 },
+		{ "password", DATA_TYPE_STRING, &s->password, sizeof(s->password)-1, 0, CONFIG_FLAG_NOPUB },
 		{ "location", DATA_TYPE_STRING, &s->location, sizeof(s->location)-1, 0, 0, 0, 0, 0, 0, 0, 0, set_location, s },
 		{ "readonly", DATA_TYPE_BOOL, &s->readonly, 0, "no", 0, 0, 0, 0, 0, 0, 0, set_readonly, s },
 		{ 0 }

@@ -66,6 +66,87 @@ int si_startstop(si_session_t *s, int op) {
 	return (retries < 0 ? 1 : 0);
 }
 
+typedef struct {
+	char label[64];
+	char value[256];
+	double d;
+	char *text;
+} setting_t;
+
+list read_settings(char *filename,smanet_session_t *smanet) {
+	FILE *fp;
+	char line[256];
+	double d,dv;
+	char *text;
+	setting_t newset,*s;
+	list l;
+	smanet_multreq_t *mr;
+	int count,mr_size,i;
+
+	l = list_create();
+
+	/* read the file */
+	fp = fopen(filename,"r");
+	if (!fp) {
+		log_syserror("fopen(%s,r)",filename);
+		return 0;
+	}
+	i = 0;
+	while(fgets(line,sizeof(line)-1,fp)) {
+		i++;
+		dprintf(1,"line: %s\n", line);
+		if (*line == '#') continue;
+		memset(&newset,0,sizeof(newset));
+		strncpy(newset.label,strele(0," ",line),sizeof(newset.label)-1);
+		strncpy(newset.value,strele(1," ",line),sizeof(newset.value)-1);
+		dprintf(1,"label: %s, value: %s\n", newset.label, newset.value);
+		if (!strlen(newset.value)) {
+			log_warning("line %d has no value, ignored", i);
+			continue;
+		}
+		list_add(l,&newset,sizeof(newset));
+	}
+	fclose(fp);
+
+	count = list_count(l);
+	dprintf(1,"count: %d\n", count);
+	if (!count) return l;
+
+	/* Get the values from SI */
+	mr_size = count * sizeof(smanet_multreq_t);
+	dprintf(1,"mr_size: %d\n", mr_size);
+	mr = malloc(mr_size);
+	if (!mr) {
+		log_syserror("read_settings: malloc %d\n", mr_size);
+		return 0;
+	}
+	i = 0;
+	list_reset(l);
+	while((s = list_get_next(l)) != 0) {
+		mr[i].name = s->label;
+		dprintf(1,"mr[%d]: %s\n", i, mr[i].name);
+		i++;
+	}
+	if (smanet_get_multvalues(smanet,mr,count)) {
+		log_error("error getting multi values: %s\n", smanet_get_errmsg(smanet));
+		free(mr);
+		return 0;
+	}
+
+	/* We added the MR labels in the same order as the list */
+	i = 0;
+	list_reset(l);
+	while((s = list_get_next(l)) != 0) {
+//		dprintf(0,"mr[%d]: value: %f, text: %s\n", i, mr[i].value, mr[i].text);
+		s->d = mr[i].value;
+		s->text = mr[i].text;
+		i++;
+//		dprintf(0,"setting: label: %s, value: %s, d: %f, text: %s\n", s->label, s->value, s->d, s->text);
+	}
+
+	return l;
+}
+
 enum ACTIONS {
 	ACTION_NONE=0,
 	ACTION_LIST,
@@ -283,7 +364,7 @@ int main(int argc, char **argv) {
 		/* Load the smanet driver */
 		dprintf(1,"s->smanet_transport: %s, s->smanet_target: %s, s->smanet_topts: %s\n",
 			s->smanet_transport, s->smanet_target, s->smanet_topts);
-		s->smanet = smanet_init();
+		s->smanet = smanet_init(false);
 		if (smanet_connect(s->smanet,s->smanet_transport, s->smanet_target, s->smanet_topts)) {
 			log_error("unable to connect to SMANET: %s\n", smanet_get_errmsg(s->smanet));
 			return 1;
@@ -381,55 +462,37 @@ int main(int argc, char **argv) {
 #ifdef SMANET
 	case ACTION_FILE:
 		{
-			FILE *fp;
-			char line[256],label[64],value[128];
-			double d,dv;
-			char *text;
+			list l;
+			setting_t *sp;
+			double dv;
 
-
-			fp = fopen(filename,"r");
-			if (!fp) {
-				log_syserror("fopen(%s,r)",filename);
-				return 1;
-			}
-			while(fgets(line,sizeof(line)-1,fp)) {
-				dprintf(1,"line: %s\n", line);
-				if (*line == '#') continue;
-				*label = *value = 0;
-				strncpy(label,strele(0," ",line),sizeof(label)-1);
-				strncpy(value,strele(1," ",line),sizeof(value)-1);
-				dprintf(1,"label: %s, value: %s\n", label, value);
-				if (smanet_get_value(s->smanet,label,&d,&text)) {
-					log_write(LOG_ERROR,"%s: error getting value\n",label);
-					return 1;
-				}
-				if (strlen(value)) {
-					if (!text) {
-						dv = strtod(value,0);
-						dprintf(1,"dv: %f, d: %f\n", dv, d);
-						if (!double_equals(dv,d) || force_flag) {
-							if (ver_flag && !force_flag) printf("%s %f != %f\n",label,d,dv);
-							else if (smanet_set_value(s->smanet,label,dv,0))
-								printf("%s: error setting value: %f\n", label, dv);
-							else if (!quiet_flag) printf("%s %f -> %f\n",label,d,dv);
+			l = read_settings(filename,s->smanet);
+			if (l) {
+				list_reset(l);
+				while((sp = list_get_next(l)) != 0) {
+					dprintf(1,"sp: label: %s, value: %s, d: %f, text: %s\n", sp->label, sp->value, sp->d, sp->text);
+					if (!sp->text) {
+						dv = strtod(sp->value,0);
+						dprintf(1,"dv: %f, d: %f\n", dv, sp->d);
+						if (!double_equals(dv,sp->d) || force_flag) {
+							if (ver_flag && !force_flag) printf("%s %f != %f\n",sp->label,sp->d,dv);
+							else if (smanet_set_value(s->smanet,sp->label,dv,0))
+								printf("%s: error setting value: %f\n", sp->label, dv);
+							else if (!quiet_flag) printf("%s %f -> %f\n",sp->label,sp->d,dv);
 						}
 					} else {
-						dprintf(1,"value: %s, text: %s\n", value, text);
-						if (strcmp(text,"---") == 0) text = "Auto";
-						if (strcmp(value,text) != 0 || force_flag) {
-							if (ver_flag && !force_flag) printf("%s %s != %s\n",label,text,value);
-							else if (smanet_set_value(s->smanet,label,0,value))
-								printf("%s: error setting value: %f\n", label, dv);
-							else if (!quiet_flag) printf("%s %s -> %s\n",label,text,value);
+						dprintf(1,"value: %s, text: %s\n", sp->value, sp->text);
+						if (strcmp(sp->text,"---") == 0) sp->text = "Auto";
+						if (strcmp(sp->value,sp->text) != 0 || force_flag) {
+							if (ver_flag && !force_flag)
+								printf("%s %s != %s\n",sp->label,sp->text,sp->value);
+							else if (smanet_set_value(s->smanet,sp->label,0,sp->value))
+								printf("%s: error setting value: %f\n", sp->label, dv);
+							else if (!quiet_flag) printf("%s %s -> %s\n",sp->label,sp->text,sp->value);
 						}
 					}
-				} else {
-					if (text) printf("%s %s\n",label,text);
-					else if ((int)d == d) printf("%s %d\n",label,(int)d);
-					else printf("%s %f\n",label,d);
 				}
 			}
-			fclose(fp);
 		}
 		break;
 	case ACTION_LIST:

@@ -8,7 +8,7 @@ This source code is licensed under the BSD-style license found in the
 LICENSE file in the root directory of this source tree.
 */
 
-#define dlevel 5
+#define dlevel 2
 #include "debug.h"
 
 #include "rheem.h"
@@ -178,9 +178,12 @@ static JSBool rheem_device_setprop(JSContext *cx, JSObject *obj, jsval id, jsval
 				if (p) config_property_set_value(p,DATA_TYPE_INT,&i,sizeof(i),true,true);
 			}
 			break;
-		case RHEEM_DEVICE_PROPERTY_ID_LEVEL:
+		default:
+			return js_config_common_setprop(cx, obj, id, vp, s->ap->cp, 0);
 			break;
 		}
+	} else {
+		return js_config_common_setprop(cx, obj, id, vp, s->ap->cp, 0);
 	}
 	return JS_TRUE;
 }
@@ -214,6 +217,10 @@ JSObject *js_rheem_device_new(JSContext *cx, JSObject *parent, rheem_device_t *d
 		{ 0 }
 	};
 	JSFunctionSpec rheem_device_funcs[] = {
+#if 0
+		JS_FN("set_mode",js_rheem_device_set_mode,1,1,0)
+		JS_FN("set_temp",js_rheem_device_set_temp,1,1,0)
+#endif
 		{ 0 }
 	};
 	JSObject *obj;

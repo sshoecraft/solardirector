@@ -93,13 +93,14 @@ struct smanet_multreq {
 typedef struct smanet_multreq smanet_multreq_t;
 
 //smanet_session_t *smanet_init(char *, char *, char *);
-smanet_session_t *smanet_init(void);
+smanet_session_t *smanet_init(bool readonly);
 void smanet_destroy(smanet_session_t *s);
 int smanet_connect(smanet_session_t *, char *, char *, char *);
 int smanet_disconnect(smanet_session_t *);
 int smanet_reconnect(smanet_session_t *);
 int smanet_get_info(smanet_session_t *, smanet_info_t *);
 int smanet_connected(smanet_session_t *);
+int smanet_set_readonly(smanet_session_t *s, bool value);
 
 int smanet_read_channels(smanet_session_t *s);
 int smanet_save_channels(smanet_session_t *s, char *);

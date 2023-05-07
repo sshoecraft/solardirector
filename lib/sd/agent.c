@@ -496,6 +496,9 @@ config_property_t *agent_get_props(solard_agent_t *ap) {
 		{ "debug_mem", DATA_TYPE_BOOL, &ap->debug_mem, 0, "no", 0 },
 #endif
 		{ "agent_libdir", DATA_TYPE_STRING, ap->agent_libdir, sizeof(ap->agent_libdir)-1, 0 },
+		{ "run_count", DATA_TYPE_INT, &ap->run_count, 0, 0, CONFIG_FLAG_READONLY },
+		{ "read_count", DATA_TYPE_INT, &ap->read_count, 0, 0, CONFIG_FLAG_READONLY },
+		{ "write_count", DATA_TYPE_INT, &ap->write_count, 0, 0, CONFIG_FLAG_READONLY },
 #ifdef JS
 		{ "rtsize", DATA_TYPE_INT, &ap->js.rtsize, 0, 0, CONFIG_FLAG_READONLY },
 		{ "stacksize", DATA_TYPE_INT, &ap->js.stksize, 0, 0, CONFIG_FLAG_READONLY },
@@ -905,7 +908,7 @@ int agent_run(solard_agent_t *ap) {
 #endif
 	peak = last_peak = last_used = 0;
 	set_state(ap,SOLARD_AGENT_STATE_RUNNING);
-	ap->run_count = 0;
+	ap->run_count = ap->read_count = ap->write_count = 0;
 	agent_event(ap,"Agent","Start");
 	while(check_state(ap,SOLARD_AGENT_STATE_RUNNING)) {
 		/* Call read func */
@@ -945,6 +948,7 @@ int agent_run(solard_agent_t *ap) {
 				if (AGENT_HASFLAG(CAREAD) && ap->driver->close) ap->driver->close(ap->handle);
 			}
 			time(&last_read);
+			ap->read_count++;
 		}
 
 #ifdef MQTT
@@ -1002,6 +1006,7 @@ int agent_run(solard_agent_t *ap) {
 			}
 			dprintf(dlevel,"write_status: %d\n", write_status);
 			if (write_status) dprintf(dlevel,"write failed!\n");
+			ap->write_count++;
 
 			used = mem_used();
 			if (used > peak) peak = used;
@@ -1027,6 +1032,11 @@ int agent_run(solard_agent_t *ap) {
 #endif
 		ap->run_count++;
 		sleep(1);
+
+		if (ap->refresh) {
+			last_read -= ap->interval;
+			ap->refresh = false;
+		}
 //		break;
 	}
 	agent_event(ap,"Agent","Stop");

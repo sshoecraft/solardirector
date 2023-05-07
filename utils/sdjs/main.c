@@ -8,7 +8,7 @@ This source code is licensed under the BSD-style license found in the
 LICENSE file in the root directory of this source tree.
 */
 
-#define dlevel 0
+#define dlevel 1
 #include "debug.h"
 
 #define SDJS_CLIENT 0

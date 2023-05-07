@@ -266,6 +266,7 @@ struct si_session {
 	char last_out[128];
 	int disable_si_read;
 	int disable_si_write;
+	int sync_interval;
 	struct {
 		bool enabled;
 		char name[256];

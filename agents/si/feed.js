@@ -29,7 +29,7 @@ function set_feed_stop_date() {
 
 function set_feed_timeout_after_date() {
 
-        var dlevel = 1;
+        var dlevel = 0;
 
 	dprintf(dlevel,"feed_timeout_after: %s\n", si.feed_timeout_after);
         if (!si.feed_timeout_after.length) si.feed_timeout_after_date = undefined;
@@ -84,13 +84,9 @@ function feed_start(force) {
 	agent.event("Feed","Start");
 
 	if (si_smanet_set_value("GdMod","GridFeed",2)) {
-		dprintf(dlevel,"reconnecting...\n");
-		smanet.reconnect();
-		if (si_smanet_set_value("GdMod","GridFeed",1)) {
-			si.errmsg = "error setting GdMod to GridFeed";
-			log_error("%s\n",si.errmsg);
-			return 1;
-		}
+		si.errmsg = "error setting GdMod to GridFeed";
+		log_error("%s\n",si.errmsg);
+		return 1;
 	}
 	// Use charge start/stop for grid
 	si_start_grid();
@@ -114,13 +110,9 @@ function feed_stop(force) {
 	agent.event("Feed","Stop");
 
 	if (si_smanet_set_value("GdMod","GridCharge",2)) {
-		dprintf(dlevel,"reconnecting...\n");
-		smanet.reconnect();
-		if (si_smanet_set_value("GdMod","GridCharge",1)) {
-			si.errmsg = "error setting GdMod to GridCharge";
-			log_error("%s\n",si.errmsg);
-			return 1;
-		}
+		si.errmsg = "error setting GdMod to GridCharge";
+		log_error("%s\n",si.errmsg);
+		return 1;
 	}
 	// Use charge start/stop for grid
 	si_stop_grid(false);
@@ -158,7 +150,7 @@ function dynamic_feed() {
 
 function feed_timeout() {
 
-	var dlevel = 1;
+	var dlevel = 0;
 
 	let cur = new Date();
 	dprintf(dlevel,"current_date: %s\n", cur);
@@ -199,8 +191,8 @@ function feed_main() {
 		dprintf(dlevel,"cur: %s, stop: %s, diff: %s\n",
 			cur.getTime(), si.feed_stop_date.getTime(), si.feed_stop_date.getTime() - cur.getTime());
 	}
-	if (!(si.charge_mode && si.charge_feed) && si.feed_stop_date && cur.getTime() >= si.feed_stop_date.getTime()) {
-		feed_stop(false);
+	if (si.feed_stop_date && cur.getTime() >= si.feed_stop_date.getTime()) {
+		if (!(si.charge_mode && si.charge_feed)) feed_stop(false);
 		set_feed_stop_date();
 	}
 
@@ -220,7 +212,7 @@ function feed_main() {
 	dprintf(dlevel,"input_source: %d, feed_enabled: %d, GdOn: %d\n", si.input_source, si.feed_enabled, data.GdOn);
 	if (si.input_source != CURRENT_SOURCE_NONE && si.feed_enabled && data.GdOn) {
 		// If ac2_power has been < 0 longer than timeout, disable feed (only if not force charging)
-		dprintf(dlevel,"charge_mode: %d, charge_feed: %s, ac2_power: %.1f\n",
+		dprintf(-1,"charge_mode: %d, charge_feed: %s, ac2_power: %.1f\n",
 			si.charge_mode, si.charge_feed, data.ac2_power);
 		if (!(si.charge_mode && si.charge_feed) && data.ac2_power < 0) {
 			if (feed_timeout()) {

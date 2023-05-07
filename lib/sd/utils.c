@@ -231,6 +231,9 @@ int is_ip(char *string) {
 is_ip_error:
 	return 0;
 }
+
+
+/* XXX cant log_write here */
 int get_timestamp(char *ts, int tslen, int local) {
 	struct tm *tptr;
 	time_t t;
@@ -240,7 +243,6 @@ int get_timestamp(char *ts, int tslen, int local) {
 	/* Fill the tm struct */
 	t = time(NULL);
 	tptr = 0;
-//	dprintf(2,"local: %d\n", local);
 	if (local) tptr = localtime(&t);
 	else tptr = gmtime(&t);
 	if (!tptr) {
@@ -256,7 +258,6 @@ int get_timestamp(char *ts, int tslen, int local) {
 		1900+tptr->tm_year,tptr->tm_mon+1,tptr->tm_mday,
 		tptr->tm_hour,tptr->tm_min,tptr->tm_sec);
 
-	dprintf(2,"returning: %s\n", ts);
 	return 0;
 }
 
@@ -424,6 +425,16 @@ double pround(double val, int places) {
 	d = strtod(value,0);
 //	printf("d: %lf\n", d);
 	return d;
+}
+
+int double_equals(double a, double b) {
+	double fa,fb,fd;
+
+	fa = fabs(a);
+	fb = fabs(b);
+	fd = (fa > fb ? fa - fb : fb - fa);
+//	dprintf(0,"fa: %f, fb: %f, fd: %f\n", fa, fb, fd);
+	return fd < 10e-7 ? true : false;
 }
 
 int double_isint(double z) {

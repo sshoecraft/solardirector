@@ -7,6 +7,31 @@ This source code is licensed under the BSD-style license found in the
 LICENSE file in the root directory of this source tree.
 */
 
+function rheem_set_value(dev,name,value,timeout) {
+	var start,now,diff,val;
+
+	var dlevel = -1;
+
+	if (rheem.readonly) return 1;
+
+	dprintf(dlevel,"dev: %s, name: %s, value: %s, timeout: %d\n", dev.id, name, value, timeout);
+
+	// Set the new value
+	dev[name] = value;
+
+	start = time();
+	while(true) {
+		dprintf(dlevel,"current value: %s\n", dev[name]);
+		if (dev[name] == value) break;
+		now = time();
+		diff = now - start;
+		dprintf(dlevel,"diff: %d, timeout: %d\n", diff, timeout);
+		if (diff >= timeout-1) return 0;
+		sleep(1);
+	}
+	return 1;
+}
+
 function set_auto_on_date(n,p,o) {
 
 	let dlevel = 1;
@@ -18,7 +43,7 @@ function set_auto_on_date(n,p,o) {
 	dprintf(dlevel,"auto_on: %s, added: %s\n", dev.auto_on, dev.added);
 	if (!dev.auto_on.length) dev.auto_on_date = undefined;
 	else dev.auto_on_date = get_date(rheem.location,dev.auto_on,"auto_on",dev.added);
-	if (dev.auto_on_date) dprintf(dlevel,"NEW auto_on_date: %s\n",dev.auto_on_date);
+	if (dev.auto_on_date) dprintf(-1,"NEW auto_on_date: %s\n",dev.auto_on_date);
 }
 
 function set_aoltd(n,p,o) {
@@ -52,7 +77,7 @@ function set_auto_off_date(n,p,o) {
 	dprintf(dlevel,"auto_off: %s, added: %s\n", dev.auto_off, dev.added);
 	if (!dev.auto_off.length) dev.auto_off_date = undefined;
 	else dev.auto_off_date = get_date(rheem.location,dev.auto_off,"auto_off",dev.added);
-	if (dev.auto_off_date) dprintf(dlevel,"NEW auto_off_date: %s\n",dev.auto_off_date);
+	if (dev.auto_off_date) dprintf(-1,"NEW auto_off_date: %s\n",dev.auto_off_date);
 	if (dev.auto_off_level_timeout) set_aoltd(n);
 }
 
@@ -72,7 +97,7 @@ function set_override(n,p,o) {
 }
 
 function set_location() {
-	dprintf(dlevel,"count: %d\n", rheem.devices.length);
+	dprintf(-1,"count: %d\n", rheem.devices.length);
 	for(i=0; i < rheem.devices.length; i++) {
 		set_auto_on_date(i);
 		set_auto_off_date(i);
@@ -141,13 +166,25 @@ function inverter_source_trigger() {
 	}
 }
 
+function fix_date(d,s,h) {
+	let c = new Date();
+	dprintf(-1,"c: %s, d: %s\n", c, d);
+	let hours = Math.floor(Math.abs(d - c) / 36e5);
+	dprintf(-1,"hours: %f\n", hours);
+	if (hours < h) {
+		d.setDate(d.getDate() + 1);
+		dprintf(-1,"FIXED %s: %s\n", s, d);
+	}
+	return d;
+}
+
 function read_main() {
 
 //	printf("*** IN READ ****\n");
 
-	include(dirname(script_name)+"/../../core/utils.js");
-	include(dirname(script_name)+"/../../core/kalman.js");
-	include(dirname(script_name)+"/../../core/suncalc.js");
+	include(rheem.libdir+"/sd/utils.js");
+	include(rheem.libdir+"/sd/kalman.js");
+	include(rheem.libdir+"/sd/suncalc.js");
 
 	let dlevel = 1;
 
@@ -216,8 +253,8 @@ function read_main() {
 		var dev = devices[i];
 		dprintf(dlevel,"id: %s, added: %s\n", dev.id, dev.added);
 		if (!dev.added) {
-//			printf("***** ADDING DEV PROPS ****\n");
-			let deftemp = 122;
+			dprintf(dlevel,"***** ADDING DEV PROPS ****\n");
+			let deftemp = 125;
 			var dev_props = [
 				[ "defmode", DATA_TYPE_STRING, "energy_saver", 0 ],
 				[ "deftemp", DATA_TYPE_INT, deftemp, 0 ],
@@ -226,7 +263,9 @@ function read_main() {
 				[ "force_level_mode", DATA_TYPE_STRING, "high_demand", 0 ],
 				[ "force_level_temp", DATA_TYPE_INT, deftemp, 0 ],
 				[ "auto_on", DATA_TYPE_STRING, null, 0, set_auto_on_date, i ],
+				[ "auto_started", DATA_TYPE_BOOL, "false", CONFIG_FLAG_PRIVATE ],
 				[ "auto_off", DATA_TYPE_STRING, null, 0, set_auto_off_date, i ],
+				[ "auto_stopped", DATA_TYPE_BOOL, "false", CONFIG_FLAG_PRIVATE ],
 				[ "auto_off_level", DATA_TYPE_INT, null, 0 ],
 				[ "auto_off_level_timeout", DATA_TYPE_INT, 120, 0, set_aoltd, i ],
 				[ "reserve_power", DATA_TYPE_INT, 5000, 0 ],
@@ -246,12 +285,8 @@ function read_main() {
 		}
 //		dumpobj(dev);
 
-		// If we're readonly, dont try to do anything here
-//		dprintf(dlevel,"readonly: %s\n", rheem.readonly);
-//		if (rheem.readonly) continue;
-
 		let cur = new Date();
-		dprintf(dlevel,"Current date: %s\n", cur);
+		dprintf(-1,"Current date: %s\n", cur);
 
 		// Override?
 		dprintf(dlevel,"override: %s\n", dev.override);
@@ -263,22 +298,38 @@ function read_main() {
 			continue;
 		}
 
-//		if (dev.mode == "off") {
-			// auto on
-			let doit = false;
-			dprintf(dlevel,"auto_on_date: %s\n", dev.auto_on_date);
+		// auto on
+		dprintf(-1,"enabled: %s, auto_started: %s\n", dev.enabled, dev.auto_started);
+		if (!dev.enabled) {
+			dprintf(-1,"auto_stopped: %s\n", dev.auto_stopped);
+			if (dev.auto_stopped) {
+				set_auto_on_date(i);
+				set_auto_off_date(i);
+				dev.auto_stopped = false;
+			}
+			dprintf(-1,"auto_on_date: %s\n", dev.auto_on_date);
 			if (dev.auto_on_date) dprintf(dlevel,"cur: %s, auto_on: %s, diff: %s\n",
 				cur.getTime(), dev.auto_on_date.getTime(), dev.auto_on_date.getTime() - cur.getTime());
+			// We do this so it will "fall through" after turning on
 			if (dev.auto_on_date && cur.getTime() >= dev.auto_on_date.getTime()) {
+				if (!rheem_set_value(dev,"enabled",true,30)) continue;
+//				dev.enabled = dev.auto_started = true;
 				set_auto_on_date(i);
-				doit = true;
+				if (dev.auto_on_date) dev.auto_on_date = fix_date(dev.auto_on_date,"auto_on_date");
+				dev.auto_stopped = true;
+			} else {
+				continue;
 			}
-		dprintf(dlevel,"mode: %s, doit: %s\n", dev.mode, doit);
-			if (dev.mode == "off" && !doit) continue;
-//		}
+
+		// If we are enabled and we auto started, set next auto on date
+		} else if (dev.auto_started) {
+			set_auto_on_date(i);
+			set_auto_off_date(i);
+			dev.auto_started = false;
+		}
 
 		// auto off
-		dprintf(dlevel,"auto_off_date: %s\n", dev.auto_off_date);
+		dprintf(-1,"auto_off_date: %s\n", dev.auto_off_date);
 		if (dev.auto_off_date) dprintf(dlevel,"cur: %s, auto_off: %s, diff: %s\n",
 			cur.getTime(), dev.auto_off_date.getTime(), dev.auto_off_date.getTime() - cur.getTime());
 		if (dev.auto_off_date && cur.getTime() >= dev.auto_off_date.getTime()) {
@@ -291,8 +342,12 @@ function read_main() {
 			}
 			dprintf(dlevel,"doit: %s\n", doit);
 			if (doit) {
-				set_auto_off_date(i);
-				dev.mode = "off";
+				// Turn off the unit
+				if (rheem_set_value(dev,"enabled",false,30)) {
+					set_auto_off_date(i);
+					if (dev.auto_off_date) dev.auto_off_date = fix_date(dev.auto_off_date,"auto_off_date");
+					dev.auto_stopped = true;
+				}
 				continue;
 			}
 		}
@@ -300,6 +355,13 @@ function read_main() {
 		// If we're on battery power
 		dprintf(dlevel,"battery_power: %s, battery_mode: %s\n", dev.battery_power, dev.battery_mode);
 		if (battery_power >= dev.battery_power && dev.battery_mode) {
+			/* If the element turns on while on battery power shut the unit off!! */
+			dprintf(-1,"status: %s\n", dev.status);
+			if (dev.status.indexOf("Element") >= 0) {
+				dprintf(-1,"disabling!\n");
+				dev.enabled = false;
+				continue;
+			}
 			dev.mode = dev.battery_mode;
 			dev.temp = dev.battery_temp;
 			continue;
@@ -309,11 +371,13 @@ function read_main() {
 		dprintf(dlevel,"reserved: %s, reserve_power: %s, avail_power: %s\n",
 			dev.reserved, dev.reserve_power, avail_power);
 		if (!dev.reserved && dev.reserve_power && avail_power > dev.reserve_power) {
-			dev.mode = dev.avail_mode;
-			dev.temp = dev.avail_temp;
-			avail_power -= dev.reserve_power;
-			dev.reserved = true;
-			continue;
+//			dev.mode = dev.avail_mode;
+			if (rheem_set_value(dev,"mode",dev.avail_mode,30)) {
+				dev.temp = dev.avail_temp;
+				avail_power -= dev.reserve_power;
+				dev.reserved = true;
+				continue;
+			}
 
 		// If reserved, keep it until avail_power < reserve_power
 		} else if (dev.reserved) {

@@ -36,7 +36,7 @@ int sb_agent_init(sb_session_t *s, int argc, char **argv) {
 	config_property_t sb_props[] = {
 		{ "endpoint", DATA_TYPE_STRING, s->endpoint, sizeof(s->endpoint)-1, 0, 0 },
 		{ "user", DATA_TYPE_STRING, s->user, sizeof(s->user)-1, 0, 0, },
-		{ "password", DATA_TYPE_STRING, s->password, sizeof(s->password)-1, 0, 0 },
+		{ "password", DATA_TYPE_STRING, s->password, sizeof(s->password)-1, 0, CONFIG_FLAG_NOPUB },
 		{ "connected", DATA_TYPE_BOOLEAN, &s->connected, 0, 0, CONFIG_FLAG_PRIVATE },
 		{ "lang", DATA_TYPE_STRING, &s->lang, sizeof(s->lang)-1, "en-US", 0 },
 		{ "strings", DATA_TYPE_STRING, &s->strings_filename, sizeof(s->strings_filename)-1, 0, 0 },

@@ -49,6 +49,8 @@ struct solard_agent {
 	event_session_t *e;
 	int interval;
 	int run_count;
+	int read_count;
+	int write_count;
 	uint16_t state;			/* States */
 	int pretty;			/* Format json messages for readability (uses more mem) */
 	char instance_name[SOLARD_NAME_LEN]; /* Agent instance name */
@@ -87,6 +89,7 @@ struct solard_agent {
 	char errmsg[128];
 	bool debug_mem;
 	void *private;			/* Per-instance private data */
+	bool refresh;
 };
 
 #ifdef JS

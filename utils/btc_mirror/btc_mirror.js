@@ -1,6 +1,6 @@
 #!+BINDIR+/sdjs
 
-include(SOLARD_LIBDIR + "/core/utils.js");
+include(SOLARD_LIBDIR + "/sd/utils.js");
 
 m = new MQTT("192.168.1.142");
 m.sub(SOLARD_TOPIC_ROOT+"/"+SOLARD_TOPIC_AGENTS+"/btc/"+SOLARD_FUNC_DATA);

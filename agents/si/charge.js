@@ -123,6 +123,18 @@ function si_check_config() {
 		break;
 	}
 
+// XXX only set charge_cc_voltage if user does
+if (0) {
+	// If charge_cc_voltage not defined by user, set to max_voltage - 1
+	dprintf(dlevel,"charge_cc_voltage: %f, max_voltage: %f\n", si.charge_cc_voltage, si.max_voltage);
+	let p = config.get_property("charge_cc_voltage");
+	dprintf(dlevel,"p: %s\n", p);
+	dprintf(dlevel,"charge_cc_voltage flags: %x, dirty: %s\n", p.flags, p.dirty);
+	if (!check_bit(p.flags,CONFIG_FLAG_VALUE) && !p.dirty) {
+		setcleanval("charge_cc_voltage",pround((si.max_voltage - 1.0),1),"%.1f");
+	}
+}
+
 	dprintf(dlevel,"si.battery_capacity: %f\n", si.battery_capacity);
 	if (si.battery_capacity) {
 		dprintf(dlevel,"charge_start_level: %s\n", si.charge_start_level);
@@ -207,7 +219,7 @@ function set_charge_end_level(c,p,o) {
 
 function set_min_voltage() {
 
-	var dlevel = 1;
+	let dlevel = 1;
 
 	dprintf(dlevel,"min_voltage: %f\n", si.min_voltage);
 	if (!si.min_voltage) return;
@@ -220,7 +232,7 @@ function set_min_voltage() {
 
 function set_max_voltage() {
 
-	var dlevel = 1;
+	let dlevel = 0;
 
 	dprintf(dlevel,"max_voltage: %f\n", si.max_voltage);
 	if (!si.max_voltage) return;
@@ -305,6 +317,7 @@ function charge_init() {
 		data.battery_current = 0;
 		data.GnRn = false;
 		agent = {};
+		agent.event_handler = function() { };
 		agent.event = function() { };
 		agent.driver_name = "si";
 		config.read("./sidev.json",CONFIG_FILE_FORMAT_JSON);
@@ -361,6 +374,7 @@ function charge_init() {
 		[ "charge_end_voltage", DATA_TYPE_DOUBLE, null, 0, si_check_config ],
 		[ "charge_end_level", DATA_TYPE_DOUBLE, "85.0", 0, set_charge_end_level ],
 		[ "charge_at_max", DATA_TYPE_BOOL, "false", 0 ],
+		[ "charge_cc_voltage", DATA_TYPE_DOUBLE, null, 0 ],
 	];
 
 	// Dont allow check to run while initializing
@@ -418,7 +432,7 @@ function charge_stop(force) {
 
 function charge_start(force) {
 
-	var dlevel = 1;
+	let dlevel = 1;
 
 	dprintf(dlevel,"data.Run: %d\n", data.Run);
 	if (!data.Run) return;
@@ -433,11 +447,10 @@ function charge_start(force) {
 		return;
 	}
 
-	dprintf(dlevel,"charge_at_max: %d\n", si.charge_at_max);
-	si.charge_voltage = (si.charge_at_max ? si.max_voltage : si.charge_end_voltage);
+//	si.charge_voltage = (si.charge_at_max ? si.max_voltage : si.charge_end_voltage);
 
 	si.charge_amps = si.max_charge_amps;
-	dprintf(dlevel,"charge_voltage: %f, charge_amps: %f\n", si.charge_voltage, si.charge_amps);
+	dprintf(dlevel,"charge_amps: %f\n", si.charge_amps);
 
 	si.charge_mode = 1;
 	config.save();
@@ -548,10 +561,7 @@ function cv_check_amps() {
 	dprintf(dlevel,"force_charge_amps: %d, si.charge_amps: %d\n", si.force_charge_amps, si.charge_amps);
 	if (si.force_charge_amps && (si.charge_amps < si.cv_cutoff)) return false;
 
-// XXX experimental
-	if (typeof(kf_cva) == "undefined") kf_cva = new KalmanFilter();
-	let num = kf_cva.filter(amps,1);
-	dprintf(0,"amps: %f, num: %f\n", amps, num);
+	dprintf(0,"amps: %f\n", amps);
 
 	/* Average the last X amp samples */
 	dprintf(dlevel,"baidx: %d\n", si.baidx);
@@ -607,11 +617,32 @@ function charge_start_grid() {
 	if (!si.grid_started) si_start_grid();
 }
 
+function set_charge_voltage() {
+
+	let dlevel = 1;
+
+	let ov = si.charge_voltage;
+	si.charge_voltage = si.charge_end_voltage;
+	dprintf(dlevel,"charge_mode: %s\n", si.charge_mode);
+	if (si.charge_mode == CHARGE_MODE_CC) {
+		dprintf(dlevel,"charge_at_max: %s, charge_cc_voltage: %f\n", si.charge_at_max, si.charge_cc_voltage);
+		if (si.charge_at_max) si.charge_voltage = si.max_voltage;
+		else if (si.charge_cc_voltage) si.charge_voltage = si.charge_cc_voltage;
+	}
+	if (si.charge_voltage != ov) printf("Setting charge_voltage to: %.1f\n", si.charge_voltage);
+
+//	si.charge_voltage = (si.charge_at_max ? si.max_voltage : si.charge_end_voltage);
+}
+
 function charge_main()  {
 
 	var dlevel = 1;
 
 	if (typeof(charging_initialized) == "undefined") charge_init();
+
+	// Dont do anything until we do 1 complete cycle (give SMANET, etc a chance to connect)
+	dprintf(dlevel,"read_count: %d\n", agent.read_count);
+	if (agent.read_count < 1) return 0;
 
 	// In case of data errors
 	if (!si_isvrange(data.battery_voltage)) {
@@ -646,6 +677,7 @@ function charge_main()  {
 		let doit = true;
 		if (si.charge_stop_date && cur.getTime() >= si.charge_stop_date.getTime()) doit = false;
 		if (si.charge_mode) doit = false;
+		dprintf(0,"doit: %s\n", doit);
 		if (doit) charge_start();
 	}
 	dprintf(dlevel,"charge_stop_date: %s\n", si.charge_stop_date);
@@ -656,15 +688,19 @@ function charge_main()  {
 		if (si.charge_mode) charge_stop();
 	}
 
+	// Always update the charge voltage
+	set_charge_voltage();
+
 	// Charge mode
 	dprintf(dlevel,"charge_mode: %d, battery_voltage: %f, charge_start_voltage: %f\n",
 		si.charge_mode, data.battery_voltage, si.charge_start_voltage);
 	if (si.charge_mode) {
 		// Just in case
+//		dprintf(0,"empty: %s, grid_started: %s, gen_started: %s\n", battery_is_empty(), si.grid_started, si.gen_started);
 		if (battery_is_empty() && !(si.grid_started || si.gen_started)) {
 			dprintf(dlevel,"ExtVfOk: %s, ignore_gnrn: %s, GnRn: %s\n", data.ExtVfOk, si.ignore_gnrn, data.GnRn);
-			if (si.ignore_gnrn || data.GnRn) si_start_gen();
-			else if (data.ExtVfOk) charge_start_grid();
+			if (si.ignore_gnrn || data.GnRn) si_start_gen(true);
+			else if (data.ExtVfOk) charge_start_grid(true);
 		}
 		// Check battery temp
 		dprintf(dlevel,"have_battery_temp: %s\n", si.have_battery_temp);
@@ -691,8 +727,6 @@ function charge_main()  {
 
 		/* CC */
 		if (si.charge_mode == CHARGE_MODE_CC) {
-			dprintf(dlevel,"charge_at_max: %s\n", si.charge_at_max);
-			si.charge_voltage = (si.charge_at_max ? si.max_voltage : si.charge_end_voltage);
 			dprintf(dlevel,"battery_voltage: %f, charge_end_voltage: %f\n", data.battery_voltage, si.charge_end_voltage);
 			if ((data.battery_voltage+0.0001) >= si.charge_end_voltage) {
 				dprintf(dlevel,"charge_method: %s\n",si.charge_method.toString());
@@ -704,7 +738,6 @@ function charge_main()  {
 			}
 		/* CV */
 		} else if (si.charge_mode == CHARGE_MODE_CV) {
-			si.charge_voltage = si.charge_end_voltage;
 			let end = false;
 			dprintf(dlevel,"cv_time: %s\n", si.cv_time);
 			// we always check time first if set
@@ -731,9 +764,7 @@ function charge_main()  {
 			}
 		}
 		dprintf(dlevel,"ignore_gnrn: %s, GnRn: %s\n", si.ignore_gnrn, data.GnRn);
-		if (si.charge_source.indexOf("Gen") !== -1 && (si.ignore_gnrn || data.GnRn)) si_start_gen();
-		else if (si.charge_source.indexOf("Grid") !== -1 || data.ExtVfOk) charge_start_grid();
-	} else {
-		si.charge_voltage = si.charge_end_voltage;
+		if (si.charge_source.indexOf("Gen") !== -1 && (si.ignore_gnrn || data.GnRn)) si_start_gen(true);
+		else if (si.charge_source.indexOf("Grid") !== -1 || data.ExtVfOk) charge_start_grid(true);
 	}
 }

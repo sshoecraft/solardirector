@@ -1,5 +1,5 @@
 #!/opt/sd/bin/sdjs
-include(SOLARD_LIBDIR+"/core/suncalc.js");
+include(SOLARD_LIBDIR+"/sd/suncalc.js");
 var si = {};
 config.read("/opt/sd/etc/si.json");
 var props = [ [ "location", DATA_TYPE_STRING, "none", 0 ], ];

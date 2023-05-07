@@ -12,6 +12,10 @@ function rheem_publish() {
 	let j = JSON.stringify(rheem.devices,fields,4);
 	printf("%s\n", j);
 	mqtt.pub(SOLARD_TOPIC_ROOT+"/Agents/"+rheem.agent.name+"/"+SOLARD_FUNC_DATA,j,0);
+	return 0;
 }
 
-function pub_main() { rheem_publish(); }
+function pub_main() {
+	rheem_publish();
+	return 0;
+}

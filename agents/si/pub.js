@@ -13,7 +13,7 @@ function addstat(str,val,text) {
 }
 
 function pub_main() {
-	include(core_dir+"utils.js");
+	include(core_dir+"/utils.js");
 
 	let dlevel = 1;
 
@@ -33,8 +33,10 @@ function pub_main() {
 	pub.status = addstat(pub.status,si.charge_mode == 2,"CV");
 	pub.status = addstat(pub.status,si.feed_enabled,"feed");
 	pub.status = addstat(pub.status,(si.input_source != CURRENT_SOURCE_NONE && si.feed_enabled && si.charge_mode && si.dynfeed && data.GdOn),"dynfeed");
-	pub.status = addstat(pub.status,(si.charge_mode && si.dyngrid && data.GdOn),"dyngrid");
-	pub.status = addstat(pub.status,(si.charge_mode && si.dyngen && data.GnOn),"dyngen");
+	if (!si.feed_enabled) {
+		pub.status = addstat(pub.status,(si.charge_mode && si.dyngrid && data.GdOn),"dyngrid");
+		pub.status = addstat(pub.status,(si.charge_mode && si.dyngen && data.GnOn),"dyngen");
+	}
 
 	pub.avail = data.input_power;
 	if (pub.avail < 0) pub.avail = 0;
@@ -104,6 +106,9 @@ if (0 == 1) {
 		break;
 	}
 	if (typeof(last_out) == "undefined") last_out = "";
+//	printf("s1: >%s<\n", pub.out);
+//	printf("s2: >%s<\n", last_out);
+//	printf("1 != 2: %s\n", pub.out != last_out);
 	if (pub.out != last_out) {
 		printf("%s\n",pub.out);
 		last_out = pub.out;

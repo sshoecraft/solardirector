@@ -154,7 +154,7 @@ static int si_read(void *handle, uint32_t *control, void *buf, int buflen) {
 	dprintf(dlevel,"run_count: %d, can_connected: %d\n", s->ap->run_count, s->can_connected);
 	if (s->ap->run_count || !s->can_connected) {
 		dprintf(dlevel,"smanet: %p, smanet_connected: %d\n", s->smanet, (s->smanet ? smanet_connected(s->smanet) : 0));
-		if (!s->smanet) s->smanet = smanet_init();
+		if (!s->smanet) s->smanet = smanet_init(s->readonly);
 		else if (!smanet_connected(s->smanet)) si_smanet_connect(s);
 	}
 	dprintf(dlevel,"smanet_connected: %d\n", smanet_connected(s->smanet));

@@ -11,7 +11,7 @@ LICENSE file in the root directory of this source tree.
 #define TARGET_ENDIAN LITTLE_ENDIAN
 #include "types.h"
 
-#define dlevel 5
+#define dlevel 2
 #include "debug.h"
 
 #define DISABLE_WRITE 0
@@ -323,27 +323,27 @@ static void *si_can_recv_thread(void *handle) {
 	dprintf(dlevel,"thread starting\n");
 	set_state(s,SI_STATE_STARTED);
 	while(check_state(s,SI_STATE_RUNNING)) {
-		dprintf(dlevel+1,"%d: open: %d\n", getpid(), check_state(s,SI_STATE_OPEN));
+		dprintf(8,"%d: open: %d\n", getpid(), check_state(s,SI_STATE_OPEN));
 		if (!check_state(s,SI_STATE_OPEN)) {
 //			memset(&s->bitmap,0,sizeof(s->bitmap));
 			sleep(1);
 			continue;
 		}
-		dprintf(dlevel+1,"reading...\n");
+		dprintf(8,"reading...\n");
 		bytes = s->can->read(s->can_handle,&can_id,&frame,sizeof(frame));
-		dprintf(dlevel+1,"%d: bytes: %d\n", getpid(),bytes);
+		dprintf(8,"%d: bytes: %d\n", getpid(),bytes);
 		if (bytes < 1) {
 //			memset(&s->bitmap,0,sizeof(s->bitmap));
 			sleep(1);
 			continue;
 		}
-		dprintf(dlevel+1,"frame.can_id: %03x\n",frame.can_id);
+		dprintf(8,"frame.can_id: %03x\n",frame.can_id);
 		if (frame.can_id < 0x300 || frame.can_id > 0x30f) continue;
 //		bindump("frame",&frame,sizeof(frame));
 		fidx = frame.can_id - 0x300;
 //		mask = 1 << frame.can_id;
-//		dprintf(dlevel+1,"id: %03x, fidx: %x, mask: %08x, bitmap: %08x\n", frame.can_id, fidx, mask, s->bitmap);
-		dprintf(dlevel+1,"id: %03x, fidx: %x\n", frame.can_id, fidx);
+//		dprintf(8,"id: %03x, fidx: %x, mask: %08x, bitmap: %08x\n", frame.can_id, fidx, mask, s->bitmap);
+		dprintf(8,"id: %03x, fidx: %x\n", frame.can_id, fidx);
 		memcpy(&s->frames[fidx],&frame,sizeof(frame));
 		time(&s->times[fidx]);
 //		s->bitmap |= mask;
@@ -703,6 +703,7 @@ int si_can_write_va(si_session_t *s) {
 	uint8_t data[8];
 	double cv,ca,m,ocv;
 //	double oca;
+	bool ldlevel = dlevel;
 
 	if (!si_isvrange(s->charge_voltage)) s->charge_voltage = s->data.battery_voltage;
 	if (!si_isvrange(s->charge_voltage)) {
@@ -713,7 +714,7 @@ int si_can_write_va(si_session_t *s) {
 	// Voltage
 	cv = s->charge_voltage;
 	m = s->max_voltage;
-	dprintf(dlevel,"charge_mode: %d, GdOn: %d, GnOn: %d\n", s->charge_mode, s->data.GdOn, s->data.GnOn);
+	dprintf(ldlevel,"charge_mode: %d, GdOn: %d, GnOn: %d\n", s->charge_mode, s->data.GdOn, s->data.GnOn);
 	if (s->charge_mode) {
 		if (!s->data.GdOn && !s->data.GnOn) {
 			cv += 1.0;
@@ -723,13 +724,20 @@ int si_can_write_va(si_session_t *s) {
 		cv = s->data.battery_voltage + 0.1;
 	}
 	ocv = cv;
-	dprintf(dlevel,"cv: %.1f, min_voltage: %.1f, max_voltage: %.1f\n", cv, s->min_voltage, m);
+	dprintf(ldlevel,"cv: %.1f, min_voltage: %.1f, max_voltage: %.1f\n", cv, s->min_voltage, m);
         if (cv <= s->min_voltage) cv = s->min_voltage;
         if (cv >= m) cv = m;
 	if (cv != ocv) dprintf(0,"FIXED cv: %.1f\n", cv);
+#if 0
+	static double last_cv = 0;
+	if (cv != last_cv) {
+		log_info("cv: %.1f\n", cv);
+		last_cv = cv;
+	}
+#endif
 
 	// Amps
-	dprintf(dlevel,"force_charge_amps: %d, charge_amps: %.1f, charge_mode: %d\n", s->force_charge_amps, s->charge_amps, s->charge_mode);
+	dprintf(ldlevel,"force_charge_amps: %d, charge_amps: %.1f, charge_mode: %d\n", s->force_charge_amps, s->charge_amps, s->charge_mode);
 	if (s->force_charge_amps) {
 		ca = s->charge_amps;
 	} else if (s->charge_mode) {
@@ -747,7 +755,7 @@ int si_can_write_va(si_session_t *s) {
 	if (ca < 0.1 && !s->zero_ca) ca = 0.1;
 #if 0
 	oca = ca;
-	dprintf(dlevel,"ca: %.1f, min_charge_amps: %.1f, max_charge_amps: %.1f\n", ca, s->min_charge_amps, s->max_charge_amps);
+	dprintf(ldlevel,"ca: %.1f, min_charge_amps: %.1f, max_charge_amps: %.1f\n", ca, s->min_charge_amps, s->max_charge_amps);
 	if (ca < s->min_charge_amps) ca = s->min_charge_amps;
 	else if (ca > s->max_charge_amps) ca = s->max_charge_amps;
 	if (ca != oca) dprintf(0,"FIXED ca: %.1f\n", ca);

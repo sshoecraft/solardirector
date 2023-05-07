@@ -286,6 +286,21 @@ if (0) {
 	dprintf(dlevel,"%s time: %s (%s)\n", func, si.remain_text, si.remain_time);
 }
 
+function init_battery_ah() {
+
+	let dlevel = 0;
+
+	// XXX use a table for the initial val?
+	dprintf(dlevel,"battery_voltage: %f, min_voltage: %f, max_voltage: %f\n",
+		data.battery_voltage, si.min_voltage, si.max_voltage);
+	let vsoc = ((data.battery_voltage - si.min_voltage) / (si.max_voltage - si.min_voltage)) * 0.85;
+	dprintf(dlevel,"vsoc: %f\n", vsoc);
+
+	si.battery_ah = si.battery_capacity * vsoc;
+	if (!si.battery_ah) si.battery_ah = 0;
+	dprintf(dlevel,"initial battery_ah: %f\n", si.battery_ah);
+}
+
 function soc_main() {
 
 	var dlevel = 1;
@@ -298,17 +313,7 @@ function soc_main() {
 
 	// Set initial battery_ah
 	dprintf(dlevel,"battery_ah: %f\n", si.battery_ah);
-	if (isNaN(si.battery_ah)) {
-		// XXX use a table for the initial val?
-		dprintf(dlevel,"battery_voltage: %f, min_voltage: %f, max_voltage: %f\n",
-			data.battery_voltage, si.min_voltage, si.max_voltage);
-		let vsoc = ((data.battery_voltage - si.min_voltage) / (si.max_voltage - si.min_voltage)) * 0.85;
-		dprintf(dlevel,"vsoc: %f\n", vsoc);
-
-		si.battery_ah = si.battery_capacity * vsoc;
-		if (!si.battery_ah) si.battery_ah = 0;
-		dprintf(dlevel,"initial battery_ah: %f\n", si.battery_ah);
-	}
+	if (isNaN(si.battery_ah)) init_battery_ah();
 
 	// battery AH counter
 	let amps = data.battery_current;
@@ -329,19 +334,11 @@ function soc_main() {
 	if (si.battery_ah > si.battery_capacity) si.battery_ah = si.battery_capacity;
 	if (si.battery_ah != obt) dprintf(dlevel,"FIXED battery_ah: %f\n", si.battery_ah);
 
-	// XXX sanity check
-if (0) {
-	if (si.battery_ah < si.charge_start_ah && pround(data.battery_voltage,1) > si.charge_start_voltage) {
-		si.battery_ah = si.charge_start_ah;
-		dprintf(dlevel,"FIXED battery_ah: %f\n", si.battery_ah);
-	}
-}
-
 	// Checkpoint in case restart
 	soc_checkpoint();
 
-//	new_soc = Sk - (n * Ts / As) * Ik
 if (0) {
+//	new_soc = Sk - (n * Ts / As) * Ik
 	top = (0.98 * si.interval);
 	bot = (si.battery_capacity * 3600);
 	i = Math.abs(data.battery_current);
@@ -355,14 +352,15 @@ if (0) {
 	let new_soc = (si.battery_ah / si.battery_capacity) * 100.0;
 	dprintf(dlevel,"new_soc: %.1f\n", new_soc);
 
-	// Dont let level < 0 or > 100
+	// XXX sanity check 
 	let obl = new_soc;
-	if (new_soc < 10) new_soc = 10;
-	if (new_soc > 100.0) new_soc = 100;
-	if (new_soc != obl) {
-		printf(">>>> NEW SOC FIX:  old: %s, new: %s\n", obl, new_soc);
-		dprintf(dlevel,"FIXED: new_soc: %.1f\n", new_soc);
+	if (new_soc > 100.0) new_soc = 100.0;
+	dprintf(dlevel,"new_soc: %f, charge_start_level: %f, battery_voltage: %f, charge_start_voltage: %f\n",
+		new_soc, si.charge_start_level, data.battery_voltage, si.charge_start_voltage);
+	if (new_soc < si.charge_start_level && pround(data.battery_voltage,1) > si.charge_start_voltage) {
+		new_soc = si.charge_start_level;
 	}
+	if (new_soc != obl) dprintf(dlevel,"FIXED: new_soc: %.1f\n", new_soc);
 	si.soc = new_soc;
 
 	// Calculate remaining ah
@@ -390,7 +388,7 @@ if (0) {
 	// If we're in CV mode and there's a time remaining
 	if (si.charge_mode == CHARGE_MODE_CV && si.cv_time) {
 		let diff = (si.cv_start_time + MINUTES(si.cv_time)) - time();
-		dprintf(0,"diff: %f, secs: %f\n", diff, secs);
+		dprintf(dlevel,"diff: %f, secs: %f\n", diff, secs);
 		if (diff < secs || secs < 0) secs = diff;
 	}
 	dprintf(dlevel,"secs: %f\n", secs);

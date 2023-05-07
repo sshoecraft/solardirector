@@ -53,7 +53,7 @@ static void *smanet_recv_thread(void *handle) {
 			diff = now - s->last_command;
 			dprintf(dlevel+2,"diff: %d\n", diff);
 			if (diff > SMANET_AUTO_CLOSE_TIMEOUT) {
-				log_info("SMANET: closing transport.\n");
+				dprintf(-1,"SMANET: closing transport.\n");
 				s->tp->close(s->tp_handle);
 				s->opened = false;
 			}
@@ -93,21 +93,27 @@ static int tp_get(void *handle, uint8_t *buffer, int buflen) {
 #endif
 
 int smanet_open(smanet_session_t *s) {
-	int r;
+	int r,ldlevel;
+
+	ldlevel = -1;
 
 	r = 1;
 #if SMANET_AUTO_CLOSE || SMANET_RECV_THREAD
+	dprintf(ldlevel,"locking...\n");
 	pthread_mutex_lock(&s->lock);
 #endif
+	dprintf(ldlevel,"opened: %d\n", s->opened);
 	if (s->opened) {
 		r = 0;
 		goto smanet_open_error;
 	}
+	dprintf(ldlevel,"tp->open: %p\n", s->tp->open);
 	if (!s->tp->open) {
 		sprintf(s->errmsg,"smanet_open: transport does not have open func!");
 		goto smanet_open_error;
 	}
 //	if (!smanet_lock_target(s)) goto smanet_open_error;
+	dprintf(ldlevel,"opening...\n");
 	if (s->tp->open(s->tp_handle)) {
 		sprintf(s->errmsg,"smanet_open: unable to open transport");
 		goto smanet_open_error;
@@ -117,9 +123,10 @@ int smanet_open(smanet_session_t *s) {
 	r = 0;
 smanet_open_error:
 #if SMANET_AUTO_CLOSE || SMANET_RECV_THREAD
+	dprintf(ldlevel,"unlocking...\n");
 	pthread_mutex_unlock(&s->lock);
 #endif
-	dprintf(dlevel,"returning: %d\n", r);
+	dprintf(ldlevel,"returning: %d\n", r);
 	return r;
 }
 
@@ -227,7 +234,7 @@ int smanet_connected(smanet_session_t *s) {
 }
 
 //smanet_session_t *smanet_init(char *transport, char *target, char *topts) {
-smanet_session_t *smanet_init(void) {
+smanet_session_t *smanet_init(bool readonly) {
 	smanet_session_t *s;
 #if SMANET_AUTO_CLOSE || SMANET_RECV_THREAD
 	pthread_attr_t attr;
@@ -240,6 +247,8 @@ smanet_session_t *smanet_init(void) {
 		log_write(LOG_SYSERR,"smanet_init: calloc");
 		goto smanet_init_error;
 	}
+	dprintf(dlevel,"readonly: %d\n", readonly);
+	s->readonly = readonly;
 #if SMANET_USE_BUFFER
 	s->b = buffer_init(256,tp_get,s);
 	if (!s->b) {
@@ -336,5 +345,11 @@ int smanet_get_info(smanet_session_t *s, smanet_info_t *info) {
 	}
 	strcpy(info->type,s->type);
 	info->serial = s->serial;
+	return 0;
+}
+
+int smanet_set_readonly(smanet_session_t *s, bool value) {
+	dprintf(dlevel,"value: %d\n", value);
+	s->readonly = value;
 	return 0;
 }

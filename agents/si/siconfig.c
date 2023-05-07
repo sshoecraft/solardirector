@@ -16,6 +16,15 @@ LICENSE file in the root directory of this source tree.
 extern char *si_version_string;
 extern solard_driver_t si_driver;
 
+static int set_readonly(void *ctx, config_property_t *p, void *old_value) {
+	si_session_t *s = ctx;
+
+	/* Also set smanet readonly */
+	dprintf(dlevel,"readonly: %d, smanet: %p\n", s->readonly, s->smanet);
+	if (s->smanet) smanet_set_readonly(s->smanet,s->readonly);
+	return 0;
+}
+
 static void _getsource(si_session_t *s, si_current_source_t *spec) {
 	char line[128],method[64],*p,*v;
 	int i;
@@ -282,7 +291,7 @@ static int si_charge(void *ctx, list args, char *errmsg, json_object_t *results)
 static int si_feed(void *ctx, list args, char *errmsg, json_object_t *results) {
 #ifdef JS
 	si_session_t *s = ctx;
-//	jsval jstrue = BOOLEAN_TO_JSVAL(JS_TRUE);
+	jsval jstrue = BOOLEAN_TO_JSVAL(JS_TRUE);
 #endif
 	char *arg;
 
@@ -293,11 +302,11 @@ static int si_feed(void *ctx, list args, char *errmsg, json_object_t *results) {
 	*s->errmsg = 0;
 #ifdef JS
 	if (strcasecmp(arg,"start") == 0 || strcasecmp(arg,"on") == 0) {
-		agent_jsexec(s->ap, "feed_start(true)");
-//		agent_start_jsfunc(s->ap, "charge.js", "feed_start", 1, &jstrue);
+//		agent_jsexec(s->ap, "feed_start(true)");
+		agent_start_jsfunc(s->ap, "feed.js", "feed_start", 1, &jstrue);
 	} else if (strcasecmp(arg,"stop") == 0 || strcasecmp(arg,"off") == 0) {
-		agent_jsexec(s->ap, "feed_stop(true)");
-//		agent_start_jsfunc(s->ap, "charge.js", "feed_stop", 1, &jstrue);
+//		agent_jsexec(s->ap, "feed_stop(true)");
+		agent_start_jsfunc(s->ap, "feed.js", "feed_stop", 1, &jstrue);
 	} else
 #endif
 	{
@@ -357,7 +366,8 @@ static int set_solar_output_source(void *ctx, config_property_t *p, void *old_va
 int si_agent_init(int argc, char **argv, opt_proctab_t *si_opts, si_session_t *s) {
 	config_property_t si_props[] = {
 		/* name, type, dest, dsize, def, flags, scope, values, labels, units, scale, precision, trigger, ctx */
-		{ "readonly", DATA_TYPE_BOOL, &s->readonly, 0, "yes", 0, 0, 0, 0, 0, 0, 1 },
+		{ "readonly", DATA_TYPE_BOOL, &s->readonly, 0, "yes", 0, 0, 0, 0, 0, 0, 1, set_readonly, s },
+		{ "sync_interval", DATA_TYPE_INT, &s->sync_interval, 0, "0", 0, "range", "0, 1440, 1", "minutes", 0, 0, 0 },
 		{ "charge_mode", DATA_TYPE_INT, &s->charge_mode, 0, "0", 0, "select", "0, 1, 2", "Off,CC,CV", 0, 0, 0 },
 		{ "charge_voltage", DATA_TYPE_DOUBLE, &s->charge_voltage, 0, 0, CONFIG_FLAG_PRIVATE },
 		{ "charge_amps", DATA_TYPE_DOUBLE, &s->charge_amps, 0, 0, CONFIG_FLAG_PRIVATE, },
@@ -547,7 +557,7 @@ int si_config(void *h, int req, ...) {
 
 #ifdef SMANET
 		/* XXX smanet needs to be created here (before jsinit) */
-		s->smanet = smanet_init();
+		s->smanet = smanet_init(s->readonly);
 #endif
 
 #ifdef JS
