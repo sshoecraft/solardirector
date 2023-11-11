@@ -274,6 +274,7 @@ function read_main() {
 				[ "battery_power", DATA_TYPE_INT, 300, 0 ],
 				[ "battery_mode", DATA_TYPE_STRING, null, 0 ],
 				[ "battery_temp", DATA_TYPE_INT, deftemp, 0 ],
+				[ "battery_disable_element", DATA_TYPE_BOOL, "false", 0 ],
 			];
 
 			config.add_props(dev,dev_props,dev.id);
@@ -303,8 +304,11 @@ function read_main() {
 		if (!dev.enabled) {
 			dprintf(-1,"auto_stopped: %s\n", dev.auto_stopped);
 			if (dev.auto_stopped) {
-				set_auto_on_date(i);
 				set_auto_off_date(i);
+				if (dev.auto_off_date) dev.auto_off_date = fix_date(dev.auto_off_date,"auto_off_date",12);
+				set_auto_on_date(i);
+				// Make sure we dont turn around and power it on again
+				if (dev.auto_on_date) dev.auto_on_date = fix_date(dev.auto_on_date,"auto_on_date",1);
 				dev.auto_stopped = false;
 			}
 			dprintf(-1,"auto_on_date: %s\n", dev.auto_on_date);
@@ -313,18 +317,19 @@ function read_main() {
 			// We do this so it will "fall through" after turning on
 			if (dev.auto_on_date && cur.getTime() >= dev.auto_on_date.getTime()) {
 				if (!rheem_set_value(dev,"enabled",true,30)) continue;
-//				dev.enabled = dev.auto_started = true;
-				set_auto_on_date(i);
-				if (dev.auto_on_date) dev.auto_on_date = fix_date(dev.auto_on_date,"auto_on_date");
-				dev.auto_stopped = true;
+				dev.auto_started = true;
 			} else {
 				continue;
 			}
+		}
 
 		// If we are enabled and we auto started, set next auto on date
-		} else if (dev.auto_started) {
+		if (dev.auto_started) {
 			set_auto_on_date(i);
+			if (dev.auto_on_date) dev.auto_on_date = fix_date(dev.auto_on_date,"auto_on_date",12);
 			set_auto_off_date(i);
+			// Make sure we dont turn around and power it off again
+			if (dev.auto_off_date) dev.auto_off_date = fix_date(dev.auto_off_date,"auto_off_date",1);
 			dev.auto_started = false;
 		}
 
@@ -343,9 +348,8 @@ function read_main() {
 			dprintf(dlevel,"doit: %s\n", doit);
 			if (doit) {
 				// Turn off the unit
-				if (rheem_set_value(dev,"enabled",false,30)) {
-					set_auto_off_date(i);
-					if (dev.auto_off_date) dev.auto_off_date = fix_date(dev.auto_off_date,"auto_off_date");
+//				if (rheem_set_value(dev,"enabled",false,30)) {
+				if (rheem_set_value(dev,"mode","off",30) && rheem_set_value(dev,"enabled",false,10)) {
 					dev.auto_stopped = true;
 				}
 				continue;
@@ -356,8 +360,8 @@ function read_main() {
 		dprintf(dlevel,"battery_power: %s, battery_mode: %s\n", dev.battery_power, dev.battery_mode);
 		if (battery_power >= dev.battery_power && dev.battery_mode) {
 			/* If the element turns on while on battery power shut the unit off!! */
-			dprintf(-1,"status: %s\n", dev.status);
-			if (dev.status.indexOf("Element") >= 0) {
+			dprintf(-1,"status: %s, battery_disable_element: %s\n", dev.status, dev.battery_disable_element);
+			if (dev.status.indexOf("Element") >= 0 && dev.battery_disable_element) {
 				dprintf(-1,"disabling!\n");
 				dev.enabled = false;
 				continue;

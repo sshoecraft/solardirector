@@ -67,12 +67,16 @@ function feed_init() {
 
 function feed_start(force) {
 
-	let dlevel = 1;
+	let dlevel = 0;
 
 	let lforce = force;
 	if (typeof(lforce) == "undefined") lforce = false;
 	dprintf(dlevel,"feed_enabled: %s, force: %s\n", si.feed_enabled, lforce);
 	if (si.feed_enabled && !lforce) return 0;
+
+	// Dont start feed if we're charging and dyngrid is enabled
+	dprintf(-1,"charge_mode: %d, dyngrid: %s\n", si.charge_mode, si.dyngrid);
+	if (!lforce && si.charge_mode != 0 && si.dyngrid) return 0;
 
 	dprintf(dlevel,"GnOn: %s\n", data.GnOn);
 	if (data.GnOn) {
@@ -100,7 +104,7 @@ function feed_start(force) {
 
 function feed_stop(force) {
 
-	let dlevel = 1;
+	let dlevel = 0;
 
 	let lforce = force;
 	if (typeof(lforce) == "undefined") lforce = false;
@@ -150,7 +154,7 @@ function dynamic_feed() {
 
 function feed_timeout() {
 
-	var dlevel = 0;
+	var dlevel = 1;
 
 	let cur = new Date();
 	dprintf(dlevel,"current_date: %s\n", cur);
@@ -163,7 +167,7 @@ function feed_timeout() {
 	dprintf(dlevel,"feed_timeout_start: %d\n", si.feed_timeout_start);
 	if (!si.feed_timeout_start) si.feed_timeout_start = time();
 	var diff = time() - si.feed_timeout_start;
-	dprintf(0,"diff: %d, timeout: %d\n", diff, si.feed_timeout);
+	dprintf(dlevel,"diff: %d, timeout: %d\n", diff, si.feed_timeout);
 //	return (diff > si.feed_timeout ? true : false);
 	let r = diff > si.feed_timeout ? true : false;
 	dprintf(dlevel,"returning: %s\n", r);
@@ -212,7 +216,7 @@ function feed_main() {
 	dprintf(dlevel,"input_source: %d, feed_enabled: %d, GdOn: %d\n", si.input_source, si.feed_enabled, data.GdOn);
 	if (si.input_source != CURRENT_SOURCE_NONE && si.feed_enabled && data.GdOn) {
 		// If ac2_power has been < 0 longer than timeout, disable feed (only if not force charging)
-		dprintf(-1,"charge_mode: %d, charge_feed: %s, ac2_power: %.1f\n",
+		dprintf(dlevel,"charge_mode: %d, charge_feed: %s, ac2_power: %.1f\n",
 			si.charge_mode, si.charge_feed, data.ac2_power);
 		if (!(si.charge_mode && si.charge_feed) && data.ac2_power < 0) {
 			if (feed_timeout()) {

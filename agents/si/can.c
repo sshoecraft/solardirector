@@ -674,7 +674,10 @@ int si_can_write(si_session_t *s, uint32_t id, uint8_t *data, int data_len) {
 		bindump(temp,data,data_len);
 #endif
 		if (!s->readonly_warn) {
-			log_warning("readonly is true, not writing!\n");
+			printf("************************************************\n");
+			printf("*** READONLY IS TRUE, NOT WRITING!\n");
+			printf("************************************************\n");
+//			log_warning("readonly is true, not writing!\n");
 			s->readonly_warn = true;
 		}
 		return data_len;

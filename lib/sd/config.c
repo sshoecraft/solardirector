@@ -393,7 +393,7 @@ config_property_t *config_new_property(config_t *cp, char *name, int type, void 
 	dprintf(dlevel,"newp: %p\n", newp);
 	if (!newp) return 0;
 	memset(newp,0,sizeof(*newp));
-	newp->cp = cp;
+//	newp->cp = cp;
 	newp->flags = CONFIG_FLAG_ALLOC;
 	newp->name = strdup(name);
 	if (!newp->name) goto _newp_error;
@@ -453,7 +453,8 @@ int config_section_add_property(config_t *cp, config_section_t *s, config_proper
 	/* Dont apply this to the property flags */
 	_clear_flag(flags,NOTRIG);
 	dprintf(dlevel,"p->name: %s, flags: %x, trig: %d\n", p->name, flags, trig);
-	p->cp = cp;
+//	p->cp = cp;
+	p->sp = s;
 
 	/* Alread there? maybe from file? replace it */
 	pp = config_section_get_property(s, p->name);
@@ -578,6 +579,7 @@ config_section_t *config_create_section(config_t *cp, char *name, int flags) {
 	if (name) strncpy(newsec.name,name,sizeof(newsec.name)-1);
 	newsec.flags = flags;
 	newsec.items = list_create();
+	newsec.cp = cp;
 
 	/* Add the new section to the list */
 	return list_add(cp->sections,&newsec,sizeof(newsec));
@@ -2200,7 +2202,7 @@ int js_config_property_set_trigger(JSContext *cx, config_property_t *p, jsval fu
 	JS_AddNamedRoot(cx,&ctx->func,ri.name);
 	ri.cx = cx;
 	ri.vp = &ctx->func;
-	if (p->cp) list_add(p->cp->roots,&ri,sizeof(ri));
+	if (p->sp && p->sp->cp) list_add(p->sp->cp->roots,&ri,sizeof(ri));
 
 	p->trigger = _js_config_trigger;
 	p->ctx = ctx;
@@ -2214,7 +2216,7 @@ int js_config_property_set_trigger(JSContext *cx, config_property_t *p, jsval fu
 		dprintf(dlevel,"ri.name: %s\n", ri.name);
 		JS_AddNamedRoot(cx,&p->arg,ri.name);
 		ri.vp = &p->arg;
-		if (p->cp) list_add(p->cp->roots,&ri,sizeof(ri));
+		if (p->sp && p->sp->cp) list_add(p->sp->cp->roots,&ri,sizeof(ri));
 	}
 
 	dprintf(dlevel,"done!\n");
@@ -2896,9 +2898,10 @@ static void _getele(char *name, int type, void *dest, int size, JSContext *cx, J
 }
 
 static int _js_config_get_prop(config_t *cp, JSContext *cx, JSObject *arr, config_property_t **p) {
-	unsigned int count,j;
-	struct js_propinfo *ip;
-	jsval val;
+	unsigned int count;
+//	unsigned int j;
+//	struct js_propinfo *ip;
+//	jsval val;
 //	char name[256],def[1024];
 	char *name, *def;
 	char *scope,*values,*labels,*units;

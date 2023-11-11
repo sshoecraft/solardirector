@@ -8,7 +8,7 @@ function grid_init() {
 	config.add_props(si,grid_props);
 }
 
-// dynamically modify chargs amps to keep grid under max power
+// dynamically modify charge amps to keep grid under max power
 function dynamic_grid() {
 
 	var dlevel = 1;

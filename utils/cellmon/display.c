@@ -61,7 +61,7 @@ void display(cellmon_config_t *conf) {
 	max_temps = 0;
 	list_reset(conf->packs);
 	while((pp = list_get_next(conf->packs)) != 0) {
-		dprintf(0,"updated: %d\n", check_state(pp,BATTERY_STATE_UPDATED));
+		dprintf(1,"updated: %d\n", check_state(pp,BATTERY_STATE_UPDATED));
 		if (!check_state(pp,BATTERY_STATE_UPDATED)) continue;
 		if (pp->ntemps > max_temps) max_temps = pp->ntemps;
 		if (!cells) cells = pp->ncells;
@@ -123,7 +123,7 @@ void display(cellmon_config_t *conf) {
 		system("cls");
 		system("time /t");
 #else
-		printf("*** running clear ***\n");
+//		printf("*** running clear ***\n");
 		system("clear; echo \"**** $(date) ****\"");
 #endif
 //	}

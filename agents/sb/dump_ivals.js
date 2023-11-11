@@ -12,13 +12,14 @@ if (sb.open()) {
 	exit(1);
 }
 // Ask for all values
-if (sb.request(SB_ALLVAL,sb.mkfields([]))) {
+var results = sb.request(SB_ALLVAL,sb.mkfields([]));
+printf("results: %s\n", results);
+if (!results) {
 	log_error("invalid request\n");
 	sb.close();
 	exit(1);
 }
-
-dump_results();
+dump_results(results);
 
 // Close it
 sb.close();

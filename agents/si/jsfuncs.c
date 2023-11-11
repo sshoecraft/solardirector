@@ -54,7 +54,6 @@ static JSBool refresh_si_data(JSContext *cx, uintN argc, jsval *vp) {
 
 JSObject *jssi_data_new(JSContext *cx, JSObject *parent, si_session_t *s) {
 	JSAliasSpec si_data_aliases[] = {
-//		{ "battery_soc", "battery_level" },
 		{ "ac1_voltage", "output_voltage" },
 		{ "ac1_frequency", "output_frequency" },
 		{ "ac1_current", "output_current" },

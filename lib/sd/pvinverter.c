@@ -82,7 +82,6 @@ static void _dump_state(void *ctx, char *name, void *dest, int flen, json_value_
 #endif
 
 //		{ "state",0,inv,0,ACTION }, 
-//		{ "errcode",DATA_TYPE_INT,&inv->errcode,0,0 },
 //		{ "errmsg",DATA_TYPE_STRING,&inv->errmsg,sizeof(inv->errmsg)-1,0 },
 #define PVINVERTER_TAB(ACTION) \
 		{ "name",DATA_TYPE_STRING,&inv->name,sizeof(inv->name)-1,0 }, \
@@ -95,6 +94,7 @@ static void _dump_state(void *ctx, char *name, void *dest, int flen, json_value_
 		{ "output_power",DATA_TYPE_DOUBLE,&inv->output_power,0,0 }, \
 		{ "total_yield",DATA_TYPE_DOUBLE,&inv->total_yield,0,0 }, \
 		{ "daily_yield",DATA_TYPE_DOUBLE,&inv->daily_yield,0,0 }, \
+		{ "errcode",DATA_TYPE_INT,&inv->errcode,0,0 }, \
 		JSON_PROCTAB_END
 
 

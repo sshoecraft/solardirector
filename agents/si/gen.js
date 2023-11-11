@@ -8,7 +8,7 @@ function gen_init() {
 	config.add_props(si,gen_props);
 }
 
-// dynamically modify chargs amps to keep gen under max power
+// dynamically modify charge amps to keep gen under max power
 function dynamic_gen() {
 
 	var dlevel = 1;

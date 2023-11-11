@@ -2,14 +2,15 @@ IMPORTANT: INSTALL THE FOLLOWING DEPS FIRST
 
 Install dependant packages (example is for deb systems):
 
-	apt-get install libbluetooth-dev
+	apt-get install libssl-dev
 	apt-get install libcurl4-openssl-dev
 	apt-get install libreadline-dev
+	apt-get install libbluetooth-dev (only if using bluetooth)
 
 paho.mqtt.c (https://github.com/eclipse/paho.mqtt.c.git)
 
 	mkdir -p build && cd build
-	cmake -DPAHO_BUILD_SHARED=TRUE -DPAHO_BUILD_STATIC=TRUE -DPAHO_ENABLE_TESTING=FALSE -DPAHO_BUILD_SAMPLES=FALSE ..
+	cmake -DPAHO_WITH_SSL=ON -DPAHO_BUILD_SHARED=TRUE -DPAHO_BUILD_STATIC=TRUE -DPAHO_ENABLE_TESTING=FALSE -DPAHO_BUILD_SAMPLES=FALSE ..
 	make && make install
 	
 gattlib (https://github.com/labapart/gattlib.git)

@@ -263,6 +263,7 @@ int main(int argc,char **argv) {
 				dprintf(dlevel,"status: %d, isget: %d\n", ap->status, (strcasecmp(func,"get") == 0));
 				if (ap->status == 0 && strcasecmp(func,"get") == 0 && results) {
 					json_value_t *ov;
+					int type;
 
 					if (!ap->cp) {
 						log_error("%s: no config data\n",ap->name);
@@ -277,13 +278,14 @@ int main(int argc,char **argv) {
 							dprintf(dlevel,"argv[%d]: %s\n", i, argv[i]);
 							if (strcmp(results->names[j],argv[i]) != 0) continue;
 							ov = results->values[j];
-						}
 #if 0
+						}
 						ov = json_object_dotget_value(results,argv[i]);
 						dprintf(dlevel,"ov: %p\n", ov);
+						printf("ov: %p\n", ov);
 						if (ov) {
 #endif
-							int type = json_value_get_type(ov);
+							type = json_value_get_type(ov);
 							dprintf(dlevel,"type: %s\n", json_typestr(type));
 							if (type == JSON_TYPE_OBJECT || type == JSON_TYPE_ARRAY) {
 								json_dumps_r(ov, value, sizeof(value)-1);
@@ -292,7 +294,7 @@ int main(int argc,char **argv) {
 							}
 							sprintf(temp,"%s: %s=%s", ap->name, argv[i], value);
 							list_add(output,temp,strlen(temp)+1);
-//						}
+						}
 					}
 				} else {
 					sprintf(temp,"%s: %s", ap->name, ap->errmsg);

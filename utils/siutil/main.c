@@ -76,8 +76,8 @@ typedef struct {
 list read_settings(char *filename,smanet_session_t *smanet) {
 	FILE *fp;
 	char line[256];
-	double d,dv;
-	char *text;
+//	double d,dv;
+//	char *text;
 	setting_t newset,*s;
 	list l;
 	smanet_multreq_t *mr;
@@ -145,6 +145,21 @@ list read_settings(char *filename,smanet_session_t *smanet) {
 	}
 
 	return l;
+}
+
+static int download_channels(smanet_session_t *s, char *path) {
+	int old_ac = s->auto_close;
+
+	log_write(LOG_INFO,"Downloading channels...\n");
+	s->auto_close = false;
+	smanet_read_channels(s);
+	if (smanet_read_channels(s)) {
+		log_error("%s\n",smanet_get_errmsg(s));
+		return 1;
+	}
+	smanet_save_channels(s,path);
+	s->auto_close = old_ac;
+	return 0;
 }
 
 enum ACTIONS {
@@ -391,10 +406,8 @@ int main(int argc, char **argv) {
 		/* if downpath specified, download chans */
 		dprintf(1,"downpath: %s\n", downpath);
 		if (strlen(downpath)) {
-			log_write(LOG_INFO,"Downloading channels...\n");
-			if (smanet_read_channels(s->smanet)) log_error("%s\n",smanet_get_errmsg(s->smanet));
-			smanet_save_channels(s->smanet,downpath);
-			smanet_get_chaninfo(s->smanet,&chaninfo);
+			if (download_channels(s->smanet,downpath))
+				return 1;
 		} else {
 			smanet_get_info(s->smanet,&info);
 			dprintf(1,"chanpath: %s, smanet_channels_path: %s\n", chanpath, s->smanet_channels_path);
@@ -406,13 +419,9 @@ int main(int argc, char **argv) {
 			}
 			fixpath(chanpath,sizeof(chanpath)-1);
 			dprintf(1,"chanpath: %s\n", chanpath);
-			if (smanet_load_channels(s->smanet,chanpath) != 0) {
-				log_write(LOG_INFO,"Downloading channels...\n");
-				smanet_read_channels(s->smanet);
-				smanet_save_channels(s->smanet,chanpath);
-			}
-			smanet_get_chaninfo(s->smanet,&chaninfo);
+			if (smanet_load_channels(s->smanet,chanpath) != 0 && download_channels(s->smanet,chanpath)) return 1;
 		}
+		smanet_get_chaninfo(s->smanet,&chaninfo);
 	}
 #endif
 

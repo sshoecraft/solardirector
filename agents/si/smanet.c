@@ -180,7 +180,8 @@ static void _addchans(si_session_t *s) {
 	int flags = SI_CONFIG_FLAG_SMANET | CONFIG_FLAG_NOSAVE;
 
 	dprintf(dlevel,"adding SMANET channels...\n");
-	sec = config_create_section(s->ap->cp,"smanet",0);
+	sec = config_get_section(s->ap->cp,"smanet");
+	if (!sec) sec = config_create_section(s->ap->cp,"smanet",0);
 	if (!sec) {
 		log_error("_addchans: unable to create smanet section");
 		return;
@@ -311,6 +312,33 @@ int si_smanet_load_channels(si_session_t *s) {
 	if (smanet_load_channels(s->smanet,s->smanet_channels_path)) log_error("%s\n",smanet_get_errmsg(s->smanet));
 
 	_addchans(s);
+	return 0;
+}
+
+static int set_auto_close(void *ctx, config_property_t *p, void *old_value) {
+	si_session_t *s = ctx;
+
+	dprintf(dlevel,"smanet_auto_close: %d\n", s->smanet_auto_close);
+	smanet_set_auto_close(s->smanet,s->smanet_auto_close);
+	return 0;
+}
+
+static int set_auto_close_timeout(void *ctx, config_property_t *p, void *old_value) {
+	si_session_t *s = ctx;
+
+	dprintf(dlevel,"smanet_auto_close_timeout: %d\n", s->smanet_auto_close_timeout);
+	smanet_set_auto_close_timeout(s->smanet,s->smanet_auto_close_timeout);
+	return 0;
+}
+
+int si_smanet_config(si_session_t *s) {
+	config_property_t smanet_props[] = {
+		{ "smanet_auto_close", DATA_TYPE_BOOL, &s->smanet_auto_close, 0, "yes", 0, 0, 0, 0, 0, 0, 1, set_auto_close, s },
+		{ "smanet_auto_close_timeout", DATA_TYPE_INT, &s->smanet_auto_close_timeout, 0, "30", 0, 0, 0, 0, 0, 0, 1, set_auto_close_timeout, s },
+		{ 0 }
+	};
+
+	config_add_props(s->ap->cp, s->ap->section_name, smanet_props, 0);
 	return 0;
 }
 

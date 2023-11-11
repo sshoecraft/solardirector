@@ -1,6 +1,6 @@
 #!/opt/sd/bin/sdjs
 
-include("../../core/utils.js");
+include("../../lib/sd/utils.js");
 
 SDCONFIG = SOLARD_BINDIR + "/sdconfig -t 5 ";
 var dlevel = 0;
@@ -16,15 +16,16 @@ function get_input(name,spec,def) {
 }
 
 // Get info from agent
-name = "si";
+name = "rheem";
 if (argv.length) name = argv[0];
 printf("Contacting Sunny Island Agent...\n");
 var cmd = SDCONFIG + name + " get configfile config";
 //dprintf(0,"cmd: %s\n", cmd);
 var result = run_command(cmd);
 var siconf,configfile;
-//dprintf(0,"result[0]: %s, indexOf: %d\n", typeof(result[0]), result[0].indexOf("not found"));
+dprintf(0,"result[0]: %s, indexOf: %d\n", typeof(result[0]), result[0].indexOf("not found"));
 if (typeof(result[0]) == "string" && result[0].indexOf("not found") >= 0) result = undefined;
+dumpobj(result);
 if (result) {
 	for(i=0; i < result.length; i++) {
 		j = result[i].indexOf(":");
@@ -49,6 +50,7 @@ if (result) {
 	printf("Error: unable to get results from SI agent using sdconfig. Check agent and sdconfig configuration\n");
 	exit(0);
 }
+exit(0);
 if (!configfile) configfile = SOLARD_ETCDIR + "/" + name + ".json";
 dprintf(0,"configfile: %s\n", configfile);
 dprintf(0,"siconf: %s\n", siconf);

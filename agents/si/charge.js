@@ -150,6 +150,7 @@ if (0) {
 		dprintf(dlevel,"cel: %f\n", cel);
 		si.charge_end_ah = si.battery_capacity * (cel / 100.0);
 		dprintf(dlevel,"charge_start_ah: %f, charge_end_ah: %f\n", si.charge_start_ah, si.charge_end_ah);
+		si.battery_usable_capacity = si.charge_end_ah - si.charge_start_ah;
 	}
 
 //	printf("*** CHECK DONE ***\n");
@@ -426,8 +427,6 @@ function charge_stop(force) {
 
 	dprintf(dlevel,"charge_end_voltage: %f, min_charge_amps: %f\n", si.charge_end_voltage, si.min_charge_amps);
 	si.battery_empty = false;
-        remain_index = 0;
-        remain_full = false;
 }
 
 function charge_start(force) {
@@ -459,10 +458,9 @@ function charge_start(force) {
 	si.charge_amps_temp_modifier = 1.0;
 	if (si.have_battery_temp) si.start_temp = data.battery_temp;
 	dprintf(0,"charge_feed: %s, cc_feed: %s\n", si.charge_feed, si.cc_feed);
-	if (si.charge_feed || si.cc_feed) feed_start(false);
+	// XXX we want force feed here if charge feed or cc feed is true
+	if (si.charge_feed || si.cc_feed) feed_start(true);
 	if (si.cc_command.length > 0) system(si.cc_command);
-        remain_index = 0;
-        remain_full = false;
 }
 
 function cvremain(start, end) {
@@ -561,7 +559,7 @@ function cv_check_amps() {
 	dprintf(dlevel,"force_charge_amps: %d, si.charge_amps: %d\n", si.force_charge_amps, si.charge_amps);
 	if (si.force_charge_amps && (si.charge_amps < si.cv_cutoff)) return false;
 
-	dprintf(0,"amps: %f\n", amps);
+	dprintf(dlevel,"amps: %f\n", amps);
 
 	/* Average the last X amp samples */
 	dprintf(dlevel,"baidx: %d\n", si.baidx);
@@ -580,7 +578,7 @@ function cv_check_amps() {
 		}
 		dprintf(dlevel,"amps: %f, samples: %d\n", amps, si.cv_samples);
 		var avg = amps / si.cv_samples;
-		dprintf(0,"CV: avg: %.1f, cutoff: %.1f\n", avg, si.cv_cutoff);
+		dprintf(-1,"CV: avg: %.1f, cutoff: %.1f\n", avg, si.cv_cutoff);
 		if (avg < si.cv_cutoff) return true;
 	}
 	return false;
@@ -613,7 +611,8 @@ function battery_is_empty() {
 }
 
 function charge_start_grid() {
-	if (si.grid_feed) feed_start(false);
+	dprintf(-1,"grid_feed: %s, grid_started: %s\n", si.grid_feed, si.grid_started);
+	if (si.grid_feed && !si.feed_started) feed_start(true);
 	if (!si.grid_started) si_start_grid();
 }
 
@@ -677,7 +676,7 @@ function charge_main()  {
 		let doit = true;
 		if (si.charge_stop_date && cur.getTime() >= si.charge_stop_date.getTime()) doit = false;
 		if (si.charge_mode) doit = false;
-		dprintf(0,"doit: %s\n", doit);
+		dprintf(dlevel,"auto_start: doit: %s\n", doit);
 		if (doit) charge_start();
 	}
 	dprintf(dlevel,"charge_stop_date: %s\n", si.charge_stop_date);
@@ -727,8 +726,8 @@ function charge_main()  {
 
 		/* CC */
 		if (si.charge_mode == CHARGE_MODE_CC) {
-			dprintf(dlevel,"battery_voltage: %f, charge_end_voltage: %f\n", data.battery_voltage, si.charge_end_voltage);
-			if ((data.battery_voltage+0.0001) >= si.charge_end_voltage) {
+			dprintf(dlevel,"battery_voltage: %f, charge_end_voltage: %f\n", pround(data.battery_voltage,1), si.charge_end_voltage);
+			if (pround(data.battery_voltage,1) >= si.charge_end_voltage) {
 				dprintf(dlevel,"charge_method: %s\n",si.charge_method.toString());
 				if (si.charge_method == CHARGE_METHOD_CCCV) {
 					charge_start_cv();

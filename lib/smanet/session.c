@@ -48,11 +48,11 @@ static void *smanet_recv_thread(void *handle) {
 		pthread_mutex_lock(&s->lock);
 		dprintf(dlevel+2,"opened: %d\n", s->opened);
 #if SMANET_AUTO_CLOSE
-		if (s->opened) {
+		if (s->opened && s->auto_close) {
 			time(&now);
 			diff = now - s->last_command;
 			dprintf(dlevel+2,"diff: %d\n", diff);
-			if (diff > SMANET_AUTO_CLOSE_TIMEOUT) {
+			if (diff > s->auto_close_timeout) {
 				dprintf(-1,"SMANET: closing transport.\n");
 				s->tp->close(s->tp_handle);
 				s->opened = false;
@@ -95,7 +95,7 @@ static int tp_get(void *handle, uint8_t *buffer, int buflen) {
 int smanet_open(smanet_session_t *s) {
 	int r,ldlevel;
 
-	ldlevel = -1;
+	ldlevel = dlevel;
 
 	r = 1;
 #if SMANET_AUTO_CLOSE || SMANET_RECV_THREAD
@@ -257,6 +257,10 @@ smanet_session_t *smanet_init(bool readonly) {
 	}
 #endif
 #if SMANET_AUTO_CLOSE || SMANET_RECV_THREAD
+#if SMANET_AUTO_CLOSE
+	s->auto_close = true;
+	s->auto_close_timeout = SMANET_AUTO_CLOSE_TIMEOUT;
+#endif
 #if SMANET_RECV_THREAD
 	s->frames = list_create();
 #endif
@@ -351,5 +355,16 @@ int smanet_get_info(smanet_session_t *s, smanet_info_t *info) {
 int smanet_set_readonly(smanet_session_t *s, bool value) {
 	dprintf(dlevel,"value: %d\n", value);
 	s->readonly = value;
+	return 0;
+}
+
+int smanet_set_auto_close(smanet_session_t *s, bool value) {
+	dprintf(dlevel,"value: %d\n", value);
+	s->auto_close = value;
+	return 0;
+}
+int smanet_set_auto_close_timeout(smanet_session_t *s, int value) {
+	dprintf(dlevel,"value: %d\n", value);
+	s->auto_close_timeout = value;
 	return 0;
 }

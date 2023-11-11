@@ -132,6 +132,10 @@ struct smanet_session {
 	bool readonly;
 	char errmsg[256];
 #if SMANET_AUTO_CLOSE || SMANET_RECV_THREAD
+#ifdef SMANET_AUTO_CLOSE
+	bool auto_close;
+	int auto_close_timeout;
+#endif
 	pthread_mutex_t lock;
 	pthread_t tid;
 #endif

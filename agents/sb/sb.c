@@ -267,6 +267,8 @@ static int get_inverter(sb_session_t *s, solard_pvinverter_t *inv, list results)
 		{ "6400_00260100", DATA_TYPE_DOUBLE, &inv->total_yield, 0, "total_yield", },
 		// {6400_00262200} AC Side -> Measured values -> Daily yield
 		{ "6400_00262200", DATA_TYPE_DOUBLE, &inv->daily_yield, 0, "daily_yield", },
+		// [6100_00418000] Status -> Operation -> Current event -> Event number manufacturer
+		{ "6100_00418000", DATA_TYPE_INT, &inv->errcode, 0, "errcode", },
 		{ 0 },
 	};
 
@@ -285,14 +287,22 @@ static int get_inverter(sb_session_t *s, solard_pvinverter_t *inv, list results)
 		if (found) {
 			double val,total;
 
-			total = 0;
+			/* Get the current val into total */
+			conv_type(DATA_TYPE_DOUBLE,&total,sizeof(total),map->type,map->dest,map->size);
+
+			/* Add result values */
 			list_reset(res->values);
 			while((vp = list_get_next(res->values)) != 0) {
 				conv_type(DATA_TYPE_DOUBLE,&val,sizeof(val),vp->type,vp->data,vp->len);
 				total += val;
-//				dprintf(dlevel+1,"key: %s(%s), val: %f, total: %f\n", map->key, map->name, val, total);
+//				dprintf(-1,"key: %s(%s), val: %f, total: %f\n", map->key, map->name, val, total);
 			}
-			*((double *)map->dest) += total;
+
+			/* Upate new value */
+//			*((double *)map->dest) += total;
+			conv_type(map->type,map->dest,map->size,DATA_TYPE_DOUBLE,&total,sizeof(total));
+			if (strcmp(res->obj->key,"6100_00418000") == 0) printf("ERROR: %d\n",(int)total);
+
 		}
 	}
 //	pvinverter_dump(inv,0);

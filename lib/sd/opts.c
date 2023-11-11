@@ -524,7 +524,7 @@ static char *get_type(char *s) {
 }
 
 void opt_usage(char *name, opt_proctab_t *opts) {
-	char out[1024],temp[128],*ptr,*op;
+	char out[2048],temp[1024],*ptr,*op;
 	register opt_proctab_t *opt;
 	register int i;
 

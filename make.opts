@@ -1,4 +1,7 @@
 
+# Release?
+RELEASE?=no
+
 # Build with debug enabled
 DEBUG?=yes
 

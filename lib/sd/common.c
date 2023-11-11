@@ -168,7 +168,7 @@ int solard_common_init(int argc,char **argv,char *version,opt_proctab_t *add_opt
 #if defined(DEBUG) && DEBUG > 0
 		{ "-d:#|set debugging level",&debug,DATA_TYPE_INT,0,0,"0" },
 #endif
-		{ "-e|redirect output to stderr",&err_flag,DATA_TYPE_LOGICAL,0,0,"N" },
+		{ "-Z|redirect output to stderr",&err_flag,DATA_TYPE_LOGICAL,0,0,"N" },
 		{ "-h|display program options",&help_flag,DATA_TYPE_LOGICAL,0,0,"N" },
 		{ "-l:%|redirect output to logfile",&logfile,DATA_TYPE_STRING,sizeof(logfile)-1,0,"" },
 		{ "-a|append to logfile",&append_flag,DATA_TYPE_LOGICAL,0,0,"N" },

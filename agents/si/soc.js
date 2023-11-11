@@ -192,6 +192,10 @@ function soc_event_handler(name,module,action) {
 
 function soc_init() {
 
+	SI_SOC_LINEAR = 0;
+	SI_SOC_USABLE = 1;
+	SI_SOC_TOTAL = 2;
+
 	var soc_props = [
 		[ "discharge_efficiency_table", DATA_TYPE_STRING, "si_discharge_efficiency", 0 ],
 		[ "discharge_efficiency", DATA_TYPE_DOUBLE, 0.945, 0 ],
@@ -199,7 +203,9 @@ function soc_init() {
 		[ "charge_factor", DATA_TYPE_DOUBLE, 1.04, 0 ],
 		[ "battery_capacity", DATA_TYPE_DOUBLE, null, 0, soc_battery_capacity_trigger ],
 		[ "battery_ah", DATA_TYPE_DOUBLE, NaN, CONFIG_FLAG_PRIVATE ],
+		[ "battery_level", DATA_TYPE_DOUBLE, "0.0", CONFIG_FLAG_PRIVATE ],
 		[ "battcp", DATA_TYPE_BOOL, "true", 0 ],
+		[ "soc_type", DATA_TYPE_INT, SI_SOC_USABLE.toString(), 0 ],
 	];
 	var soc_funcs = [
 		[ "battery_empty", soc_battery_empty, 0 ],
@@ -295,7 +301,6 @@ function init_battery_ah() {
 		data.battery_voltage, si.min_voltage, si.max_voltage);
 	let vsoc = ((data.battery_voltage - si.min_voltage) / (si.max_voltage - si.min_voltage)) * 0.85;
 	dprintf(dlevel,"vsoc: %f\n", vsoc);
-
 	si.battery_ah = si.battery_capacity * vsoc;
 	if (!si.battery_ah) si.battery_ah = 0;
 	dprintf(dlevel,"initial battery_ah: %f\n", si.battery_ah);
@@ -347,8 +352,6 @@ if (0) {
 	dprintf(0,"sk: %f\n", sk);
 }
 
-	// Calculate the level using AH
-	dprintf(dlevel,"battery_ah: %f\n", si.battery_ah);
 	let new_soc = (si.battery_ah / si.battery_capacity) * 100.0;
 	dprintf(dlevel,"new_soc: %.1f\n", new_soc);
 
@@ -358,10 +361,18 @@ if (0) {
 	dprintf(dlevel,"new_soc: %f, charge_start_level: %f, battery_voltage: %f, charge_start_voltage: %f\n",
 		new_soc, si.charge_start_level, data.battery_voltage, si.charge_start_voltage);
 	if (new_soc < si.charge_start_level && pround(data.battery_voltage,1) > si.charge_start_voltage) {
+		dprintf(-1,"new_soc: %f, charge_start_level: %f, battery_voltage: %f, charge_start_voltage: %f\n",
+			new_soc, si.charge_start_level, pround(data.battery_voltage,1), si.charge_start_voltage);
 		new_soc = si.charge_start_level;
 	}
-	if (new_soc != obl) dprintf(dlevel,"FIXED: new_soc: %.1f\n", new_soc);
-	si.soc = new_soc;
+	if (pround(data.battery_voltage,1) < si.charge_start_voltage) {
+		printf("new_soc: %f, si.soc: %f\n", new_soc, si.soc);
+		let p = pct(new_soc,si.soc);
+		printf("p: %f\n", p);
+		if (p >= 10) new_soc = si.soc;
+	}
+	if (new_soc != obl) dprintf(-1,"FIXED: new_soc: %.1f\n", new_soc);
+	si.soc = si.battery_level = new_soc;
 
 	// Calculate remaining ah
 	let remain,func;

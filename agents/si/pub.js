@@ -56,8 +56,8 @@ if (0 == 1) {
 	}
 }
 
-	// In the event SI is powered off
-	if (si.soc < 0) si.soc = 0.0;
+	// ?
+	if (!si.battery_level) si.battery_level = 0;
 
 	pub.tab = [
 			[ "name",		agent.name ],
@@ -65,7 +65,7 @@ if (0 == 1) {
 			[ "battery_current",	data.battery_current ],
 			[ "battery_power",	data.battery_power ],
 			[ "battery_temp",	data.battery_temp ],
-			[ "battery_level",	si.soc ],
+			[ "battery_level",	si.battery_level ],
 			[ "charge_mode",	si.charge_mode ],
 			[ "charge_voltage",	si.charge_voltage ],
 			[ "charge_current",	si.charge_amps ],
@@ -91,18 +91,19 @@ if (0 == 1) {
 	switch(format) {
 	case 0:
 		pub.out = sprintf("%s Battery: Voltage: %.1f, Current: %.1f, Level: %.1f",
-			status, pub.data.battery_voltage, pub.data.battery_current, pub.data.battery_level);
+			pub.status, pub.data.battery_voltage, pub.data.battery_current, pub.data.battery_level);
 		break;
 	case 1:
 		pub.out = sprintf("%s Battery: Voltage: %.1f, Current: %.1f, Power: %.1f, Level: %.1f",
-			status, pub.data.battery_voltage, pub.data.battery_current, pub.data.battery_power, pub.data.battery_level);
+			pub.status, pub.data.battery_voltage, pub.data.battery_current, pub.data.battery_power, pub.data.battery_level);
 		break;
 	case 2:
 		pub.out = sprintf("%s Battery: Voltage: %.1f, Power: %.1f, Level: %.1f",
-			status, pub.data.battery_voltage, pub.data.battery_power, pub.data.battery_level);
+			pub.status, pub.data.battery_voltage, pub.data.battery_power, pub.data.battery_level);
 		break;
 	case 3:
-		pub.out = sprintf("%s Battery: Voltage: %.1f, Level: %.1f", pub.status, pub.data.battery_voltage, pub.data.battery_level);
+		pub.out = sprintf("%s Battery: Voltage: %.1f, Level: %.1f",
+			pub.status, pub.data.battery_voltage, pub.data.battery_level);
 		break;
 	}
 	if (typeof(last_out) == "undefined") last_out = "";

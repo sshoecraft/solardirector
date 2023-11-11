@@ -240,42 +240,6 @@ static JSBool sb_getprop(JSContext *cx, JSObject *obj, jsval id, jsval *rval) {
 		case SB_PROPERTY_ID_AGENT:
 			*rval = s->agent_val;
 			break;
-#if 0
-		case SB_PROPERTY_ID_RESULTS:
-		    {
-			if (!s->results_val) {
-				JSObject *arr,*newres;
-				jsval element;
-				int i,count;
-				list results;
-	
-				count = list_count(s->results);
-				arr = JS_NewArrayObject(cx, count, NULL);
-				if (!arr) {
-                                	JS_ReportError(cx, "unable to allocate results array");
-	                                return JS_FALSE;
-				}
-				i = 0;
-				list_reset(s->results);
-				while((res = list_get_next(s->results)) != 0) {
-					newres = js_sb_results_new(cx,obj,res);
-					if (!newres) {
-	                                	JS_ReportError(cx, "unable to allocate new sb_results object");
-		                                return JS_FALSE;
-					}
-					element = OBJECT_TO_JSVAL(newres);
-					JS_SetElement(cx, arr, i++, &element);
-					if (i > count) {
-	                                	JS_ReportError(cx,"sb_results index elemenet (%d) > count (%d)", i, count);
-		                                return JS_FALSE;
-					}
-				}
-				s->results_val = OBJECT_TO_JSVAL(arr);
-			}
-			*rval = s->results_val;
-		    }
-		    break;
-#endif
 		default:
 			p = CONFIG_GETMAP(s->ap->cp,prop_id);
 			if (!p) p = config_get_propbyid(s->ap->cp,prop_id);
@@ -415,8 +379,38 @@ static JSBool js_sb_request(JSContext *cx, uintN argc, jsval *vp) {
 		*vp = JSVAL_VOID;
 		return JS_TRUE;
 	}
-	json_destroy_value(v);
-	*vp = JSVAL_VOID;
+	{
+		JSObject *arr,*newres;
+		jsval element;
+		int i,count;
+		list results;
+		sb_result_t *res;
+
+		results = sb_get_results(s, v);
+		count = list_count(results);
+		arr = JS_NewArrayObject(cx, count, NULL);
+		if (!arr) {
+			JS_ReportError(cx, "unable to allocate results array");
+			return JS_FALSE;
+		}
+		i = 0;
+		list_reset(results);
+		while((res = list_get_next(results)) != 0) {
+			newres = js_sb_results_new(cx,obj,res);
+			if (!newres) {
+				JS_ReportError(cx, "unable to allocate new sb_results object");
+				return JS_FALSE;
+			}
+			element = OBJECT_TO_JSVAL(newres);
+			JS_SetElement(cx, arr, i++, &element);
+			if (i > count) {
+				JS_ReportError(cx,"sb_results index elemenet (%d) > count (%d)", i, count);
+				return JS_FALSE;
+			}
+		}
+		*vp = OBJECT_TO_JSVAL(arr);
+		json_destroy_value(v);
+	}
 	return JS_TRUE;
 }
 

@@ -220,6 +220,8 @@ struct si_session {
 	char smanet_topts[SOLARD_TOPTS_LEN];
 	char smanet_channels_path[1024];
 	smanet_session_t *smanet;
+	bool smanet_auto_close;
+	int smanet_auto_close_timeout;
 	char battery_type[32];
 #endif
 
@@ -323,7 +325,7 @@ int si_can_write_data(si_session_t *s);
 void si_can_destroy(si_session_t *s);
 
 /* smanet */
-int si_smanet_init(si_session_t *s);
+int si_smanet_config(si_session_t *s);
 int si_smanet_connect(si_session_t *s);
 int si_smanet_disconnect(si_session_t *s);
 int si_smanet_destroy(si_session_t *s);

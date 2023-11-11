@@ -1,7 +1,5 @@
 
-function dump_results() {
-	// Get the results
-	var results = sb.results;
+function dump_results(results) {
 
 	// For each result ...
 	dprintf(1,"results.length: %d\n", results.length);

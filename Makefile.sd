@@ -14,16 +14,13 @@ endif
 current_makefile := $(lastword $(MAKEFILE_LIST))
 SRC_ROOT=$(shell echo $$(dirname $(current_makefile)))
 
+include $(SRC_ROOT)/make.opts
+
 ifeq ($(RELEASE),yes)
 DEBUG=no
 DEBUG_MEM=no
 LIBTYPE=shared
-JS?=yes
-MQTT?=yes
-INFLUX?=yes
 endif
-
-include $(SRC_ROOT)/make.opts
 
 TOOLS?=$(SRC_ROOT)/tools
 

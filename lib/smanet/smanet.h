@@ -101,6 +101,8 @@ int smanet_reconnect(smanet_session_t *);
 int smanet_get_info(smanet_session_t *, smanet_info_t *);
 int smanet_connected(smanet_session_t *);
 int smanet_set_readonly(smanet_session_t *s, bool value);
+int smanet_set_auto_close(smanet_session_t *s, bool value);
+int smanet_set_auto_close_timeout(smanet_session_t *s, int value);
 
 int smanet_read_channels(smanet_session_t *s);
 int smanet_save_channels(smanet_session_t *s, char *);
@@ -128,5 +130,7 @@ JSObject *jssmanet_new(JSContext *cx, JSObject *parent, smanet_session_t *s,char
 void jssmanet_destroy(JSContext *cx, JSObject *obj);
 int smanet_jsinit(JSEngine *js);
 #endif
+
+#include "smanet_internal.h"
 
 #endif

@@ -22,6 +22,7 @@ static int set_readonly(void *ctx, config_property_t *p, void *old_value) {
 	/* Also set smanet readonly */
 	dprintf(dlevel,"readonly: %d, smanet: %p\n", s->readonly, s->smanet);
 	if (s->smanet) smanet_set_readonly(s->smanet,s->readonly);
+	if (!s->readonly) s->readonly_warn = false;
 	return 0;
 }
 
@@ -87,7 +88,9 @@ static void _getsource(si_session_t *s, si_current_source_t *spec) {
 
 static int si_get_value(void *ctx, list args, char *errmsg, json_object_t *results) {
 	si_session_t *s = ctx;
-	char *key, *prefix;
+	char *key;
+//	char *prefix;
+	char prefix[66];
 	char sname[64], name[128];
 	config_property_t *p;
 	json_value_t *v;
@@ -106,9 +109,11 @@ static int si_get_value(void *ctx, list args, char *errmsg, json_object_t *resul
 			continue;
 		}
 
+		*prefix = 0;
 		*sname = *name = 0;
 		if (strchr(key,'.')) {
 			strncpy(sname,strele(0,".",key),sizeof(sname)-1);
+			snprintf(prefix,sizeof(prefix)-1,"%s.",sname);
 			strncpy(name,strele(1,".",key),sizeof(name)-1);
 		}
 		if (!strlen(sname)) strncpy(sname,s->ap->section_name,sizeof(sname)-1);
@@ -121,7 +126,6 @@ static int si_get_value(void *ctx, list args, char *errmsg, json_object_t *resul
 			return 1;
 		}
 
-		prefix="";
 #ifdef SMANET
 		dprintf(dlevel,"name: %s, flags: %04x, SI_CONFIG_FLAG_SMANET: %x, val: %d\n", p->name,
 			p->flags, SI_CONFIG_FLAG_SMANET, check_bit(p->flags,SI_CONFIG_FLAG_SMANET));
@@ -147,7 +151,6 @@ static int si_get_value(void *ctx, list args, char *errmsg, json_object_t *resul
 			dprintf(dlevel,"p->type: %d(%s), p->flags: %x\n", p->type, typestr(p->type), p->flags);
 			if (text) config_property_set_value(p,DATA_TYPE_STRING,text,strlen(text),true,true);
 			else config_property_set_value(p,DATA_TYPE_DOUBLE,&d,sizeof(d),true,true);
-			prefix = "smanet.";
 		}
 #endif
 		v = json_from_type(p->type,p->dest,p->len);
@@ -155,7 +158,10 @@ static int si_get_value(void *ctx, list args, char *errmsg, json_object_t *resul
 		if (v) {
 			char rname[128];
 
-			snprintf(rname,sizeof(rname)-1,"%s%s",prefix,p->name);
+			if (strcmp(sname,s->ap->section_name) == 0)
+				snprintf(rname,sizeof(rname)-1,"%s",p->name);
+			else
+				snprintf(rname,sizeof(rname)-1,"%s.%s",sname,p->name);
 			dprintf(dlevel,"rname: %s\n", rname);
 			json_object_set_value(results,rname,v);
 		}
@@ -213,7 +219,7 @@ static int si_set_value(void *ctx, list args, char *errmsg, json_object_t *resul
 			}
 		}
 #endif
-		log_info("siconfig: Setting %s to %s\n", p->name, value);
+		log_info("siconfig: Setting %s.%s to %s\n", p->sp->name, p->name, value);
 		if (config_property_set_value(p,DATA_TYPE_STRING,value,strlen(value)+1,true,true)) return 1;
 		config_write(s->ap->cp);
 		agent_pubconfig(s->ap);
@@ -283,6 +289,34 @@ static int si_charge(void *ctx, list args, char *errmsg, json_object_t *results)
 #endif
 	{
 		sprintf(s->errmsg,"invalid charge mode: %s", arg);
+	}
+	strcpy(errmsg,s->errmsg);
+	return (*errmsg != 0);
+}
+
+static int si_grid(void *ctx, list args, char *errmsg, json_object_t *results) {
+#ifdef JS
+	si_session_t *s = ctx;
+	jsval jstrue = BOOLEAN_TO_JSVAL(JS_TRUE);
+#endif
+	char *arg;
+
+	/* We take 1 arg: start/stop */
+	list_reset(args);
+	arg = list_get_next(args);
+	dprintf(2,"arg: %s\n", arg);
+	*s->errmsg = 0;
+#ifdef JS
+	if (strcasecmp(arg,"start") == 0 || strcasecmp(arg,"on") == 0) {
+//		agent_jsexec(s->ap, "grid_start(true)");
+		agent_start_jsfunc(s->ap, "grid.js", "grid_start", 1, &jstrue);
+	} else if (strcasecmp(arg,"stop") == 0 || strcasecmp(arg,"off") == 0) {
+//		agent_jsexec(s->ap, "grid_stop(true)");
+		agent_start_jsfunc(s->ap, "grid.js", "grid_stop", 1, &jstrue);
+	} else
+#endif
+	{
+		sprintf(s->errmsg,"invalid grid mode: %s", arg);
 	}
 	strcpy(errmsg,s->errmsg);
 	return (*errmsg != 0);
@@ -367,7 +401,6 @@ int si_agent_init(int argc, char **argv, opt_proctab_t *si_opts, si_session_t *s
 	config_property_t si_props[] = {
 		/* name, type, dest, dsize, def, flags, scope, values, labels, units, scale, precision, trigger, ctx */
 		{ "readonly", DATA_TYPE_BOOL, &s->readonly, 0, "yes", 0, 0, 0, 0, 0, 0, 1, set_readonly, s },
-		{ "sync_interval", DATA_TYPE_INT, &s->sync_interval, 0, "0", 0, "range", "0, 1440, 1", "minutes", 0, 0, 0 },
 		{ "charge_mode", DATA_TYPE_INT, &s->charge_mode, 0, "0", 0, "select", "0, 1, 2", "Off,CC,CV", 0, 0, 0 },
 		{ "charge_voltage", DATA_TYPE_DOUBLE, &s->charge_voltage, 0, 0, CONFIG_FLAG_PRIVATE },
 		{ "charge_amps", DATA_TYPE_DOUBLE, &s->charge_amps, 0, 0, CONFIG_FLAG_PRIVATE, },
@@ -430,6 +463,7 @@ int si_agent_init(int argc, char **argv, opt_proctab_t *si_opts, si_session_t *s
 		{ "get", si_get_value, s, 1 },
 		{ "set", si_set_value, s, 2 },
 		{ "charge", si_charge, s, 1 },
+		{ "grid", si_grid, s, 1 },
 		{ "feed", si_feed, s, 1 },
 		{0}
 	};
@@ -446,6 +480,8 @@ int si_agent_init(int argc, char **argv, opt_proctab_t *si_opts, si_session_t *s
 		dprintf(dlevel,"max voltage > si maximum, setting to: %.1f\n", SI_VOLTAGE_MAX);
 		s->max_voltage = SI_VOLTAGE_MAX;
 	}
+
+	si_smanet_config(s);
 
 	if (!strlen(s->notify_path)) sprintf(s->notify_path,"%s/notify",SOLARD_BINDIR);
 	return 0;
@@ -558,6 +594,10 @@ int si_config(void *h, int req, ...) {
 #ifdef SMANET
 		/* XXX smanet needs to be created here (before jsinit) */
 		s->smanet = smanet_init(s->readonly);
+		if (!s->smanet) {
+			log_error("error initializing SMANET");
+			return 1;
+		}
 #endif
 
 #ifdef JS

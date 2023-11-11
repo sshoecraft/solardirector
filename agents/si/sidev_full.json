@@ -1,7 +1,6 @@
 {
     "si": {
         "readonly": true,
-        "sync_interval": 30,
         "charge_mode": 0,
         "grid_charge_amps": 3,
         "min_voltage": 41,
@@ -21,6 +20,9 @@
         "empty_feed": true,
         "remain_samples": 0,
         "battery_full_ah": 894.50343082377856,
+        "si_prop": false,
+        "sync": true,
+        "sync_interval": 5,
         "charge_start_time": "sunrise+75",
         "charge_source": "GenGrid",
         "charge_method": 1,

@@ -10,7 +10,7 @@ do
 		/opt/sd/bin/jbd -b -c /opt/sd/etc/pack_${n}.conf -l /opt/sd/log/pack_${n}.log -a
 #	fi
 done
-#exit 0
+exit 0
 systemctl daemon-reload
 #systemctl restart solard
 systemctl restart rdevserver

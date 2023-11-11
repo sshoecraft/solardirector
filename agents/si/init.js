@@ -50,6 +50,7 @@ function init_main() {
 	// Call init funcs
 	let init_funcs = [
 		"mirror",
+		"sync",
 		"charge",
 		"feed",
 		"grid",

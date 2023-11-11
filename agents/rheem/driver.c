@@ -263,6 +263,7 @@ static void rheem_getmsg(void *ctx, char *topic, char *message, int msglen, char
 		config_property_t *p = config_get_property(s->ap->cp,d->id,(d->enabled ? "auto_started" : "auto_stopped"));
 		dprintf(dlevel,"p: %p\n", p);
 		if (p) {
+			dprintf(dlevel,"p->name: %s\n", p->name);
 			bool t = true;
 			config_property_set_value(p,DATA_TYPE_BOOL,&t,0,true,true);
 			s->ap->refresh = true;
