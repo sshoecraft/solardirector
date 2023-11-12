@@ -58,6 +58,7 @@ if (0 == 1) {
 
 	// ?
 	if (!si.battery_level) si.battery_level = 0;
+	if (data.GnOn) data.input_power = 0;
 
 	pub.tab = [
 			[ "name",		agent.name ],

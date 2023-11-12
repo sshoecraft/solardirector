@@ -1,0 +1,14 @@
+#!/bin/bash
+
+# Grafana API key
+key=XXX
+
+# Dashboard
+dash=YYYY
+
+yest=$(date -d "yesterday" "+%Y-%m-%d")
+start=$(date +%s%3N -d "$yest 06:00:00")
+end=$(date +%s%3N -d "06:00:00")
+systemctl start renderer
+/root/go/bin/grafana-reporter -cmd_enable=1 -cmd_apiKey "${key}" -ip localhost:3000 -cmd_dashboard "${dash}" -cmd_ts "from=${start}&to=${end}" -cmd_o /tmp/rep.pdf
+systemctl stop renderer

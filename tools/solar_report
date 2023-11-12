@@ -1,0 +1,69 @@
+#!/bin/bash -x
+
+TO="email addr"
+
+tmp=/tmp/solar_report.tmp
+rep=/tmp/rep.txt
+uue=/tmp/rep.uue
+#trap '{ rm -f $tmp $rep $uue; }' EXIT
+
+if test "$1" = "monthly"; then
+	:
+elif test "$1" = "weekly"; then
+	:
+else
+day=$(date -d "yesterday" "+%m/%d/%Y")
+/root/bin/rep > $rep
+/root/bin/mkpdf
+fi
+if test -f /tmp/rep.pdf; then
+	base64 /tmp/rep.pdf > $uue
+	rm -f /tmp/rep.pdf
+fi
+
+rm -f $tmp; touch $tmp
+
+boundary="+++++BOUNDARY++++"
+
+echo "Content-Type: multipart/mixed; boundary=${boundary}" >> $tmp
+echo "MIME-Version: 1.0" >> $tmp
+echo "From: Solar System <solar@home.net>" >> $tmp
+#echo "To: (people who need to know)" >> $tmp
+#echo "Reply-to: Solar System <solar@home.net>" >> $tmp
+# Usage needs to match output of rep
+v=`cat /tmp/rep.txt 2>/dev/null | grep ^Usage: | awk '{ print $2 }'`
+if test -n "$v"; then
+	echo "Subject: Utility usage for $day - $v kWh" >> $tmp
+else
+	echo "Subject: Utility usage for $day" >> $tmp
+fi
+echo "" >> $tmp
+
+# This area is a comment
+#printf "This is a multipart message in MIME format.\n" >> $tmp
+
+# Message begins here
+echo "--${boundary}" >> $tmp
+echo "Content-type: text/html; charset=utf-8" >> $tmp
+echo "MIME-Version: 1.0" >> $tmp
+echo "Content-Transfer-Encoding: 7bit" >> $tmp
+echo "" >> $tmp
+#echo "<html><body><pre><font size=\"2\"><tt><font face=\"Courier New, Courier, mono\">data</font></tt></pre></body></html>" >> $tmp
+echo "<html><body><pre><font size=\"2\"><tt><font face=\"Courier New, Courier, mono\">" >> $tmp
+cat $rep >> $tmp
+echo "</font></tt></pre></body></html>" >> $tmp
+
+echo "--${boundary}" >> $tmp
+echo "Content-Type: application/pdf" >> $tmp
+echo "MIME-Version: 1.0" >> $tmp
+echo "Content-Transfer-Encoding: base64" >> $tmp
+echo "Content-Disposition: attachment; filename=\"report.pdf\"" >> $tmp
+echo "" >> $tmp
+cat /tmp/rep.uue >> $tmp
+echo "" >> $tmp
+
+# End boundary
+echo "--${boundary}--" >> $tmp
+
+#cat $tmp
+cat $tmp | /usr/sbin/sendmail $TO
