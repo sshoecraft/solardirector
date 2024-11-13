@@ -633,9 +633,8 @@ static int client_startup(solard_client_t *c, char *configfile, char *mqtt_info,
 
 	eptr = (c->flags & AGENT_FLAG_NOEVENT ? 0 : &c->e);
 #ifdef MQTT
-	/* Create LWT topic */
-mptr = (c->flags & AGENT_FLAG_NOMQTT ? 0 : &c->m);
-	#endif
+	mptr = (c->flags & AGENT_FLAG_NOMQTT ? 0 : &c->m);
+#endif
 #ifdef INFLUX
 	iptr = (c->flags & AGENT_FLAG_NOINFLUX ? 0 : &c->i);
 #endif
@@ -658,6 +657,14 @@ mptr = (c->flags & AGENT_FLAG_NOMQTT ? 0 : &c->m);
         if (props) free(props);
         if (funcs) free(funcs);
 
+#ifdef MQTT
+	if (0) {
+		char my_mqtt_info[256];
+		mqtt_get_config(my_mqtt_info,sizeof(my_mqtt_info)-1,c->m,0);
+		dprintf(0,"my_mqtt_info: %s\n", my_mqtt_info);
+		exit(0);
+	}
+#endif
 #ifdef JS
 	dprintf(dlevel,"nojs: %d\n", check_bit(c->flags, CLIENT_FLAG_NOJS));
 	if (!check_bit(c->flags, CLIENT_FLAG_NOJS)) {
@@ -692,6 +699,7 @@ solard_client_t *client_init(int argc,char **argv,char *version,opt_proctab_t *c
 	char name[64],sname[CFG_SECTION_NAME_SIZE];
 #ifdef MQTT
 	int config_from_mqtt;
+	char sub_topic[200];
 #endif
 #ifdef JS
 	char jsexec[4096];
@@ -836,9 +844,9 @@ solard_client_t *client_init(int argc,char **argv,char *version,opt_proctab_t *c
 
 #ifdef MQTT
 	/* Sub to the agents */
-	sprintf(mqtt_info,"%s/%s/+/#",SOLARD_TOPIC_ROOT,SOLARD_TOPIC_AGENTS);
-	dprintf(dlevel,"subscribing to: %s\n", mqtt_info);
-	mqtt_sub(c->m,mqtt_info);
+	sprintf(sub_topic,"%s/%s/+/#",SOLARD_TOPIC_ROOT,SOLARD_TOPIC_AGENTS);
+	dprintf(dlevel,"subscribing to: %s\n", sub_topic);
+	mqtt_sub(c->m,sub_topic);
 
 	/* Sleep a moment to ingest any messages */
 	usleep(50000);
@@ -847,6 +855,7 @@ solard_client_t *client_init(int argc,char **argv,char *version,opt_proctab_t *c
 	if (!clients) clients = list_create();
 	list_add(clients,c,0);
 
+	dprintf(dlevel,"returning: %p\n", c);
 	return c;
 client_init_error:
 	free(c);
@@ -950,10 +959,13 @@ static JSObject *js_create_agents_array(JSContext *cx, JSObject *parent, list l)
 	JSObject *rows,*obj;
 	jsval val;
 	solard_agent_t *ap;
-	int i;
+	int i,c;
 
-	dprintf(dlevel,"count: %d\n", list_count(l));
-	rows = JS_NewArrayObject(cx, list_count(l), NULL);
+	dprintf(dlevel,"l: %p\n", l);
+
+	c = (l ? list_count(l) : 0);
+	dprintf(dlevel,"count: %d\n", c);
+	rows = JS_NewArrayObject(cx, c, NULL);
 	dprintf(dlevel,"rows: %p\n", rows);
 	i = 0;
 	list_reset(l);

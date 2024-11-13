@@ -143,6 +143,8 @@ int json_iter(char *name, json_value_t *v, json_ifunc_t *func, void *ctx);
 //json_value_t *json_from_cfgtab(cfg_proctab_t *);
 
 #ifdef JS
+JSObject *js_json_toObject(JSContext *cx, JSObject *parent, json_value_t *v);
 JSObject *js_InitmyJSONClass(JSContext *cx, JSObject *parent);
+jsval json2jsval(json_value_t *v, JSContext *cx);
 #endif /* JS */
 #endif /* __SOLARD_JSON_H */

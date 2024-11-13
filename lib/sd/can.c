@@ -157,7 +157,8 @@ static void can_parse_filter(can_session_t *s, char *inspec) {
 		dprintf(dlevel,"p: %c, i: %d, have_start: %d\n", *p, i, have_start, have_plus);
 		if (*p == '-') {
 			temp[i] = 0;
-			start = strtol(temp,0,0);
+//			start = strtol(temp,0,0);
+			STR2INT(temp,start);
 			have_start = 1;
 			i = 0;
 		} else if (*p == '+') {

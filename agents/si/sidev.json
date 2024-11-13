@@ -7,18 +7,18 @@
         "interval": 10,
         "script_dir": ".",
         "influx_database": "dev",
-        "debug_mem": true,
-        "mirror": true,
+        "debug_mem": 1,
+        "location": "31.809158,-95.144338",
+        "mirror": 1,
         "mirror_source": "mqtt,192.168.1.142,si",
-        "charge_feed": true,
+        "charge_feed": 1,
         "charge_start_level": 24,
         "charge_end_level": 88,
-        "dynfeed": true,
-        "dyngrid": false,
-        "dyngen": false,
-        "discharge_efficiency": 0.82999999999999996,
-        "charge_factor": 1.0600000000000001,
-        "battery_capacity": 1050,
-        "location": "31.809158,-95.144338"
+        "dynfeed": 1,
+        "dyngrid": 0,
+        "dyngen": 0,
+        "discharge_efficiency": 0.83850135157871097,
+        "charge_factor": 1.0243066435561174,
+        "battery_capacity": 1050
     }
 }

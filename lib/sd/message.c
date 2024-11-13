@@ -285,10 +285,12 @@ JSObject *js_create_messages_array(JSContext *cx, JSObject *parent, list l) {
 	JSObject *rows,*mobj;
 	jsval val;
 	solard_message_t *msg;
-	int i;
+	int i,c;
 
-	dprintf(2,"count: %d\n", list_count(l));
-	rows = JS_NewArrayObject(cx, list_count(l), NULL);
+	dprintf(dlevel,"l: %p\n", l);
+	c = (l ? list_count(l) : 0);
+	dprintf(dlevel,"c: %d\n", c);
+	rows = JS_NewArrayObject(cx, c, NULL);
 	i = 0;
 	list_reset(l);
 	while((msg = list_get_next(l)) != 0) {

@@ -369,6 +369,7 @@ static int jbd_get_config(jbd_session_t *s, struct jbd_params *pp, config_proper
 
 static int jbd_get_value(void *ctx, list args, char *errmsg, json_object_t *results) {
 	jbd_session_t *s = ctx;
+	config_arg_t *arg;
 	char *name;
 	config_property_t *p;
 	json_value_t *v;
@@ -377,7 +378,8 @@ static int jbd_get_value(void *ctx, list args, char *errmsg, json_object_t *resu
 	dprintf(dlevel,"args count: %d\n", list_count(args));
 	r = 0;
 	list_reset(args);
-	while((name = list_get_next(args)) != 0) {
+	while((arg = list_get_next(args)) != 0) {
+		name = arg->argv[0];
 		dprintf(dlevel,"name: %s\n", name);
 		p = config_find_property(s->ap->cp, name);
 		dprintf(dlevel,"p: %p\n", p);
@@ -691,7 +693,8 @@ static int jbd_set_config(jbd_session_t *s, uint8_t *data, struct jbd_params *pp
 
 static int jbd_set_value(void *ctx, list args, char *errmsg, json_object_t *results) {
 	jbd_session_t *s = ctx;
-	char **argv, *name, *value;
+	config_arg_t *arg;
+	char *name, *value;
 	config_property_t *p;
 	int r,we_opened;
 
@@ -700,9 +703,9 @@ static int jbd_set_value(void *ctx, list args, char *errmsg, json_object_t *resu
 	list_reset(args);
 	r = 0;
 	strcpy(errmsg,"unknown");
-	while((argv = list_get_next(args)) != 0) {
-		name = argv[0];
-		value = argv[1];
+	while((arg = list_get_next(args)) != 0) {
+		name = arg->argv[0];
+		value = arg->argv[1];
 		dprintf(dlevel,"name: %s, value: %s\n", name, value);
 		p = config_find_property(s->ap->cp, name);
 		dprintf(dlevel,"p: %p\n", p);
@@ -782,24 +785,25 @@ int xor_bits(unsigned x) {
 
 static int jbd_charge(void *ctx, list args, char *errmsg, json_object_t *results) {
 	jbd_session_t *s = ctx;
-	char *arg;
+	config_arg_t *arg;
+	char *action;
 	int r,bits;
 
 	/* We take 1 arg: start/stop */
-	list_reset(args);
-	arg = list_get_next(args);
-	dprintf(dlevel,"arg: %s\n", arg);
+	arg = list_get_first(args);
+	action = arg->argv[0];
+	dprintf(dlevel,"action: %s\n", action);
 	if (jbd_get_fetstate(s)) {
 		strcpy(errmsg,"unable to get fetstate");
 		return 1;
 	}
-	dprintf(0,"fetstate: %x\n", s->fetstate);
+	dprintf(dlevel,"fetstate: %x\n", s->fetstate);
 	bits = (s->fetstate & JBD_MOS_DISCHARGE ? 0 : JBD_MOS_DISCHARGE);
-	if (strcmp(arg,"start") == 0 || strcasecmp(arg,"on") == 0) {
+	if (strcmp(action,"start") == 0 || strcasecmp(action,"on") == 0) {
 		dprintf(0,"bits: %x\n", bits);
 		r = jbd_set_mosfet(s,bits);
 		if (r) strcpy(errmsg,"unable to set mosfet");
-	} else if (strcmp(arg,"stop") == 0 || strcasecmp(arg,"off") == 0) {
+	} else if (strcmp(action,"stop") == 0 || strcasecmp(action,"off") == 0) {
 		bits |= JBD_MOS_CHARGE;
 		dprintf(0,"bits: %x\n", bits);
 		r = jbd_set_mosfet(s,bits);
@@ -813,25 +817,26 @@ static int jbd_charge(void *ctx, list args, char *errmsg, json_object_t *results
 
 static int jbd_discharge(void *ctx, list args, char *errmsg, json_object_t *results) {
 	jbd_session_t *s = ctx;
-	char *arg;
+	config_arg_t *arg;
+	char *action;
 	int r,bits;
 
 	/* We take 1 arg: start/stop */
-	list_reset(args);
-	arg = list_get_next(args);
-	dprintf(dlevel,"arg: %s\n", arg);
+	arg = list_get_first(args);
+	action = arg->argv[0];
+	dprintf(dlevel,"action: %s\n", action);
 	if (jbd_get_fetstate(s)) {
 		strcpy(errmsg,"unable to get fetstate");
 		return 1;
 	}
 	dprintf(0,"fetstate: %x\n", s->fetstate);
 	bits = (s->fetstate & JBD_MOS_CHARGE ? 0 : JBD_MOS_CHARGE);
-	if (strcmp(arg,"start") == 0 || strcasecmp(arg,"on") == 0) {
+	if (strcmp(action,"start") == 0 || strcasecmp(action,"on") == 0) {
 		bits &= ~JBD_MOS_DISCHARGE;
 		dprintf(0,"bits: %x\n", bits);
 		r = jbd_set_mosfet(s,bits);
 		if (r) strcpy(errmsg,"unable to set mosfet");
-	} else if (strcmp(arg,"stop") == 0 || strcasecmp(arg,"off") == 0) {
+	} else if (strcmp(action,"stop") == 0 || strcasecmp(action,"off") == 0) {
 		bits |= JBD_MOS_DISCHARGE;
 		dprintf(0,"bits: %x\n", bits);
 		r = jbd_set_mosfet(s,bits);
@@ -845,22 +850,23 @@ static int jbd_discharge(void *ctx, list args, char *errmsg, json_object_t *resu
 
 static int cf_jbd_balance(void *ctx, list args, char *errmsg, json_object_t *results) {
 	jbd_session_t *s = ctx;
-	char *arg;
+	config_arg_t *arg;
+	char *action;
 	int r;
 
 	/* We take 1 arg: start/stop */
-	list_reset(args);
-	arg = list_get_next(args);
-	dprintf(0,"arg: %s\n", arg);
-	if (strcmp(arg,"start") == 0 || strcasecmp(arg,"on") == 0) {
+	arg = list_get_first(args);
+	action = arg->argv[0];
+	dprintf(dlevel,"action: %s\n", action);
+	if (strcmp(action,"start") == 0 || strcasecmp(action,"on") == 0) {
 		r = jbd_set_balance(s,JBD_FUNC_BALANCE_EN);
 		if (r) strcpy(errmsg,"unable to set balance");
 		else s->balancing = 1;
-	} else if (strcmp(arg,"stop") == 0 || strcasecmp(arg,"off") == 0) {
+	} else if (strcmp(action,"stop") == 0 || strcasecmp(action,"off") == 0) {
 		r = jbd_set_balance(s,0);
 		if (r) strcpy(errmsg,"unable to set balance");
 		else s->balancing = 0;
-	} else if (strcasecmp(arg,"charge") == 0) {
+	} else if (strcasecmp(action,"charge") == 0) {
 		r = jbd_set_balance(s,JBD_FUNC_BALANCE_EN | JBD_FUNC_CHG_BALANCE);
 		if (r) strcpy(errmsg,"unable to set balance");
 		else s->balancing = 2;
@@ -886,6 +892,8 @@ int jbd_agent_init(jbd_session_t *s, int argc, char **argv) {
 	opt_proctab_t jbd_opts[] = {
 		/* Spec, dest, type len, reqd, default val, have */
 		{ "-t::|transport,target,opts",s->tpinfo,DATA_TYPE_STRING,sizeof(s->tpinfo)-1,0,"" },
+		{ "-r|retry transport connection",&s->retry_tp,DATA_TYPE_BOOL,0,0,"N" },
+		{ "-w|retry wait time",&s->wait_time,DATA_TYPE_INT,0,0,"30" },
 		OPTS_END
 	};
 	config_property_t jbd_props[] = {
@@ -1080,7 +1088,22 @@ int jbd_config(void *h, int req, ...) {
 		}
 
 		/* Init our transport */
-		if (jbd_tp_init(s)) return 1;
+		r = jbd_tp_init(s);
+		dprintf(1,"r: %d, retry_tp: %d\n", r, s->retry_tp);
+		if (!r && s->retry_tp) {
+			do {
+				dprintf(1,"calling open...\n");
+				r = jbd_open(s);
+				dprintf(1,"r: %d\n", r);
+				if (r) {
+					dprintf(1,"open failed, sleeping %d seconds...\n",s->wait_time);
+					sleep(s->wait_time);
+					dprintf(1,"retrying...\n");
+					if (s->tp && s->tp_handle) s->tp->close(s->tp_handle);
+				}
+			dprintf(1,"r: %d\n", r);
+			} while(r != 0);
+		}
 
 		/* Add our internal params to the config */
 		jbd_config_add_parms(s);
@@ -1098,6 +1121,7 @@ int jbd_config(void *h, int req, ...) {
 	    }
 	    break;
 	case SOLARD_CONFIG_GET_INFO:
+		dprintf(1,"**** GET_INFO *******\n");
 		{
 			json_value_t **vpp = va_arg(va,json_value_t **);
 			dprintf(1,"vpp: %p\n", vpp);

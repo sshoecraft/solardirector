@@ -26,11 +26,11 @@ LICENSE file in the root directory of this source tree.
 int solard_kill(int pid) {
 	int r;
 
-	dprintf(1,"pid: %d\n", pid);
+	dprintf(dlevel,"pid: %d\n", pid);
 
 #ifndef __WIN32
 	r = kill(pid,SIGTERM);
-	dprintf(1,"r: %d\n", r);
+	dprintf(dlevel,"r: %d\n", r);
 	return (r == 0 ? 0 : 1);
 #else
 	HANDLE h;
@@ -38,7 +38,7 @@ int solard_kill(int pid) {
 	h = OpenProcess(PROCESS_ALL_ACCESS,0,pid);
 	r = TerminateProcess(h,1);
 	CloseHandle(h);
-	dprintf(1,"r: %d\n", r);
+	dprintf(dlevel,"r: %d\n", r);
 	return (r == 0 ? 1 : 0);
 #endif
 }
@@ -47,23 +47,23 @@ int solard_wait(int pid) {
 #ifndef __WIN32
 	int status;
 
-	dprintf(1,"pid: %d\n", pid);
+	dprintf(dlevel,"pid: %d\n", pid);
 
 	/* Wait for it to finish */
 	do {
 		if (waitpid(pid,&status,0) < 0) return -1;
-		dprintf(5,"WIFEXITED: %d\n", WIFEXITED(status));
+		dprintf(dlevel,"WIFEXITED: %d\n", WIFEXITED(status));
 	} while(!WIFEXITED(status));
 
 	/* Get exit status */
 	status = WEXITSTATUS(status);
-	dprintf(5,"status: %d\n", status);
+	dprintf(dlevel,"status: %d\n", status);
 	return status;
 #else
 	DWORD ExitCode;
 	HANDLE h; 
 
-	dprintf(1,"pid: %d\n", pid);
+	dprintf(dlevel,"pid: %d\n", pid);
 
 	/* Get process handle */
 	h = OpenProcess(PROCESS_ALL_ACCESS,0,pid);
@@ -117,7 +117,7 @@ int solard_exec(char *prog, char *args[], char *log, int wait) {
 	pid_t pid;
 	int i,status;
 
-	dprintf(5,"prog: %s, args: %p, log: %s, wait: %d\n", prog, args, log, wait);
+	dprintf(dlevel,"prog: %s, args: %p, log: %s, wait: %d\n", prog, args, log, wait);
 	if (log) {
 		/* Open the logfile */
 		logfd = open(log,OPTS, 0644);
@@ -128,12 +128,12 @@ int solard_exec(char *prog, char *args[], char *log, int wait) {
 	}
 
 #if DEBUG
-	for(i=0; args[i]; i++) dprintf(5,"args[%d]: %s\n", i, args[i]);
+	for(i=0; args[i]; i++) dprintf(dlevel,"args[%d]: %s\n", i, args[i]);
 #endif
 
 	/* Fork the process */
 	pid = fork();
-	dprintf(5,"pid: %d\n", pid);
+	dprintf(dlevel,"pid: %d\n", pid);
 
 	/* If pid < 0, error */
 	if (pid < 0) {
@@ -175,12 +175,12 @@ int solard_exec(char *prog, char *args[], char *log, int wait) {
 					kill(pid,SIGKILL);
 					return -1;
 				}
-				dprintf(5,"WIFEXITED: %d\n", WIFEXITED(status));
+				dprintf(dlevel,"WIFEXITED: %d\n", WIFEXITED(status));
 			} while(!WIFEXITED(status));
 
 			/* Get exit status */
 			status = WEXITSTATUS(status);
-			dprintf(5,"status: %d\n", status);
+			dprintf(dlevel,"status: %d\n", status);
 
 			/* Return status */
 			return status;
@@ -215,7 +215,7 @@ int solard_exec(char *prog, char *args[], char *log, int wait) {
 	register char **pp;
 	DWORD dwPid;
 
-	dprintf(5,"prog: %s, args: %p, log: %s, wait: %d\n", prog, args, log, wait);
+	dprintf(dlevel,"prog: %s, args: %p, log: %s, wait: %d\n", prog, args, log, wait);
 
 	sa.nLength = sizeof(sa);
 	sa.bInheritHandle = TRUE;
@@ -231,7 +231,7 @@ int solard_exec(char *prog, char *args[], char *log, int wait) {
 			  NULL);
 
 		if (hLog == INVALID_HANDLE_VALUE) {
-			dprintf(1, "CreateFile(log): %s\n", GetErrorText());
+			dprintf(dlevel, "CreateFile(log): %s\n", GetErrorText());
 			return (0);
 		}
 	} else hLog = INVALID_HANDLE_VALUE;
@@ -239,12 +239,12 @@ int solard_exec(char *prog, char *args[], char *log, int wait) {
 	*CommandLine = 0;
 	for(pp = args; *pp; pp++) {
 		if (strlen(CommandLine)) strcat(CommandLine," ");
-		dprintf(1,"adding: %s\n", *pp);
+		dprintf(dlevel,"adding: %s\n", *pp);
 		strcat(CommandLine,*pp);
 	}
 //	replacevar(CommandLine);
 	fixpath(CommandLine,sizeof(CommandLine)-1);
-	dprintf(1,"CommandLine: %s\n", CommandLine);
+	dprintf(dlevel,"CommandLine: %s\n", CommandLine);
 
 	memset(&StartupInfo.cb,0,sizeof(StartupInfo.cb));
 	StartupInfo.cb = sizeof(STARTUPINFO);
@@ -264,7 +264,7 @@ int solard_exec(char *prog, char *args[], char *log, int wait) {
 			NULL,			// current directory
 			&StartupInfo,
 			&pi)) {
-		dprintf(1, "procress created...\n");
+		dprintf(dlevel, "procress created...\n");
   		dwPid = GetProcessId(pi.hProcess);
 		CloseHandle(hLog);		// safe to get rid off log handle now
 		if (wait) {
@@ -283,7 +283,7 @@ int solard_exec(char *prog, char *args[], char *log, int wait) {
 		CloseHandle(pi.hProcess);
 		CloseHandle(pi.hThread);
 	} else {
-		dprintf(0, "CreateProcess: %s\n", GetErrorText());
+		dprintf(dlevel, "CreateProcess: %s\n", GetErrorText());
 		return -1;
 	}
 
@@ -295,14 +295,14 @@ int solard_checkpid(int pid, int *exitcode) {
 #ifndef __WIN32
 	int status;
 
-	dprintf(5,"pid: %d\n", pid);
+	dprintf(dlevel,"pid: %d\n", pid);
 
 	if (waitpid(pid, &status, WNOHANG) != 0) {
 		/* Get exit status */
-		dprintf(5,"WIFEXITED: %d\n", WIFEXITED(status));
-		if (WIFEXITED(status)) dprintf(1,"WEXITSTATUS: %d\n", WEXITSTATUS(status));
+		dprintf(dlevel,"WIFEXITED: %d\n", WIFEXITED(status));
+		if (WIFEXITED(status)) dprintf(dlevel,"WEXITSTATUS: %d\n", WEXITSTATUS(status));
 		status = (WIFEXITED(status) ? WEXITSTATUS(status) : 1);
-		dprintf(5,"status: %d\n", status);
+		dprintf(dlevel,"status: %d\n", status);
 		*exitcode = status;
 		return 1;
 	}
@@ -316,7 +316,7 @@ int solard_checkpid(int pid, int *exitcode) {
 	r = GetExitCodeProcess(h, &Status);
 	*exitcode = Status;
 	CloseHandle(h);
-	dprintf(5,"r: %d\n", r);
+	dprintf(dlevel,"r: %d\n", r);
 	return (r == 0 ? 1 : 0);
 #endif
 }

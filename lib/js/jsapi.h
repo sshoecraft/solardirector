@@ -2696,6 +2696,14 @@ static inline jsval js_number_to_jsval(JSContext *cx, double n) {
 }
 #define NUMBER_TO_JSVAL(n) js_number_to_jsval(cx,n) /* XXX cx assumed */
 
+static inline char *JSVAL_TO_CHAR(JSContext *cx, jsval val) {
+        JSString *str;
+
+        str = JS_ValueToString(cx, val);
+        if (!str) return 0;
+        return JS_EncodeString(cx, str);
+}
+
 #define JS_NUMCONST(n) { #n, NUMBER_TO_JSVAL((n)) }
 #define JS_STRCONST(n) { #n, STRING_TO_JSVAL(JS_NewStringCopyZ(cx,(n))) }
 

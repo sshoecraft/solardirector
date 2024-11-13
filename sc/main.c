@@ -13,8 +13,8 @@ LICENSE file in the root directory of this source tree.
 #include "sc.h"
 #include "__sd_build.h"
 
-#define TESTING 1
-#define TESTLVL 0
+#define TESTING 0
+#define TESTLVL 2
 
 #if DEBUG_STARTUP
 #define _ST_DEBUG LOG_DEBUG
@@ -70,13 +70,12 @@ int main(int argc,char **argv) {
 	}
 #endif
 
-	dprintf(0,"ap: %p\n", s->ap);
+	dprintf(dlevel,"ap: %p\n", s->ap);
 	if (!norun_flag) agent_run(s->ap);
 	else sc_driver.read(s,0,0,0);
 
 	/* Teardown */
-	list_destroy(s->names);
-	list_destroy(s->agents);
+//	list_destroy(s->agents);
 	sc_driver.destroy(s);
 	return 0;
 }

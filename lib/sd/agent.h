@@ -41,7 +41,8 @@ struct solard_agent {
 	bool config_from_mqtt;
 	char mqtt_topic[SOLARD_TOPIC_SIZE];
 	list mq;			/* incoming message queue */
-	bool addmq;
+	bool purge;			/* automatically purge unprocessed messages */
+	bool addmq;			/* for client: add to mq */
 #endif
 #ifdef INFLUX
 	influx_session_t *i;
@@ -141,6 +142,7 @@ int agent_set_callback(solard_agent_t *, solard_agent_callback_t *, void *);
 int agent_clear_callback(solard_agent_t *);
 int cf_agent_getinfo(void *ctx, list args, char *errmsg, json_object_t *results);
 int cf_agent_getconfig(void *ctx, list args, char *errmsg, json_object_t *results);
+int agent_repub(solard_agent_t *ap);
 
 void agent_event(solard_agent_t *ap, char *action, char *reason);
 

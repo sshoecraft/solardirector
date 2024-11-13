@@ -69,6 +69,8 @@ struct jbd_session {
 	bool flatten;
 	bool log_power;
 	float last_power;
+	bool retry_tp;			/* retry transport connection */
+	bool wait_time;			/* number of seconds to wait between retries */
 #ifdef JS
 	JSPropertySpec *propspec;
 	JSPropertySpec *data_propspec;

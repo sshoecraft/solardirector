@@ -78,18 +78,31 @@ int main(int argc,char **argv) {
 	cellmon_config_t *conf;
 	client_agentinfo_t *info;
 	solard_message_t *msg;
-	char configfile[256],topic[SOLARD_TOPIC_SIZE];
+//	char configfile[256];
+	char topic[SOLARD_TOPIC_SIZE];
 //	char target[SOLARD_ROLE_LEN+SOLARD_NAME_LEN+2];
 //	char role[SOLARD_ROLE_LEN];
 //	char name[SOLARD_NAME_LEN];
 //	int web_flag;
 	int refresh;
+	bool cmd_average,cmd_minmax;
+	bool do_average,do_minmax;
 	opt_proctab_t opts[] = {
 		/* Spec, dest, type len, reqd, default val, have */
+//		{ "-a|average",&cmd_average,DATA_TYPE_BOOL,0,0,"false" },
+		{ "-a|average",&cmd_average,DATA_TYPE_BOOL,0,0,0 },
+//		{ "-x|show true min/max during average",&cmd_minmax,DATA_TYPE_BOOL,0,0,"false" },
+		{ "-x|show true min/max during average",&cmd_minmax,DATA_TYPE_BOOL,0,0,0 },
 		{ "-t::|topic",&topic,DATA_TYPE_STRING,sizeof(topic)-1,0,"" },
 		{ "-r:#|refresh rate",&refresh,DATA_TYPE_INT,0,0,"1" },
 //		{ "-w|web output",&web_flag,DATA_TYPE_BOOL,0,0,"false" },
 		OPTS_END
+	};
+	config_property_t props[] = {
+		/* name, type, dest, dsize, def, flags, scope, values, labels, units, scale, precision, trigger, ctx */
+		{ "average", DATA_TYPE_BOOL, &do_average, 0, "no", 0, 0, 0, 0, 0, 0, 1, 0, 0 },
+		{ "minmax", DATA_TYPE_BOOL, &do_minmax, 0, "no", 0, 0, 0, 0, 0, 0, 1, 0, 0 },
+		{ 0 }
 	};
 	register char *p;
 	list agents;
@@ -99,16 +112,22 @@ int main(int argc,char **argv) {
 	argv = args;
 #endif
 
-	find_config_file("cellmon.conf",configfile,sizeof(configfile)-1);
-	dprintf(1,"configfile: %s\n", configfile);
+//	find_config_file("cellmon.conf",configfile,sizeof(configfile)-1);
+//	dprintf(1,"configfile: %s\n", configfile);
 
+	cmd_average = cmd_minmax = -1;
 	conf = malloc(sizeof(*conf));
 	if (!conf) return 1;
 	memset(conf,0,sizeof(*conf));
-	conf->c = client_init(argc,argv,"1.0",opts,"cellmon",CLIENT_FLAG_NOJS,0,0,0,0);
+	conf->c = client_init(argc,argv,"1.0",opts,"cellmon",CLIENT_FLAG_NOJS,props,0,0,0);
 	if (!conf->c) return 1;
 	conf->c->addmq = true;
 	conf->packs = list_create();
+
+	dprintf(1,"cmd_average: %d, cmd_minmax: %d\n",cmd_average,cmd_minmax);
+	if (cmd_average >= 0) do_average = cmd_average;
+	if (cmd_minmax >= 0) do_minmax = cmd_minmax;
+	dprintf(1,"do_average: %d, do_minmax: %d\n",do_average,do_minmax);
 
 	agents = conf->c->agents;
 #if 0
@@ -138,7 +157,7 @@ int main(int argc,char **argv) {
 		/* Purge any messages in main message que */
 		list_purge(conf->c->mq);
 #endif
-		display(conf);
+		display(conf,do_average,do_minmax);
 		sleep(refresh);
 //		dprintf(0,"count: %d, used: %ld\n", list_count(conf->packs), mem_used());
 	}

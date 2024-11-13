@@ -286,10 +286,20 @@ int config_property_set_value(config_property_t *p, int type, void *src, int siz
 		if (!p->dsize) {
 			p->dsize = typesize(p->type);
 			dprintf(ldlevel,"p->dsize: %d\n", p->dsize);
-			if (!p->dsize) p->dsize = 128;
+			/* XXX LOL WTF */
+			if (!p->dsize) {
+				if (p->type & DATA_TYPE_MLIST)
+					p->dsize = sizeof(void *);
+				else
+					p->dsize = 128;
+			}
 		}
-		if (p->type & DATA_TYPE_MLIST) p->dest = list_create();
-		else p->dest = malloc(p->dsize);
+		if (p->type & DATA_TYPE_MLIST) {
+			dprintf(ldlevel,"creating list...\n");
+			p->dest = list_create();
+		} else {
+			p->dest = malloc(p->dsize);
+		}
 		dprintf(ldlevel,"p->dest: %p\n", p->dest);
 		if (!p->dest) return 1;
 		p->flags |= CONFIG_FLAG_ALLOCDEST;
@@ -316,7 +326,7 @@ int config_property_set_value(config_property_t *p, int type, void *src, int siz
 //		if (src) dprintf(ldlevel,"type: %s, dest: %p, len: %d\n", typestr(p->type), p->dest, p->len);
 		if (src) conv_type(DATA_TYPE_STRING,value,sizeof(value),p->type,p->dest,p->len);
 		else value[0] = 0;
-		dprintf(dlevel,"%s set value: %s\n", p->name, value);
+		dprintf(dlevel,"%s = %s\n", p->name, value);
 	}
 	return 0;
 }
@@ -393,7 +403,7 @@ config_property_t *config_new_property(config_t *cp, char *name, int type, void 
 	dprintf(dlevel,"newp: %p\n", newp);
 	if (!newp) return 0;
 	memset(newp,0,sizeof(*newp));
-//	newp->cp = cp;
+	newp->cp = cp;
 	newp->flags = CONFIG_FLAG_ALLOC;
 	newp->name = strdup(name);
 	if (!newp->name) goto _newp_error;
@@ -453,8 +463,7 @@ int config_section_add_property(config_t *cp, config_section_t *s, config_proper
 	/* Dont apply this to the property flags */
 	_clear_flag(flags,NOTRIG);
 	dprintf(dlevel,"p->name: %s, flags: %x, trig: %d\n", p->name, flags, trig);
-//	p->cp = cp;
-	p->sp = s;
+//	p->sp = s;
 
 	/* Alread there? maybe from file? replace it */
 	pp = config_section_get_property(s, p->name);
@@ -585,6 +594,28 @@ config_section_t *config_create_section(config_t *cp, char *name, int flags) {
 	return list_add(cp->sections,&newsec,sizeof(newsec));
 }
 
+int config_delete_section(config_t *cp, char *name) {
+	config_section_t *section;
+
+	if (!cp) return 0;
+
+	/* Find the section */
+	dprintf(dlevel,"looking for section: %s\n", name);
+	list_reset(cp->sections);
+	while( (section = list_get_next(cp->sections)) != 0) {
+		dprintf(dlevel,"name: %s\n", section->name);
+		if (strcasecmp(section->name,name)==0) {
+			dprintf(dlevel,"found\n");
+			list_delete(cp->sections,section);
+			*cp->errmsg = 0;
+			return 0;
+		}
+	}
+	dprintf(dlevel,"NOT found!\n");
+	sprintf(cp->errmsg,"unable to find config section: %s", name);
+	return 1;
+}
+
 void config_add_props(config_t *cp, char *section_name, config_property_t *props, int flags) {
 	config_property_t *pp;
 	config_section_t *section;
@@ -660,6 +691,28 @@ void config_add_funcs(config_t *cp, config_function_t *funcs) {
 	for(f = funcs; f->name; f++) list_add(cp->funcs, f, sizeof(*f));
 }
 
+int config_delete_function(config_t *cp, char *name) {
+	config_function_t *func;
+
+	if (!cp) return 1;
+
+	/* Find the function */
+	dprintf(dlevel,"looking for function: %s\n", name);
+	list_reset(cp->funcs);
+	while( (func = list_get_next(cp->funcs)) != 0) {
+		dprintf(dlevel,"name: %s\n", func->name);
+		if (strcasecmp(func->name,name)==0) {
+			dprintf(dlevel,"found\n");
+			list_delete(cp->funcs,func);
+			*cp->errmsg = 0;
+			return 0;
+		}
+	}
+	dprintf(dlevel,"NOT found!\n");
+	sprintf(cp->errmsg,"unable to find function: %s", name);
+	return 1;
+}
+
 list config_get_funcs(config_t *cp) {
 	return cp->funcs;
 }
@@ -701,11 +754,14 @@ void config_destroy_config(config_t *cp) {
 	dprintf(dlevel,"cp: %p\n", cp);
 #ifdef JS
 	/* must be done before destroying properties (which will free ctx) */
+	dprintf(dlevel,"roots: %p\n", cp->roots);
 	if (cp->roots) {
 		struct config_rootinfo *ri;
 
+		dprintf(dlevel,"roots count: %d\n", list_count(cp->roots));
 		list_reset(cp->roots);
 		while((ri = list_get_next(cp->roots)) != 0) {
+			dprintf(dlevel,"ri->name: %s\n", ri->name);
 			JS_RemoveRoot(ri->cx,ri->vp);
 			JS_free(ri->cx,ri->name);
 		}
@@ -857,6 +913,27 @@ static config_property_t *_json_to_prop(config_t *cp, config_section_t *sec, cha
 				config_property_set_value(p,DATA_TYPE_STRING,str,strlen(str),true,cp->triggers);
 			}
 			break;
+		case JSON_TYPE_ARRAY:
+			{
+				json_array_t *a;
+				int i,len;
+				char *str;
+
+				a = json_value_array(v);
+				for(i=len=0; i < a->count; i++) {
+					str = json_value_get_string(a->items[i]);
+					len += strlen(str)+1;
+				}
+				str = malloc(len);
+				if (!str) {
+					log_syserr("config: _json_to_prop: malloc");
+				} else {
+					json_to_type(DATA_TYPE_STRING,str,len,v);
+					config_property_set_value(p,DATA_TYPE_STRING,str,strlen(str),true,cp->triggers);
+					free(str);
+				}
+			}
+			break;
 		default:
 //			log_error("config:_json_to_prop: unhandled ptype: %s\n", json_typestr(jtype));
 			break;
@@ -885,6 +962,21 @@ static config_property_t *_json_to_prop(config_t *cp, config_section_t *sec, cha
 			type = DATA_TYPE_STRING;
 			dsize = strlen(json_value_get_string(v))+1;
 			dest = malloc(dsize);
+			break;
+		case JSON_TYPE_ARRAY:
+			{
+				json_array_t *a;
+				char *str;
+				int i;
+
+				a = json_value_array(v);
+				for(i=dsize=0; i < a->count; i++) {
+					str = json_value_get_string(a->items[i]);
+					dsize += strlen(str)+1;
+				}
+				type = DATA_TYPE_STRING;
+				dest = malloc(dsize);
+			}
 			break;
 		default:
 			log_error("config:_json_to_prop: unhandled type: %s\n", json_typestr(jtype));
@@ -1393,13 +1485,15 @@ static json_object_t *_get_json_prop(json_array_t *a, char *name) {
 
 int config_service_get_value(void *ctx, list args, char *errmsg, json_object_t *results) {
 	config_t *cp = ctx;
+	config_arg_t *arg;
 	char *name;
 	config_property_t *p;
 	json_value_t *v;
 
 	dprintf(dlevel,"args count: %d\n", list_count(args));
 	list_reset(args);
-	while((name = list_get_next(args)) != 0) {
+	while((arg = list_get_next(args)) != 0) {
+		name = arg->argv[0];
 		p = config_find_property(cp, name);
 		dprintf(dlevel,"p: %p\n", p);
 		if (!p) {
@@ -1414,28 +1508,29 @@ int config_service_get_value(void *ctx, list args, char *errmsg, json_object_t *
 
 int config_service_set_value(void *ctx, list args, char *errmsg, json_object_t *results) {
 	config_t *cp = ctx;
-	char **argv,*value;
+	config_arg_t *arg;
+	char *value;
 	config_property_t *p;
 	bool doit;
 
 	doit = false;
 	list_reset(args);
-	while((argv = list_get_next(args)) != 0) {
-		p = config_find_property(cp, argv[0]);
+	while((arg = list_get_next(args)) != 0) {
+		p = config_find_property(cp, arg->argv[0]);
 		dprintf(dlevel,"p: %p\n", p);
 		if (!p) {
-			sprintf(errmsg,"property %s not found",argv[0]);
+			sprintf(errmsg,"property %s not found",arg->argv[0]);
 			return 1;
 		}
 		if (p->flags & CONFIG_FLAG_READONLY) {
-			sprintf(errmsg,"property %s is readonly",argv[0]);
+			sprintf(errmsg,"property %s is readonly",arg->argv[0]);
 			return 1;
 		}
-		value = argv[1];
+		value = arg->argv[1];
 		dprintf(dlevel,"name: %s, value: %s\n", p->name, value);
                 if (strcasecmp(value,"default")==0) {
 			if (!p->def) {
-				sprintf(errmsg,"property %s has no default",argv[0]);
+				sprintf(errmsg,"property %s has no default",arg->argv[0]);
 				return 1;
 			}
                         value = p->def;
@@ -1451,12 +1546,14 @@ int config_service_set_value(void *ctx, list args, char *errmsg, json_object_t *
 
 int config_service_clear_value(void *ctx, list args, char *errmsg, json_object_t *results) {
 	config_t *cp = ctx;
+	config_arg_t *arg;
         char *name,*def;
 	config_property_t *p;
 
         dprintf(dlevel,"args count: %d\n", list_count(args));
         list_reset(args);
-        while((name = list_get_next(args)) != 0) {
+        while((arg = list_get_next(args)) != 0) {
+		name = arg->argv[0];
                 dprintf(dlevel,"name: %s\n", name);
                 p = config_find_property(cp, name);
                 dprintf(dlevel,"p: %p\n", p);
@@ -1479,17 +1576,14 @@ int config_service_clear_value(void *ctx, list args, char *errmsg, json_object_t
 
 static int config_load(void *ctx, list args, char *errmsg, json_object_t *results) {
 	config_t *cp = ctx;
-	char *arg;
+	config_arg_t *arg;
 
-	dprintf(dlevel,"args count: %d\n", list_count(args));
-	list_reset(args);
-	while((arg = list_get_next(args)) != 0) {
-		dprintf(dlevel,"arg: %s\n", arg);
-		if (config_load_json(cp,arg)) return 1;
-		log_info("new config loaded\n");
-		config_write(cp);
-		break;
-	}
+	arg = list_get_first(args);
+	dprintf(dlevel,"arg: %p\n", arg);
+	if (!arg) return 1;
+	if (config_load_json(cp,arg->argv[0])) return 1;
+	log_info("new config loaded\n");
+	config_write(cp);
 	return 0;
 }
 
@@ -1617,10 +1711,11 @@ int config_process_request(config_t *cp, char *request, json_object_t *status) {
 	json_value_t *v,*vv,*vvv;
 	json_object_t *o,*results;
 	json_array_t *a;
+	config_arg_t newarg;
 	int type,i,j,errcode;
         config_function_t *f;
-	char *args[32];
-	int nargs;
+//	char *args[32];
+//	int nargs;
 	list fargs;
 
 	fargs = 0;
@@ -1672,23 +1767,26 @@ int config_process_request(config_t *cp, char *request, json_object_t *status) {
 		for(j=0; j < a->count; j++) {
 			vvv = a->items[j];
 			type = json_value_get_type(vvv);
+			newarg.argc = f->nargs;
+			newarg.argv = malloc(newarg.argc * sizeof(char *));
 			if (f->nargs == 0) {
 				sprintf(cp->errmsg,"function %s takes 0 arguments but %d passed\n", f->name, (int)a->count);
 				goto _process_error;
 			} else if (f->nargs == 1) {
-				char *str;
+//				char *str;
 
 				/* Strings only */
 				if (type != JSON_TYPE_STRING) {
 					strcpy(cp->errmsg,"must be array of strings for nargs = 1");
 					goto _process_error;
 				}
-				str = json_value_get_string(vvv);
-				list_add(fargs,str,strlen(str)+1);
+//				str = json_value_get_string(vvv);
+//				list_add(fargs,str,strlen(str)+1);
+				newarg.argv[0] = json_value_get_string(vvv);
 			} else if (f->nargs > 1) {
 				json_array_t *aa;
 				int k;
-				char *str;
+//				char *str;
 
 				/* Arrays */
 				if (type != JSON_TYPE_ARRAY) {
@@ -1697,18 +1795,20 @@ int config_process_request(config_t *cp, char *request, json_object_t *status) {
 				}
 				aa = json_value_array(vvv);
 				/* Strings */
-				nargs = 0;
+//				nargs = 0;
 				for(k=0; k < aa->count; k++) {
 					if (json_value_get_type(aa->items[k]) != JSON_TYPE_STRING) {
 						strcpy(cp->errmsg,"must be array of string arrays for nargs > 2");
 						goto _process_error;
 					}
-					str = json_value_get_string(aa->items[k]);
-					args[nargs++] = str;
+//					str = json_value_get_string(aa->items[k]);
+//					args[nargs++] = str;
+					newarg.argv[k] = json_value_get_string(aa->items[k]);
 				}
-				args[nargs] = 0;
-				list_add(fargs,args,sizeof(args));
+//				args[nargs] = 0;
+//				list_add(fargs,args,sizeof(args));
 			}
+			list_add(fargs,&newarg,sizeof(newarg));
 		}
 		dprintf(dlevel,"fargs count: %d\n", list_count(fargs));
 		if (f->func(f->ctx, fargs, cp->errmsg, results)) goto _process_error;
@@ -2078,6 +2178,22 @@ JSBool js_config_property_set_value(config_property_t *p, JSContext *cx, jsval v
 		dprintf(dlevel,"p->dest: %p, i: %d\n", p->dest, i);
 		if (p->dest && i) memset(p->dest,0,i);
 		break;
+	case JSTYPE_OBJECT:
+		if (OBJ_IS_DENSE_ARRAY(cx,JSVAL_TO_OBJECT(val))) {
+#if 0
+			char value[2048];
+			jsval_to_type(DATA_TYPE_STRING, value, sizeof(value), cx, val);
+			config_property_set_value(p,DATA_TYPE_STRING,value,sizeof(value),true,trig);
+#else
+			jsval_to_type(p->type, p->dest, p->len, cx, val);
+			p->flags |= CONFIG_FLAG_VALUE;
+			p->dirty = true;
+#endif
+		} else {
+			JS_ReportError(cx,"property_set_value only supports array objects");
+			return JS_FALSE;
+		}
+		break;
 	default:
 		log_error("js_config_property_set_value: unhandled switch type: %d (%s)\n", type, jstypestr(cx,val));
 		JS_ReportError(cx,"internal error: unhandled switch type in js_config_property_set_value");
@@ -2202,7 +2318,10 @@ int js_config_property_set_trigger(JSContext *cx, config_property_t *p, jsval fu
 	JS_AddNamedRoot(cx,&ctx->func,ri.name);
 	ri.cx = cx;
 	ri.vp = &ctx->func;
-	if (p->sp && p->sp->cp) list_add(p->sp->cp->roots,&ri,sizeof(ri));
+//	dprintf(dlevel,"p->sp: %p, p->sp->cp: %p\n", p->sp, p->sp ? p->sp->cp : 0);
+	dprintf(dlevel,"p->cp: %p\n", p->cp);
+//	if (p->sp && p->sp->cp) list_add(p->sp->cp->roots,&ri,sizeof(ri));
+	if (p->cp) list_add(p->cp->roots,&ri,sizeof(ri));
 
 	p->trigger = _js_config_trigger;
 	p->ctx = ctx;
@@ -2216,7 +2335,8 @@ int js_config_property_set_trigger(JSContext *cx, config_property_t *p, jsval fu
 		dprintf(dlevel,"ri.name: %s\n", ri.name);
 		JS_AddNamedRoot(cx,&p->arg,ri.name);
 		ri.vp = &p->arg;
-		if (p->sp && p->sp->cp) list_add(p->sp->cp->roots,&ri,sizeof(ri));
+//		if (p->sp && p->sp->cp) list_add(p->sp->cp->roots,&ri,sizeof(ri));
+		if (p->cp) list_add(p->cp->roots,&ri,sizeof(ri));
 	}
 
 	dprintf(dlevel,"done!\n");
@@ -2817,6 +2937,9 @@ static JSBool js_config_setprop(JSContext *cx, JSObject *obj, jsval id, jsval *v
 			jsval_to_type(DATA_TYPE_BOOLEAN,&cp->triggers,0,cx,*vp);
 //			log_info("config: %s triggers...\n", (cp->triggers ? "Enabling" : "Disabling"));
 			break;
+		case CONFIG_PROPERTY_ID_ERRMSG:
+			jsval_to_type(DATA_TYPE_STRING,cp->errmsg,sizeof(cp->errmsg),cx,*vp);
+			break;
 		default:
 			JS_ReportError(cx, "property not found");
 			break;
@@ -3163,13 +3286,16 @@ JSBool js_config_add_props(JSContext *cx, JSObject *obj, uintN argc, jsval *argv
 	int r,flags;
 	JSBool ok;
 
+#define ldlevel dlevel
+
 	cp = JS_GetPrivate(cx, obj);
+	dprintf(ldlevel,"cp: %p\n", cp);
 	if (!cp) {
 		JS_ReportError(cx, "config_add_props: private is null!");
 		return JS_FALSE;
 	}
 
-	dprintf(dlevel,"argc: %d\n", argc);
+	dprintf(ldlevel,"argc: %d\n", argc);
 	if (argc < 2 || !JSVAL_IS_OBJECT(argv[0]) || !JSVAL_IS_OBJECT(argv[1]) || !OBJ_IS_ARRAY(cx,JSVAL_TO_OBJECT(argv[1]))) {
 		JS_ReportError(cx, "add_props requires 2 arguments: object, properties(array of arrays), optional: section_name(string)");
 		return JS_FALSE;
@@ -3183,16 +3309,19 @@ JSBool js_config_add_props(JSContext *cx, JSObject *obj, uintN argc, jsval *argv
 	} else {
 		sname = JS_GetObjectName(cx,dobj);
 	}
-	dprintf(dlevel,"sname: %s\n", sname);
+	dprintf(ldlevel,"sname: %s\n", sname);
 
 	sec = config_get_section(cp,sname);
+	dprintf(ldlevel,"sec: %p\n", sec);
 	if (!sec) sec = config_create_section(cp, sname, 0);
+	dprintf(ldlevel,"sec: %p\n", sec);
 	if (!sec) {
 		JS_ReportError(cx, "add_props: unable to create section: %s\n", sname);
 		JS_free(cx,sname);
 		return JS_FALSE;
 	}
 	JS_free(cx,sname);
+	*cp->errmsg = 0;
 
 	arr = JSVAL_TO_OBJECT(argv[1]);
 	if (!js_GetLengthProperty(cx, arr, &acount)) {
@@ -3201,34 +3330,39 @@ JSBool js_config_add_props(JSContext *cx, JSObject *obj, uintN argc, jsval *argv
 	}
 	for(i=0; i < acount; i++) {
 		JS_GetElement(cx, arr, i, &val);
-		dprintf(dlevel,"arr[%d] type: %s\n", i, jstypestr(cx,val));
+		dprintf(ldlevel,"arr[%d] type: %s\n", i, jstypestr(cx,val));
 		if (!JSVAL_IS_OBJECT(val) || !OBJ_IS_ARRAY(cx,JSVAL_TO_OBJECT(val))) {
 			JS_ReportError(cx, "add_props: element %d is not an array", i);
 			return JS_FALSE;
 		}
 		r = _js_config_get_prop(cp,cx,JSVAL_TO_OBJECT(val),&p);
-		if (r < 0) return JS_FALSE;
+		if (r < 0) {
+			JS_ReportError(cx, "add_props: error parsing props\n");
+			return JS_FALSE;
+		}
 		if (r == 1) goto config_add_args_badprop;
 		config_section_add_property(cp, sec, p, CONFIG_FLAG_NOTRIG);
 
 		/* Define the prop in JS */
 		if (p->dest) val = type_to_jsval(cx,p->type,p->dest,p->len);
 		else val = JSVAL_VOID;
-		dprintf(dlevel,"val: %x, void: %x\n", val, JSVAL_VOID);
+		dprintf(ldlevel,"val: %x, void: %x\n", val, JSVAL_VOID);
 		flags = JSPROP_ENUMERATE;
 		if (p->flags & CONFIG_FLAG_READONLY) flags |= JSPROP_READONLY;
 		ok = JS_DefinePropertyWithTinyId(cx,dobj,p->name,p->id,val,0,0,flags);
-		dprintf(dlevel,"define ok: %d\n", ok);
+		dprintf(ldlevel,"define ok: %d\n", ok);
 
-		dprintf(dlevel,"val: %x, void: %x, trigger: %p, triggers: %d, NOTRIG: %d\n", val, JSVAL_VOID, p->trigger,
+		dprintf(ldlevel,"val: %x, void: %x, trigger: %p, triggers: %d, NOTRIG: %d\n", val, JSVAL_VOID, p->trigger,
 			cp->triggers, _check_flag(p->flags,NOTRIG));
 		if (val != JSVAL_VOID && p->trigger && cp->triggers && !_check_flag(p->flags,NOTRIG) && p->trigger(p->ctx,p,0)) {
+			JS_ReportError(cx, "add_props: error calling trigger\n");
 			return JS_FALSE;
 		}
 	}
-	dprintf(dlevel,"building map...\n");
+	dprintf(ldlevel,"building map...\n");
 	config_build_propmap(cp);
 
+	dprintf(ldlevel,"======> returning true!\n");
 	return JS_TRUE;
 
 config_add_args_badprop:
@@ -3240,28 +3374,77 @@ config_add_args_badprop:
 	return JS_FALSE;
 }
 
+static JSBool js_config_delete_property(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rval) {
+	config_t *cp;
+	char *sname, *name;
+
+	cp = JS_GetPrivate(cx, obj);
+	dprintf(dlevel,"cp: %p\n", cp);
+	if (!cp) return JS_FALSE;
+
+	dprintf(dlevel,"argc: %d\n", argc);
+	if (argc < 2) {
+		JS_ReportError(cx, "delete requires 2 arguements (section:string, property:string)");
+		return JS_FALSE;
+	}
+	if (!JS_ConvertArguments(cx, argc, argv, "s s", &sname, &name)) return JS_FALSE;
+	dprintf(dlevel,"sname: %s, name: %s\n", sname, name);
+
+	if (!config_delete_property(cp, sname, name)) config_write(cp);
+	return JS_TRUE;
+}
+
 #define js_config_funcctx js_config_trigctx
 
 int js_config_call_func(void *_ctx, list args, char *errmsg, json_object_t *results) {
 	struct js_config_funcctx *ctx = _ctx;
+	config_arg_t *arg;
 	JSBool ok;
 	jsval rval;
+	jsval *jsargv;
+	int i;
+//	int jstype;
 
-	dprintf(dlevel,"js trigger called!\n");
-	ok = JS_CallFunctionValue(ctx->cx, JS_GetGlobalObject(ctx->cx), ctx->func, 0, NULL, &rval);
-	dprintf(dlevel,"call ok: %d\n", ok);
-	if (!ok) return 1;
+	list_reset(args);
+	while((arg = list_get_next(args)) != 0) {
+		jsargv = malloc(arg->argc * sizeof(jsval));
+		for(i=0; i < arg->argc; i++) jsargv[i] = type_to_jsval(ctx->cx,DATA_TYPE_STRING,arg->argv[i],strlen(arg->argv[i]));
+		ok = JS_CallFunctionValue(ctx->cx, JS_GetGlobalObject(ctx->cx), ctx->func, arg->argc, jsargv, &rval);
+		free(jsargv);
+		dprintf(dlevel,"call ok: %d\n", ok);
+		if (!ok) return 1;
 
-	dprintf(dlevel,"rval: %x (%s)\n", rval, jstypestr(ctx->cx,rval));
-	if (rval != JSVAL_VOID) {
-		int status;
+		dprintf(dlevel,"rval: %x (%s)\n", rval, jstypestr(ctx->cx,rval));
+		if (rval != JSVAL_VOID) {
+			int status;
 
-		JS_ValueToInt32(ctx->cx,rval,&status);
-		dprintf(dlevel,"status: %d\n", status);
-		if (status != 0) {
-			JS_ReportError(ctx->cx,"trigger function for property %s returned %d", ctx->name, status);
-			return 1;
+			JS_ValueToInt32(ctx->cx,rval,&status);
+			dprintf(dlevel,"status: %d\n", status);
+			if (status != 0) return 1;
 		}
+
+#if 0
+		/* If the return value is a string, it's an error and error message is string */
+		dprintf(-1,"rval: %x (%s)\n", rval, jstypestr(ctx->cx,rval));
+		jstype = JS_TypeOfValue(ctx->cx,rval);
+		if (jstype == JSTYPE_STRING) {
+			char *str;
+
+			str = (char *)JS_EncodeString(ctx->cx, JSVAL_TO_STRING(rval));
+			strncpy(errmsg,str,128);
+			JS_free(ctx->cx,str);
+			return 1;
+		} else if (JSTYPE_NUMBER) {
+			int status;
+
+			JS_ValueToInt32(ctx->cx,rval,&status);
+			dprintf(dlevel,"status: %d\n", status);
+			if (status != 0) {
+				snprintf(errmsg,sizeof(errmsg),"error");
+				return 1;
+			}
+		}
+#endif
 	}
 	return 0;
 }
@@ -3269,7 +3452,7 @@ int js_config_call_func(void *_ctx, list args, char *errmsg, json_object_t *resu
 #define js_config_funcctx js_config_trigctx
 
 static int js_config_get_funcspec(config_t *cp, JSContext *cx, JSObject *arr) {
-	config_function_t newfunc;
+	config_function_t newfunc,*func;
 	struct config_rootinfo ri;
 	struct js_config_funcctx *ctx;
 	char name[128];
@@ -3330,7 +3513,17 @@ static int js_config_get_funcspec(config_t *cp, JSContext *cx, JSObject *arr) {
 	ri.vp = &ctx->func;
 	list_add(cp->roots,&ri,sizeof(ri));
 
+	/* if func with same name exists, replace it */
+	list_reset(cp->funcs);
+	while((func = list_get_next(cp->funcs)) != 0) {
+		if (strcmp(func->name,newfunc.name) == 0) {
+			list_delete(cp->funcs,func);
+			break;
+		}
+	}
+
 	/* add the func */
+	dprintf(dlevel,"adding new func: %s\n", newfunc.name);
 	list_add(cp->funcs, &newfunc, sizeof(newfunc));
 
 	/* add the ctx to the function ctx list */
@@ -3355,20 +3548,32 @@ JSBool js_config_add_funcs(JSContext *cx, JSObject *obj, uintN argc, jsval *argv
 	unsigned int acount,i;
 	JSObject *dobj, *arr;
 	jsval val;
+	int badarg;
 
 	cp = JS_GetPrivate(cx, obj);
+	dprintf(dlevel,"cp: %p\n", cp);
 	if (!cp) {
 		JS_ReportError(cx, "config_add_funcs: private is null!");
 		return JS_FALSE;
 	}
 
 	dprintf(dlevel,"argc: %d\n", argc);
-
-	if (argc < 2 || !JSVAL_IS_OBJECT(argv[0]) || !JSVAL_IS_OBJECT(argv[1]) || !OBJ_IS_ARRAY(cx,JSVAL_TO_OBJECT(argv[1]))) {
+	badarg = 0;
+//	if (argc < 2 || !JSVAL_IS_OBJECT(argv[0]) || !JSVAL_IS_OBJECT(argv[1]) || !OBJ_IS_ARRAY(cx,JSVAL_TO_OBJECT(argv[1]))) {
+	if (argc < 2) badarg = 1;
+	else if (argc == 2) {
+		dprintf(dlevel,"argv[0]: %p, argv[1]: %p\n", argv[0], argv[1]);
+		if (!argv[0] || !argv[1]) badarg = 1;
+		else if (!JSVAL_IS_OBJECT(argv[0]) || !JSVAL_IS_OBJECT(argv[1]) || !OBJ_IS_ARRAY(cx,JSVAL_TO_OBJECT(argv[1])))
+			badarg = 1;
+	}
+	dprintf(dlevel,"badarg: %d\n", badarg);
+	if (badarg) {
 		JS_ReportError(cx, "add_funcs requires 2 arguments: object, properties(array of arrays), optional: section_name(string)");
 		return JS_FALSE;
 	}
 	dobj = JSVAL_TO_OBJECT(argv[0]);
+	dprintf(dlevel,"dobj: %p\n", dobj);
 
 	/* If 3rd arguement specified, use it over object name */
 	if (argc > 2) {
@@ -3405,6 +3610,26 @@ JSBool js_config_add_funcs(JSContext *cx, JSObject *obj, uintN argc, jsval *argv
 	}
 
 	JS_free(cx,sname);
+	return JS_TRUE;
+}
+
+static JSBool js_config_delete_function(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rval) {
+	config_t *cp;
+	char *name;
+
+	cp = JS_GetPrivate(cx, obj);
+	dprintf(dlevel,"cp: %p\n", cp);
+	if (!cp) return JS_FALSE;
+
+	dprintf(dlevel,"argc: %d\n", argc);
+	if (argc < 1) {
+		JS_ReportError(cx, "delete requires 1 arguement (function name:string)");
+		return JS_FALSE;
+	}
+	if (!JS_ConvertArguments(cx, argc, argv, "s", &name)) return JS_FALSE;
+	dprintf(dlevel,"name: %s\n", name);
+
+	if (!config_delete_function(cp, name)) config_write(cp);
 	return JS_TRUE;
 }
 
@@ -3588,23 +3813,23 @@ static JSBool js_config_clear_trigger(JSContext *cx, JSObject *obj, uintN argc, 
 	return JS_TRUE;
 }
 
-static JSBool js_config_del(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rval) {
+static JSBool js_config_delete_section(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rval) {
 	config_t *cp;
-	char *sname,*name;
+	char *name;
 
 	cp = JS_GetPrivate(cx, obj);
 	dprintf(dlevel,"cp: %p\n", cp);
 	if (!cp) return JS_FALSE;
 
 	dprintf(dlevel,"argc: %d\n", argc);
-	if (argc < 2) {
-		JS_ReportError(cx, "delete requires 2 arguements (section:string, property:string)");
+	if (argc < 1) {
+		JS_ReportError(cx, "delete requires 1 arguement (section name:string)");
 		return JS_FALSE;
 	}
-	if (!JS_ConvertArguments(cx, argc, argv, "s s", &sname, &name)) return JS_FALSE;
-	dprintf(dlevel,"sname: %s, name: %s\n", sname, name);
+	if (!JS_ConvertArguments(cx, argc, argv, "s", &name)) return JS_FALSE;
+	dprintf(dlevel,"name: %s\n", name);
 
-	if (!config_delete_property(cp, sname, name)) config_write(cp);
+	if (!config_delete_section(cp, name)) config_write(cp);
 	return JS_TRUE;
 }
 
@@ -3654,7 +3879,7 @@ JSObject *js_InitConfigClass(JSContext *cx, JSObject *parent) {
 		{ "sections", CONFIG_PROPERTY_ID_SECTIONS,  JSPROP_ENUMERATE | JSPROP_READONLY },
 		{ "filename", CONFIG_PROPERTY_ID_FILENAME,  JSPROP_ENUMERATE },
 		{ "file_format", CONFIG_PROPERTY_ID_FILE_FORMAT,  JSPROP_ENUMERATE },
-		{ "errmsg", CONFIG_PROPERTY_ID_ERRMSG,  JSPROP_ENUMERATE | JSPROP_READONLY },
+		{ "errmsg", CONFIG_PROPERTY_ID_ERRMSG,  JSPROP_ENUMERATE },
 		{ "triggers", CONFIG_PROPERTY_ID_TRIG,  JSPROP_ENUMERATE },
 		{ "functions", CONFIG_PROPERTY_ID_FUNCS,  JSPROP_ENUMERATE | JSPROP_READONLY },
 		{ 0 }
@@ -3665,26 +3890,28 @@ JSObject *js_InitConfigClass(JSContext *cx, JSObject *parent) {
 		JS_FN("save",js_config_write,0,0,0),
 		JS_FS("get_property",js_config_get_property,2,2,0),
 		JS_FS("add_props",js_config_add_props,2,2,0),
+		JS_FS("delete_prop",js_config_delete_property,1,1,0),
 		JS_FS("add_funcs",js_config_add_funcs,2,2,0),
+		JS_FS("delete_func",js_config_delete_function,1,1,0),
+		JS_FS("delete_section",js_config_delete_section,1,1,0),
 		JS_FS("disable_trigger",js_config_disable_trigger,2,2,0),
 		JS_FS("enable_trigger",js_config_enable_trigger,2,2,0),
 		JS_FS("set_trigger",js_config_set_trigger,2,3,0),
 		JS_FS("clear_trigger",js_config_clear_trigger,1,1,0),
 		JS_FS("get_flags",js_config_get_flags,1,1,0),
-		JS_FS("delete",js_config_del,2,2,0),
 		JS_FS("dump",js_config_dump,0,0,0),
 		{ 0 }
 	};
 	JSConstantSpec config_consts[] = {
+		JS_NUMCONST(CONFIG_FILE_FORMAT_INI),
+		JS_NUMCONST(CONFIG_FILE_FORMAT_JSON),
+		JS_NUMCONST(CONFIG_FILE_FORMAT_CUSTOM),
 		JS_NUMCONST(CONFIG_FLAG_READONLY),
 		JS_NUMCONST(CONFIG_FLAG_NOSAVE),
 		JS_NUMCONST(CONFIG_FLAG_NOID),
 		JS_NUMCONST(CONFIG_FLAG_FILEONLY),
 		JS_NUMCONST(CONFIG_FLAG_ALLOC),
 		JS_NUMCONST(CONFIG_FLAG_NOPUB),
-		JS_NUMCONST(CONFIG_FILE_FORMAT_INI),
-		JS_NUMCONST(CONFIG_FILE_FORMAT_JSON),
-		JS_NUMCONST(CONFIG_FILE_FORMAT_CUSTOM),
 		JS_NUMCONST(CONFIG_FLAG_READONLY),
 		JS_NUMCONST(CONFIG_FLAG_NOSAVE),
 		JS_NUMCONST(CONFIG_FLAG_NOID),

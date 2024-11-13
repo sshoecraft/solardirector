@@ -395,7 +395,6 @@ static int js_si_init(JSContext *cx, JSObject *parent, void *priv) {
 		{ "info", SI_PROPERTY_ID_INFO, JSPROP_ENUMERATE | JSPROP_READONLY },
 		{ "agent", SI_PROPERTY_ID_AGENT, JSPROP_ENUMERATE | JSPROP_READONLY },
 		{ "can", SI_PROPERTY_ID_CAN, JSPROP_ENUMERATE | JSPROP_READONLY },
-//		{ "smanet", SI_PROPERTY_ID_SMANET, JSPROP_ENUMERATE | JSPROP_READONLY },
 		{ "smanet", SI_PROPERTY_ID_SMANET, JSPROP_ENUMERATE },
 		{ "smanet_connected", SI_PROPERTY_ID_SMANET_CON, JSPROP_ENUMERATE | JSPROP_READONLY },
 		{ 0 }
@@ -468,19 +467,9 @@ static int js_si_init(JSContext *cx, JSObject *parent, void *priv) {
 	}
 	dprintf(dlevel,"done!\n");
 	JS_SetPrivate(cx,obj,s);
-//	s->si_obj = obj;
 
 	s->data_val = OBJECT_TO_JSVAL(jssi_data_new(cx,obj,s));
 	s->agent_val = OBJECT_TO_JSVAL(js_agent_new(cx,obj,s->ap));
-#if 0
-	s->can_obj = jscan_new(cx,parent,s->can,s->can_handle,s->can_transport,s->can_target,s->can_topts,&s->can_connected);
-	if (s->can_obj) s->can_val = OBJECT_TO_JSVAL(s->can_obj);
-#ifdef SMANET
-	s->smanet_obj = jssmanet_new(cx,parent,s->smanet,s->smanet_transport,s->smanet_target,s->smanet_topts);
-	if (s->smanet_obj) s->smanet_val = OBJECT_TO_JSVAL(s->smanet_obj);
-#endif
-#endif
-//	s->can_val = OBJECT_TO_JSVAL(js_can_new(cx,parent,s->can,s->can_handle,s->can_transport,s->can_target,s->can_topts,&s->can_connected));
 	s->can_val = OBJECT_TO_JSVAL(js_can_new(cx,parent,s->can_handle));
 #ifdef SMANET
 	s->smanet_val = OBJECT_TO_JSVAL(jssmanet_new(cx,parent,s->smanet,s->smanet_transport,s->smanet_target,s->smanet_topts));

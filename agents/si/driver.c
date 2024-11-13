@@ -104,33 +104,41 @@ static int si_close(void *handle) {
 	return 0;
 }
 
+#if 0
 #ifdef INFLUX
 static double _get_influx_value(influx_session_t *s, char *query) {
+	influx_response_t *r;
+	influx_result_t *rp;
 	influx_series_t *sp;
 	influx_value_t *vp;
 	double value;
-	list results;
 
 	if (influx_query(s, query)) return 0;
-	results = influx_get_results(s);
-	dprintf(dlevel,"results: %p\n", results);
-	if (!results) return 0;
-	dprintf(dlevel,"results count: %d\n", list_count(results));
-	list_reset(results);
-	sp = list_get_next(results);
-	if (!sp) return 0;
-	dprintf(dlevel,"sp->values: %p\n", sp->values);
-	if (!sp->values) return 0;
-	vp = &sp->values[0][1];
-	conv_type(DATA_TYPE_FLOAT,&value,0,vp->type,vp->data,vp->len);
+	r = influx_get_response(s);
+	dprintf(dlevel,"r: %p\n", r);
+	if (!r) return 0;
+	value = 0;
+	if (r->result_count > 0) {
+		rp = r->results[0];
+		if (rp->series_count > 0) {
+			sp = rp->series[0];
+			if (sp->value_count > 0) {
+				vp = sp->values[0][1];
+				conv_type(DATA_TYPE_FLOAT,&value,0,vp->type,vp->data,vp->len);
+			}
+		}
+	}
 	dprintf(dlevel,"value: %f\n", value);
 	return value;
 }
+#endif
 #endif
 
 static int si_read(void *handle, uint32_t *control, void *buf, int buflen) {
 	si_session_t *s = handle;
 //	long start = mem_used();
+
+	printf("++++++++++++ READ +++++++++++++++++\n");
 
 //	log_info("mem start: %ld\n", start);
 
@@ -170,7 +178,11 @@ static int si_read(void *handle, uint32_t *control, void *buf, int buflen) {
 #ifdef INFLUX
 	dprintf(dlevel,"input.source: %d\n", s->input.source);
 	if (s->input.source == CURRENT_SOURCE_INFLUX) {
-		double value = _get_influx_value(s->ap->i,s->input.query);
+		influx_response_t *r;
+		double value;
+
+ 		r = influx_query(s->ap->i,s->input.query);
+		if (r) influx_get_first_value(r, &value, 0, 0);
 		if (s->input.type == CURRENT_TYPE_WATTS) {
 			s->data.ac2_power = value;
 			s->data.ac2_current = s->data.ac2_power / s->data.ac2_voltage_l1;
@@ -183,7 +195,11 @@ static int si_read(void *handle, uint32_t *control, void *buf, int buflen) {
 
 	dprintf(dlevel,"output.source: %d\n", s->output.source);
 	if (s->output.source == CURRENT_SOURCE_INFLUX) {
-		double value = _get_influx_value(s->ap->i,s->output.query);
+		influx_response_t *r;
+		double value;
+
+ 		r = influx_query(s->ap->i,s->output.query);
+		if (r) influx_get_first_value(r, &value, 0, 0);
 		if (s->output.type == CURRENT_TYPE_WATTS) {
 			s->data.ac1_power = value;
 			s->data.ac1_current = s->data.ac1_power / s->data.ac1_voltage_l1;
@@ -230,6 +246,9 @@ static int si_read(void *handle, uint32_t *control, void *buf, int buflen) {
 
 static int si_write(void *handle, uint32_t *control, void *buffer, int len) {
 	si_session_t *s = handle;
+
+	printf("++++++++++++ WRITE +++++++++++++++++\n");
+	printf("READONLY: %d\n", s->readonly);
 
 	dprintf(dlevel,"disable_si_write: %d\n", s->disable_si_write);
 	if (s->disable_si_write) return 0;

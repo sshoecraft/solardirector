@@ -647,6 +647,7 @@ JS_TypeOfValue(JSContext *cx, jsval v)
                  * older SpiderMonkeys.
                  */
                 clasp = OBJ_GET_CLASS(cx, obj);
+		if (clasp) {
                 if ((ops == &js_ObjectOps)
                     ? (clasp->call
                        ? clasp == &js_ScriptClass
@@ -662,6 +663,9 @@ JS_TypeOfValue(JSContext *cx, jsval v)
                     }
 #endif
                 }
+		} else {
+			type = JSTYPE_VOID;
+		}
             }
         }
     } else if (JSVAL_IS_NUMBER(v)) {
@@ -1341,14 +1345,14 @@ JS_InitStandardClasses(JSContext *cx, JSObject *obj)
 #if JS_HAS_SOCKET_OBJECT
 		FUNC(js_InitSocketClass),
 #endif
-		FUNC(js_InitCANClass),
 #if 0
+		FUNC(js_InitCANClass),
 		FUNC(js_InitMQTTClass),
 		FUNC(js_InitInfluxClass),
 		FUNC(js_InitSerialClass),
 		FUNC(js_InitBluetoothClass),
 #endif
-//		FUNC(js_InitClassClass),
+		FUNC(js_InitClassClass),
 		{0}
 	};
 #undef FUNC

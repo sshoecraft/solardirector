@@ -1,0 +1,14 @@
+function docmd(cmd) {
+	printf("cmd: %s\n", cmd);
+	system(cmd);
+}
+docmd("sdconfig -t 2 sc set mqtt_uri solardirector");
+docmd("sdconfig -m solardirector sc set script_dir .");
+for(let i =1; i <= 14; i++) {
+	n=sprintf("%02d",i);
+	docmd("sdconfig -m solardirector sc add pack_" + n + " name=jbd");
+}
+docmd("sdconfig -m solardirector sc add si name=si");
+docmd("sdconfig -m solardirector sc add rheem name=rheem");
+docmd("sdconfig -m solardirector sc add btc name=btc");
+docmd("sdconfig -m solardirector sc add pvc name=pvc");

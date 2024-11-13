@@ -39,5 +39,8 @@ function read_main() {
 	// Set SoC / remain
 	run(script_dir+"/soc.js");
 
+	// Current
+	run(script_dir+"/current.js");
+
 	return 0;
 }

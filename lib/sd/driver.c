@@ -7,7 +7,7 @@ This source code is licensed under the BSD-style license found in the
 LICENSE file in the root directory of this source tree.
 */
 
-#define dlevel 2
+#define dlevel 3
 #include "debug.h"
 
 #include <string.h>
@@ -19,8 +19,6 @@ LICENSE file in the root directory of this source tree.
 #include "jsapi.h"
 #include "jsfun.h"
 #endif
-
-#define dlevel 2
 
 solard_driver_t *find_driver(solard_driver_t **transports, char *name) {
 	register int i;
@@ -56,8 +54,11 @@ typedef struct driver_private {
 	JSObject *obj;
 	solard_agent_t *ap;
 	jsval agent_val;
-//	config_t *cp;
+	config_t *cp;
 	jsval init;
+	JSPropertySpec *props;
+	JSFunctionSpec *funcs;
+	bool set;
 } driver_private_t;
 
 static int _callfunc(driver_private_t *p, char *name, int argc, jsval *argv, jsval *rval) {
@@ -67,9 +68,13 @@ static int _callfunc(driver_private_t *p, char *name, int argc, jsval *argv, jsv
 	dprintf(dlevel,"name: %s\n", name);
 	ok = JS_GetProperty(p->cx, p->obj, name, &fval);
 	dprintf(dlevel,"ok: %d, isfunc: %d\n", ok, VALUE_IS_FUNCTION(p->cx,fval));
-	if (ok && VALUE_IS_FUNCTION(p->cx,fval)) ok = JS_CallFunctionValue(p->cx, p->obj, fval, argc, argv, rval);
+	if (ok) {
+		/* XXX need to return error if it's not a function (and no call made/rval not set) */
+		if (VALUE_IS_FUNCTION(p->cx,fval)) ok = JS_CallFunctionValue(p->cx, p->obj, fval, argc, argv, rval);
+		else ok = 0;
+	}
 	dprintf(dlevel,"ok: %d\n", ok);
-	return (ok != JS_TRUE);
+	return ok;
 }
 
 static int driver_open(void *h) {
@@ -108,6 +113,44 @@ static int driver_cb(void *h) {
 	return 0;
 }
 
+static JSBool driver_callfunc(JSContext *cx, uintN argc, jsval *vp) {
+	JSObject *obj;
+	driver_private_t *s;
+
+	obj = JS_THIS_OBJECT(cx, vp);
+	if (!obj) {
+		JS_ReportError(cx, "driver_callfunc: internal error: object is null!\n");
+		return JS_FALSE;
+	}
+	s = JS_GetPrivate(cx, obj);
+	if (!s) {
+		JS_ReportError(cx, "driver_callfunc: internal error: private is null!\n");
+		return JS_FALSE;
+	}
+	if (!s->ap) return JS_TRUE;
+	if (!s->ap->cp) return JS_TRUE;
+
+	return js_config_callfunc(s->ap->cp, cx, argc, vp);
+}
+
+static void _driver_setjs(driver_private_t *p) {
+	JSPropertySpec *props;
+	JSFunctionSpec *funcs;
+	JSBool ok;
+
+	props = js_config_to_props(p->ap->cp, p->cx, p->name, 0);
+	dprintf(dlevel,"props: %p\n",props);
+	ok = JS_DefineProperties(p->cx, p->obj, props);
+	dprintf(dlevel,"ok: %d\n", ok);
+
+	funcs = js_config_to_funcs(p->ap->cp, p->cx, driver_callfunc, 0);
+	dprintf(dlevel,"funcs: %p\n",funcs);
+	ok = JS_DefineFunctions(p->cx, p->obj, funcs);
+	dprintf(dlevel,"ok: %d\n", ok);
+
+	p->set = 1;
+}
+
 int driver_config(void *h, int req, ...) {
 	driver_private_t *p = h;
 	va_list va;
@@ -131,12 +174,12 @@ int driver_config(void *h, int req, ...) {
  				jsval argv[1] = { p->agent_val };
 
 				p->ap = ap;
+				_driver_setjs(p);
 				_callfunc(p,"init",1,argv,&rval);
 				agent_set_callback(p->ap,driver_cb,p);
 			}
 		}
 		break;
-exit(0);
 	case SOLARD_CONFIG_GET_INFO:
 		/* Call info func, get return val and turn into a json_object */
 		dprintf(dlevel,"ap: %p\n", p->ap);
@@ -146,13 +189,11 @@ exit(0);
 
 			dprintf(dlevel,"vp: %p\n", vp);
 			if (vp) {
-				JSString *str;
 				char *j;
 				json_value_t *v;
 
 				if (_callfunc(p,"get_info",0,0,&rval)) {
-					str = JS_ValueToString(p->cx, rval);
-					j = (char *)js_GetStringBytes(p->cx, str);
+					jsval_to_type(DATA_TYPE_STRINGP,&j,sizeof(j),p->cx,rval);
 				} else {
 					j = "{}";
 				}
@@ -216,27 +257,7 @@ static JSBool driver_getprop(JSContext *cx, JSObject *obj, jsval id, jsval *rval
 		return JS_FALSE;
 	}
 	dprintf(dlevel,"id type: %s\n", jstypestr(cx,id));
-	if (JSVAL_IS_INT(id)) {
-		int prop_id = JSVAL_TO_INT(id);
-		dprintf(dlevel,"prop_id: %d\n", prop_id);
-		switch(prop_id) {
 #if 0
-		case CLASS_PROPERTY_ID_CP:
-			dprintf(dlevel,"cpval: %x, cp: %p\n", p->cpval, p->cp);
-			if (!p->cpval && p->cp) {
-				JSObject *newobj = js_config_new(cx,obj,p->cp);
-				if (newobj) p->cpval = OBJECT_TO_JSVAL(obj);
-			}
-			*rval = p->cpval;
-			break;
-#endif
-		default:
-			dprintf(dlevel,"ap->cp: %p\n", p->ap->cp);
-			if (p->ap->cp) return js_config_common_getprop(cx, obj, id, rval, p->ap->cp, 0);
-                        break;
-		}
-	} else {
-#if 1
 		if (JSVAL_IS_STRING(id)) {
 			char *sname, *name;
 			JSClass *driverp = OBJ_GET_CLASS(cx, obj);
@@ -247,8 +268,8 @@ static JSBool driver_getprop(JSContext *cx, JSObject *obj, jsval id, jsval *rval
 			if (name) JS_free(cx, name);
 		}
 #endif
-		if (p->ap && p->ap->cp) return js_config_common_getprop(cx, obj, id, rval, p->ap->cp, 0);
-	}
+	dprintf(dlevel,"p->ap: %p, p->ap->cp: %p\n", p->ap, p->ap ? p->ap->cp : 0);
+	if (p->ap && p->ap->cp) return js_config_common_getprop(cx, obj, id, rval, p->ap->cp, 0);
 	return JS_TRUE;
 }
 
@@ -266,15 +287,15 @@ static JSBool driver_setprop(JSContext *cx, JSObject *obj, jsval id, jsval *vp) 
 		int prop_id = JSVAL_TO_INT(id);
 		dprintf(dlevel,"prop_id: %d\n", prop_id);
 		switch(prop_id) {
-#if 0
+#if 1
 		case CLASS_PROPERTY_ID_CP:
 			p->cpval = *vp;
 			p->cp = JS_GetPrivate(cx,JSVAL_TO_OBJECT(*vp));
 			break;
 #endif
 		default:
-			dprintf(dlevel,"ap->cp: %p\n", p->ap->cp);
-			if (p->ap->cp) return js_config_common_setprop(cx, obj, id, vp, p->ap->cp, 0);
+			dprintf(dlevel,"ap: %p, ap->cp: %p\n", p->ap, p->ap ? p->ap->cp : 0);
+			if (p->ap && p->ap->cp) return js_config_common_setprop(cx, obj, id, vp, p->ap->cp, 0);
                         break;
 		}
 	} else {
@@ -289,8 +310,7 @@ static JSBool driver_setprop(JSContext *cx, JSObject *obj, jsval id, jsval *vp) 
 			if (name) JS_free(cx, name);
 		}
 #endif
-		dprintf(dlevel,"p->ap: %p\n", p->ap);
-		if (p->ap) dprintf(dlevel,"ap->cp: %p\n", p->ap->cp);
+		dprintf(dlevel,"ap: %p, ap->cp: %p\n", p->ap, p->ap ? p->ap->cp : 0);
 		if (p->ap && p->ap->cp) return js_config_common_setprop(cx, obj, id, vp, p->ap->cp, 0);
 	}
 	return JS_TRUE;
@@ -315,11 +335,11 @@ static JSBool driver_ctor(JSContext *cx, JSObject *parent, uintN argc, jsval *ar
 	JSObject *newobj;
 	JSClass *newdriverp,*ccp = &driver_class;
 	char *namep;
-	JSPropertySpec props[] = {
+	JSPropertySpec driver_props[] = {
 		{ DRIVER_CP,CLASS_PROPERTY_ID_CP,0 },
 		{0}
 	};
-	JSFunctionSpec funcs[] = {
+	JSFunctionSpec driver_funcs[] = {
 		{0}
 	};
 
@@ -343,11 +363,10 @@ static JSBool driver_ctor(JSContext *cx, JSObject *parent, uintN argc, jsval *ar
 
 	/* Create a new instance of Class */
 	newdriverp = JS_malloc(cx,sizeof(JSClass));
-//	memcpy(newdriverp,&driver_class,sizeof(driver_class));
 	*newdriverp = *ccp;
 	newdriverp->name = p->name;
 
-	newobj = JS_InitClass(cx, parent, 0, newdriverp, 0, 0, props, funcs, 0, 0);
+	newobj = JS_InitClass(cx, parent, 0, newdriverp, 0, 0, driver_props, driver_funcs, 0, 0);
 	if (!newobj) {
 		JS_ReportError(cx,"error allocating memory");
 		return JS_FALSE;

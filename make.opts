@@ -12,6 +12,7 @@ DEBUG_MEM?=no
 STATIC?=no
 
 # Library build type
+#LIBTYPE?=shared
 LIBTYPE?=standard
 
 # Components

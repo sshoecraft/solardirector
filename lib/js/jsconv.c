@@ -104,11 +104,16 @@ jsval type_to_jsval(JSContext *cx, int type, void *src, int len) {
 			JSObject *arr;
 			jsval element;
 			char **sa;
-			int i;
+			int i,c;
 
 			sa = (char **)src;
-			arr = JS_NewArrayObject(cx, len, NULL);
-			for(i=0; i < len; i++) {
+			for(i=c=0; i < 9999; i++) {
+				dprintf(dlevel,"sa[%d]: %s\n", i, sa[i] ? sa[i] : "null");
+				if (!sa[i]) break;
+			}
+			c = i;
+			arr = JS_NewArrayObject(cx, c, NULL);
+			for(i=0; i < c; i++) {
 				element = STRING_TO_JSVAL(JS_NewStringCopyZ(cx,sa[i]));
 				JS_SetElement(cx, arr, i, &element);
 			}
@@ -182,6 +187,7 @@ int jsval_to_type(int dtype, void *dest, int dlen, JSContext *cx, jsval val) {
 		return strlen(*strp);
 	}
 
+	dprintf(dlevel,"cx: %p, val: %ld\n", cx, val);
 	jstype = JS_TypeOfValue(cx,val);
 	dprintf(dlevel,"jstype: %d(%s), dtype: %d(%s), dest: %p, dlen: %d\n", jstype, JS_TYPE_STR(jstype), dtype, typestr(dtype), dest, dlen);
 	r = 0;
@@ -239,8 +245,8 @@ int jsval_to_type(int dtype, void *dest, int dlen, JSContext *cx, jsval val) {
 				free(values);
 				dprintf(dlevel,"dest: %p\n", dest);
 			} else {
-//				log_error("jsval_to_type: object is not an array\n");
-//				dprintf(0,"jstype: %d(%s), dtype: %d(%s), dest: %p, dlen: %d\n", jstype, jstypestr(cx,val), dtype, typestr(dtype), dest, dlen);
+				log_error("jsval_to_type: object is not an array\n");
+				dprintf(0,"jstype: %d(%s), dtype: %d(%s), dest: %p, dlen: %d\n", jstype, jstypestr(cx,val), dtype, typestr(dtype), dest, dlen);
 				return 0;
 			}
 		}

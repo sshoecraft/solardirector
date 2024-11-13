@@ -69,8 +69,11 @@ time_t list_updated(list lp) {
 
 #define _dump(i) dprintf(dlevel,"%s: item: %p, prev: %p, next: %p\n", #i, i, i->prev, i->next);
 void list_checkitem(list_item ip) {
+	dprintf(dlevel,"ip: %p\n", ip);
 	_dump(ip);
+	dprintf(dlevel,"ip->prev: %p\n", ip->prev);
 	assert(ip->prev != ip);
+	dprintf(dlevel,"ip->next: %p\n", ip->next);
 	assert(ip->next != ip);
 	if (ip->prev) {
 		_dump(ip->prev);
@@ -169,6 +172,7 @@ int list_count(list lp) {
 	list_item ip;
 	register int count;
 
+	dprintf(dlevel,"lp: %p\n", lp);
 	if (!lp) return -1;
 
 #if THREAD_SAFE

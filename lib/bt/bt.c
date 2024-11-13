@@ -11,6 +11,7 @@ This was tested against the MLT-BT05 TTL-to-Bluetooth module (HM-10 compat) on t
 
 */
 
+#ifdef BLUETOOTH
 #define dlevel 7
 #include "debug.h"
 
@@ -229,4 +230,5 @@ solard_driver_t bt_driver = {
 	bt_write,
 	bt_config
 };
+#endif
 #endif

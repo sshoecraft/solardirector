@@ -7,7 +7,7 @@ do
 #	if test $i -eq 2; then
 #		/opt/sd/bin/jk -b -c /opt/sd/etc/pack_${n}.conf -l /opt/sd/log/pack_${n}.log -a
 #	else
-		/opt/sd/bin/jbd -b -c /opt/sd/etc/pack_${n}.conf -l /opt/sd/log/pack_${n}.log -a
+		/opt/sd/bin/jbd -b -r -c /opt/sd/etc/pack_${n}.conf -l /opt/sd/log/pack_${n}.log -a
 #	fi
 done
 exit 0

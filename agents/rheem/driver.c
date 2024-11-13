@@ -23,7 +23,8 @@ LICENSE file in the root directory of this source tree.
 #define CLEAR_BLADE_SYSTEM_SECRET "E2E699CB0BE6C6FADDB1B0BC9A20"
 
 #define ECONET_LOGIN "user/auth"
-#define ECONET_LOCATION "code/"CLEAR_BLADE_SYSTEM_KEY"/getLocation"
+//#define ECONET_LOCATION "code/"CLEAR_BLADE_SYSTEM_KEY"/getLocation"
+#define ECONET_LOCATION "code/"CLEAR_BLADE_SYSTEM_KEY"/getUserDataForApp"
 #define ECONET_DYNACT "code/e2e699cb0bb0bbb88fc8858cb5a401/dynamicAction"
 
 void rheem_dump_device(rheem_device_t *d) {
@@ -369,11 +370,11 @@ static int rheem_get_token(rheem_session_t *s, json_value_t *v) {
         if (json_value_get_type(v) != JSON_TYPE_OBJECT) return 1;
         o = json_value_object(v);
 	p = json_object_dotget_string(o,"user_token");
-	dprintf(dlevel,"p: %s\n", p);
 	if (!p) {
 		log_error("rheem_open: error getting user_token .. bad email/password?\n");
 		return 1;
 	}
+	dprintf(dlevel,"p(%d): %s\n", strlen(p), p);
 	strncpy(s->user_token,p,sizeof(s->user_token)-1);
 	p = json_object_dotget_string(o,"options.account_id");
 	dprintf(dlevel,"p: %s\n", p);
@@ -387,7 +388,7 @@ static int rheem_get_token(rheem_session_t *s, json_value_t *v) {
 
 #ifdef MQTT
 int rheem_connect_mqtt(rheem_session_t *s) {
-	char temp[1024];
+	char temp[2048];
 	char client_id[128];
 
 	/* Connect to the MQTT server */
@@ -400,13 +401,20 @@ int rheem_connect_mqtt(rheem_session_t *s) {
 		log_error("rheem_mqtt: mqtt_init failed: %s\n",s->m->errmsg);
 		return 1;
 	}
+	if (!mqtt_connected(s->m)) {
+		log_error("rheem_connect_mqtt: %s\n", s->errmsg);
+		return 1;
+	}
 	/* Sub to the channels */
 	snprintf(s->reported,sizeof(s->reported)-1,"user/%s/device/reported",s->account_id);
 	dprintf(dlevel,"reported: %s\n", s->reported);
 	mqtt_sub(s->m,s->reported);
+#if 0
+	/* XXX only necessary to validate settings went through */
 	snprintf(s->desired,sizeof(s->desired)-1,"user/%s/device/desired",s->account_id);
 	dprintf(dlevel,"desired: %s\n", s->desired);
-//	mqtt_sub(s->m,s->desired);
+	mqtt_sub(s->m,s->desired);
+#endif
 	return 0;
 }
 #endif
@@ -417,14 +425,16 @@ static int rheem_open(void *handle) {
 	rheem_session_t *s = handle;
 	json_value_t *v;
 	json_object_t *o;
-	char temp[1024];
+	char temp[2048];
 
+	dprintf(dlevel,"s: %p\n", s);
 	if (!s) return 1;
 
 	dprintf(dlevel,"open: %d\n", check_state(s,RHEEM_STATE_OPEN));
 	if (check_state(s,RHEEM_STATE_OPEN)) return 0;
 
 	/* Set initial header */
+	dprintf(dlevel,"setting header...\n");
 	if (s->hs) curl_slist_free_all(s->hs);
  	s->hs = curl_slist_append(0, "Content-Type: application/json; charset=UTF-8");
 	s->hs = curl_slist_append(s->hs, "ClearBlade-SystemKey: " CLEAR_BLADE_SYSTEM_KEY);
@@ -432,6 +442,7 @@ static int rheem_open(void *handle) {
 	curl_easy_setopt(s->curl, CURLOPT_HTTPHEADER, s->hs);
 
 	/* Create the login info */
+	dprintf(dlevel,"creatig login...\n");
 	o = json_create_object();
 	json_object_set_string(o,"email",s->email);
 	json_object_set_string(o,"password",s->password);
@@ -440,6 +451,7 @@ static int rheem_open(void *handle) {
 	json_destroy_object(o);
 
 	/* Login and get user_token */
+	dprintf(dlevel,"sending login request...\n");
 	*s->account_id = 0;
 	*s->user_token = 0;
 	v = rheem_request(s,ECONET_LOGIN,temp);
@@ -448,13 +460,14 @@ static int rheem_open(void *handle) {
 		json_destroy_value(v);
 		goto rheem_open_error;
 	}
+	dprintf(dlevel,"getting token...\n");
 	if (rheem_get_token(s,v)) {
 		json_destroy_value(v);
 		goto rheem_open_error;
 	}
 	json_destroy_value(v);
 	snprintf(temp,sizeof(temp)-1,"ClearBlade-UserToken: %s", s->user_token);
-	dprintf(dlevel,"temp: %s\n", temp);
+	dprintf(dlevel,"header entry: %s\n", temp);
 	s->hs = curl_slist_append(s->hs, temp);
 	curl_easy_setopt(s->curl, CURLOPT_HTTPHEADER, s->hs);
 
@@ -547,9 +560,16 @@ static int rheem_get_devices(rheem_session_t *s) {
 		json_destroy_value(rv);
 		return 1;
 	}
+
 	v = json_object_dotget_value(json_value_object(rv),"results.locations");
 	dprintf(dlevel,"v: %p\n", v);
 	if (!v) {
+		char *j = json_dumps(rv,4);
+		log_error("unable to get results! response: %s\n",j);
+		if (j) {
+			printf("json: %s\n", j);
+			free(j);
+		}
 		json_destroy_value(rv);
 		return 1;
 	}

@@ -68,7 +68,7 @@ struct rheem_session {
 	int bufsize;			/* Buffer size */
 	int bufidx;			/* Current write pos */
 	char account_id[64];
-	char user_token[256];
+	char user_token[1024];
 	char reported[256];
 	char desired[256];
 	int devcount;

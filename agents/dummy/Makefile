@@ -1,6 +1,11 @@
 
-PROGNAME=$(shell basename $(shell pwd))
+
+NAME=$(shell basename $(shell pwd))
+
+PROGNAME=$(NAME)
 SRCS=dummy.c
+
+#SERVICE_NAME=$(NAME)
 
 JS=no
 MQTT=no

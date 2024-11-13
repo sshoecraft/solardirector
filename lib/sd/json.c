@@ -522,23 +522,63 @@ json_value_t *json_from_type(int type, void *src, int len) {
 
 	v = 0;
 	dprintf(dlevel,"type: %d(%s)\n", type, typestr(type));
-	if (type == DATA_TYPE_BOOLEAN) {
-		v = (json_value_t *)parson_value_init_boolean(*((int *)src));
-	} else if (DATA_TYPE_ISNUMBER(type)) {
+	if (DATA_TYPE_ISNUMBER(type)) {
 		conv_type(DATA_TYPE_DOUBLE,&d,0,type,src,len);
 		dprintf(dlevel,"d: %f\n", d);
 		if (isnan(d)) d = 0.0;
 		v = (json_value_t *)parson_value_init_number(d);
-	} else if (type == DATA_TYPE_STRING) {
-		v = (json_value_t *)parson_value_init_string(src);
-	} else if (type == DATA_TYPE_STRING_LIST) {
-		char value[4096];
-		dprintf(dlevel,"src: %p, len: %d\n", src, len);
-		conv_type(DATA_TYPE_STRING,value,sizeof(value)-1,type,src,len);
-		dprintf(dlevel,"value: %s\n", value);
-		v = (json_value_t *)parson_value_init_string(value);
-	} else  {
-		log_error("json_from_type: unhandled type(%x): %s\n",type,typestr(type));
+	} else {
+		switch(type) {
+		case DATA_TYPE_BOOLEAN:
+			v = (json_value_t *)parson_value_init_boolean(*((int *)src));
+			break;
+		case DATA_TYPE_STRING:
+			v = (json_value_t *)parson_value_init_string(src);
+			break;
+		case DATA_TYPE_STRING_LIST:
+			{
+#if 0
+				char value[4096];
+				dprintf(dlevel,"src: %p, len: %d\n", src, len);
+				conv_type(DATA_TYPE_STRING,value,sizeof(value)-1,type,src,len);
+				dprintf(dlevel,"value: %s\n", value);
+				v = (json_value_t *)parson_value_init_string(value);
+#endif
+				list l = (list) src;
+				char *p;
+				json_array_t *a;
+
+				v = (json_value_t *)parson_value_init_array();
+				a = json_value_array(v);
+				list_reset(l);
+				while((p = list_get_next(l)) != 0) {
+					dprintf(-1,"p: %s\n", p);
+					parson_array_append_string(ARR(a),p);
+				}
+			}
+			break;
+		case DATA_TYPE_STRING_ARRAY:
+			{
+				char **p;
+				json_array_t *a;
+				int i;
+
+				p = (char **) src;
+				dprintf(-1,"src: %s\n", (char *)src);
+				v = (json_value_t *)parson_value_init_array();
+				a = json_value_array(v);
+				for(i=0; i < 999; i++) {
+					dprintf(-1,"p[%d]: %p\n", i, p[i]);
+					if (!p[i]) break;
+					dprintf(-1,"p[%d]: %s\n", i, p[i]);
+					parson_array_append_string(ARR(a),p[i]);
+				}
+			}
+			break;
+		default:
+			log_error("json_from_type: unhandled type(%x): %s\n",type,typestr(type));
+			break;
+		}
 	}
 	return v;
 }
@@ -572,11 +612,46 @@ int json_to_type(int dt, void *dest, int len, json_value_t *v) {
 	case JSONObject:
 		{
 			JSON_Object *o;
-			int i;
+			int i,type;
 
 			o = parson_object(VAL(v));
-			for (i = 0; i < o->count; i++) dprintf(dlevel,"name: %s\n", o->names[i]);
+			for (i = 0; i < o->count; i++) {
+				type = parson_value_get_type(o->values[i]);
+				dprintf(-1,"name: %s, type: %s\n", o->names[i], json_typestr(type));
+			}
 			return 1;
+		}
+		break;
+	case JSONArray:
+		{
+			JSON_Array *a;
+			int i,size,r;
+			char value[32768];
+			char *str,*p;
+
+	dprintf(-1,"dt: %d(%s), dest: %p, dsize: %d, json_type: %s\n", dt, typestr(dt), dest, len, json_typestr(VAL(v)->type));
+			a = parson_array(VAL(v));
+			for (i = size = 0; i < a->count; i++) {
+				json_to_type(DATA_TYPE_STRING,value,sizeof(value),(json_value_t *)a->items[i]);
+				size += strlen(value) + 1;
+			}
+			dprintf(-1,"size: %d\n", size);
+			str = malloc(size);
+			if (!str) {
+				log_syserr("json_to_type: array malloc");
+				return -1;
+			}
+			p = str;
+			for (i = 0; i < a->count; i++) {
+				json_to_type(DATA_TYPE_STRING,value,sizeof(value),(json_value_t *)a->items[i]);
+				p += sprintf(p,"%s%s",value,i < a->count-1 ? "," : "");
+			}
+			dprintf(-1,"str: %s\n", str);
+			r = conv_type(dt,dest,len,DATA_TYPE_STRING,str,strlen(str));
+			dprintf(-1,"dest: %s\n", dest);
+			free(str);
+			dprintf(-1,"r: %d\n", r);
+			return r;
 		}
 		break;
 	default:
@@ -619,6 +694,7 @@ int json_iter(char *name, json_value_t *v, json_ifunc_t *func, void *ctx) {
 #ifdef JS
 #include "jsapi.h"
 #include "jsobj.h"
+#include "jsjson.h"
 static JSClass js_json_class = {
 	"myJSON",			/* Name */
 	0,			/* Flags */
@@ -636,7 +712,6 @@ static JSClass js_json_class = {
 JSObject *js_json_toObject(JSContext *cx, JSObject *parent, json_value_t *v) {
 	JSObject *obj;
 
-//	obj = JS_NewObject(cx, 0, 0, parent); 
 	obj = JS_NewObject(cx, &js_ObjectClass, 0, parent); 
 
 	return obj;
@@ -686,4 +761,42 @@ JSObject *js_InitmyJSONClass(JSContext *cx, JSObject *parent) {
 //	dprintf(dlevel,"done!\n");
 	return newobj;
 }
+
+jsval json2jsval(json_value_t *v, JSContext *cx) {
+	char *j;
+	JSString *str;
+	jsval rootVal;
+	JSONParser *jp;
+	jsval reviver = JSVAL_NULL;
+	JSBool ok;
+
+	/* Convert from C JSON type to JS JSON type */
+	dprintf(dlevel,"v: %p\n", v);
+	if (!v) {
+		JS_ReportError(cx, "unable to create info\n");
+		return 0;
+	}
+	j = json_dumps(v,0);
+	if (!j) {
+		JS_ReportError(cx, "unable to stringify info\n");
+		json_destroy_value(v);
+		return 0;
+	}
+	dprintf(dlevel,"j: %p\n", j);
+	json_destroy_value(v);
+	jp = js_BeginJSONParse(cx, &rootVal);
+	dprintf(dlevel,"jp: %p\n", jp);
+	if (!jp) {
+		JS_ReportError(cx, "unable init JSON parser\n");
+		free(j);
+		return 0;
+	}
+	str = JS_NewStringCopyZ(cx,j);
+	ok = js_ConsumeJSONText(cx, jp, JS_GetStringChars(str), JS_GetStringLength(str));
+	dprintf(dlevel,"ok: %d\n", ok);
+	ok = js_FinishJSONParse(cx, jp, reviver);
+	dprintf(dlevel,"ok: %d\n", ok);
+	return rootVal;
+}
+
 #endif

@@ -66,7 +66,7 @@ typedef struct solard_client solard_client_t;
 
 typedef int (client_callback_t)(void *ctx, solard_client_t *);
 solard_client_t *client_init(int argc,char **argv,char *version,opt_proctab_t *client_opts,char *Cname,int flags,config_property_t *props,config_function_t *funcs,client_callback_t *initcb,void *ctx);
-void client_destroy(solard_client_t *);
+void client_destroy_client(solard_client_t *c);
 void client_shutdown(void);
 
 client_agentinfo_t *client_getagentbyname(solard_client_t *c, char *name);

@@ -40,6 +40,7 @@ struct config_property;
 typedef struct config_property config_property_t;
 typedef int (config_trigger_func_t)(void *ctx, config_property_t *p, void *old_value);
 
+struct config;
 struct config_section;
 struct config_property {
 	char *name;
@@ -64,8 +65,15 @@ struct config_property {
 	jsval jsval;			/* JSVal of this property object */
 	jsval arg;			/* Trigger arg */
 #endif
-	struct config_section *sp;	/* backlink to section */
+//	struct config_section *sp;	/* backlink to section */
+	struct config *cp;		/* backlink to config */
 };
+
+struct config_arginfo {
+	int argc;
+	char **argv;
+};
+typedef struct config_arginfo config_arg_t;
 
 typedef int (config_funccall_t)(void *ctx, list args, char *errmsg, json_object_t *results);
 struct config_function {
@@ -83,7 +91,6 @@ typedef struct config_function config_function_t;
 #define CONFIG_FUNCTION_FLAG_ALLOCNAME 0x0001
 
 #define CONFIG_SECTION_NAME_SIZE 64
-struct config;
 struct config_section {
 	char name[CONFIG_SECTION_NAME_SIZE];
 	list items;

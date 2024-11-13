@@ -34,6 +34,10 @@ LICENSE file in the root directory of this source tree.
 #include <curl/curl.h>
 #endif
 
+#if defined(DEBUG) && DEBUG > 0
+static int debug_flag;
+#endif
+
 char SOLARD_BINDIR[SOLARD_PATH_MAX];
 char SOLARD_ETCDIR[SOLARD_PATH_MAX];
 char SOLARD_LIBDIR[SOLARD_PATH_MAX];
@@ -166,7 +170,7 @@ int solard_common_init(int argc,char **argv,char *version,opt_proctab_t *add_opt
 	static opt_proctab_t std_opts[] = {
 		{ "-b|run in background",&back_flag,DATA_TYPE_LOGICAL,0,0,"no" },
 #if defined(DEBUG) && DEBUG > 0
-		{ "-d:#|set debugging level",&debug,DATA_TYPE_INT,0,0,"0" },
+		{ "-d:#|set debugging level",&debug_flag,DATA_TYPE_INT,0,0,"0xDEADBEEF" },
 #endif
 		{ "-Z|redirect output to stderr",&err_flag,DATA_TYPE_LOGICAL,0,0,"N" },
 		{ "-h|display program options",&help_flag,DATA_TYPE_LOGICAL,0,0,"N" },
@@ -184,6 +188,7 @@ int solard_common_init(int argc,char **argv,char *version,opt_proctab_t *add_opt
 	WSADATA wsaData;
 	int iResult;
 #endif
+
 
 	append_flag = back_flag = verb_flag = help_flag = err_flag = 0;
 
@@ -225,6 +230,9 @@ int solard_common_init(int argc,char **argv,char *version,opt_proctab_t *add_opt
 		printf("%s\n",version);
 		exit(0);
 	}
+#if defined(DEBUG) && DEBUG > 0
+	if (debug_flag != 0xDEADBEEF) debug = debug_flag;
+#endif
 
 	/* If help flag, display usage and exit */
 	log_debug("common_init: error: %d, help_flag: %d\n",error,help_flag);
@@ -314,6 +322,9 @@ int solard_common_init(int argc,char **argv,char *version,opt_proctab_t *add_opt
 		cfg = cfg_read(configfile);
 		if (!cfg) log_write(LOG_SYSERR,"cfg_read %s",configfile);
 	}
+#if defined(DEBUG) && DEBUG > 0
+	if (debug_flag != 0xDEADBEEF) debug = debug_flag;
+#endif
 	solard_get_dirs(cfg,"",home,1);
 
 	dprintf(dlevel,"cfg: %p\n", cfg);
@@ -419,6 +430,9 @@ int solard_common_startup(config_t **cp, char *sname, char *configfile, config_p
 			return 1;
 		}
 	}
+#if defined(DEBUG) && DEBUG > 0
+	if (debug_flag != 0xDEADBEEF) debug = debug_flag;
+#endif
 #ifdef MQTT
 	/* re-apply mqtt_info if specified as commandline takes precedence */
 	if (m && strlen(mqtt_info)) mqtt_parse_config(*m,mqtt_info);
@@ -438,6 +452,8 @@ int solard_common_startup(config_t **cp, char *sname, char *configfile, config_p
 
 #ifdef MQTT
 	if (m) {
+		char topic[200];
+
 		/* If MQTT not init, do it now */
 		if (!mqtt_init_done && mqtt_init(*m)) {
 			log_error("mqtt_init: %s\n",(*m)->errmsg);
@@ -445,8 +461,8 @@ int solard_common_startup(config_t **cp, char *sname, char *configfile, config_p
 		}
 
 		/* Subscribe to our clientid */
-		sprintf(mqtt_info,"%s/%s/%s/#",SOLARD_TOPIC_ROOT,SOLARD_TOPIC_CLIENTS,(*m)->clientid);
-		mqtt_sub(*m,mqtt_info);
+		sprintf(topic,"%s/%s/%s/#",SOLARD_TOPIC_ROOT,SOLARD_TOPIC_CLIENTS,(*m)->clientid);
+		mqtt_sub(*m,topic);
 	}
 #endif
 
@@ -477,7 +493,7 @@ void common_add_props(config_t *cp, char *name) {
 		{ "ETCDIR", DATA_TYPE_STRING, SOLARD_ETCDIR, sizeof(SOLARD_ETCDIR)-1, 0 },
 		{ "LIBDIR", DATA_TYPE_STRING, SOLARD_LIBDIR, sizeof(SOLARD_LIBDIR)-1, 0 },
 		{ "LOGDIR", DATA_TYPE_STRING, SOLARD_LOGDIR, sizeof(SOLARD_LOGDIR)-1, 0 },
-		{ "debug", DATA_TYPE_INT, &debug, 0, 0, 0, "range", "0,99,1", "debug level", 0, 1, 0 },
+		{ "debug", DATA_TYPE_INT, &debug, 0, 0, CONFIG_FLAG_PRIVATE, "range", "0,99,1", "debug level", 0, 1, 0 },
 		{ 0 }
 	};
 	config_add_props(cp, name, common_props, 0);

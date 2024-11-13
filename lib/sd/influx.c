@@ -11,12 +11,20 @@ LICENSE file in the root directory of this source tree.
 #define dlevel 4
 #include "debug.h"
 
-#include "common.h"
+#include <string.h>
+//#include "common.h"
 #include "influx.h"
 #include <curl/curl.h>
+#include "json.h"
 #ifdef JS
 #include "jsnum.h" /* for JSDOUBLE_IS_NaN */
+#include "jsclass.h"
 #endif
+
+#define INFLUX_ENDPOINT_SIZE 128
+#define INFLUX_DATABASE_SIZE 64
+#define INFLUX_USERNAME_SIZE 32
+#define INFLUX_PASSWORD_SIZE 32
 
 #define INFLUX_INIT_BUFSIZE 4096
 #define SESSION_ID_SIZE 128
@@ -28,6 +36,7 @@ struct influx_session {
 	char database[INFLUX_DATABASE_SIZE];
 	char username[INFLUX_USERNAME_SIZE];
 	char password[INFLUX_PASSWORD_SIZE];
+	char epoch[16];
 	bool connected;
 	int errcode;
 	char errmsg[128];
@@ -38,11 +47,8 @@ struct influx_session {
 	char *buffer;                   /* Read buffer */
 	int bufsize;                    /* Buffer size */
 	int bufidx;                     /* Current write pos */
-	json_value_t *data;
-	list results;
-#ifdef JS
-	jsval results_val;
-#endif
+	list responses;
+//	influx_response_t *response;
 	char *login_fields;
 	char *read_fields;
 	char *config_fields;
@@ -119,11 +125,10 @@ static size_t getdata(void *ptr, size_t size, size_t nmemb, void *ctx) {
 influx_session_t *influx_new(void) {
 	influx_session_t *s;
 
-	s = calloc(sizeof(*s),1);
-	if (!s) {
-		log_syserror("influx_new: calloc");
-		return 0;
-	}
+	s = malloc(sizeof(*s));
+	if (!s) return 0;
+	memset(s,0,sizeof(*s));
+	s->responses = list_create();
 
 	s->curl = curl_easy_init();
 	if (!s->curl) {
@@ -163,64 +168,177 @@ influx_session_t *influx_new(void) {
 	return s;
 }
 
-void influx_destroy_results(influx_session_t *s) {
+int influx_enable(influx_session_t *s, int enabled) {
+	int old_enabled = s->enabled;
+	s->enabled = enabled;
+	return old_enabled;
+}
+
+int influx_set_db(influx_session_t *s, char *name) {
+	strncpy(s->database,name,sizeof(s->database)-1);
+	return 0;
+}
+
+#if 0
+static void display_value(influx_value_t *vp) {
+	char value[2048];
+
+	printf("vp: %p\n", vp);
+	printf("type: %s\n", typestr(vp->type));
+	conv_type(DATA_TYPE_STRING,value,sizeof(value),vp->type,vp->data,vp->len);
+	printf("value: %s\n", value);
+}
+
+static void display_series(influx_series_t *sp) {
+	int i,j;
+
+	printf("sp: %p\n", sp);
+	printf("name: %s\n", sp->name);
+	printf("column_count: %d\n", sp->column_count);
+	for(i=0; i < sp->column_count; i++) printf("column[%d]: %s\n", i, sp->columns[i]);
+	printf("values: %p\n", sp->values);
+	printf("value_count: %d\n", sp->value_count);
+	for(i=0; i < sp->value_count; i++) {
+		for(j=0; j < sp->column_count; j++) {
+			printf("value[%d][%d]: %p\n", i, j, sp->values[i][j]);
+			display_value(sp->values[i][j]);
+		}
+	}
+}
+
+static void display_result(influx_result_t *rp) {
 	influx_series_t *sp;
-	influx_value_t *vp;
-	int i,j,count;
+//	int i;
 
-	if (!s->results) return;
+	printf("--------------------------\n");
+	printf("rp: %p\n", rp);
+	printf("statement_id: %d\n", rp->statement_id);
+	printf("errmsg: %s\n", rp->errmsg);
+//	printf("series count: %d\n", rp->series_count);
+	printf("series count: %d\n", list_count(rp->series));
+//	for(i=0; i < rp->series_count; i++) display_series(rp->series[i]);
+	list_reset(rp->series);
+	while(sp = list_get_next(r->series)) != 0) display_series(sp);
+}
 
-	count = list_count(s->results);
-	dprintf(dlevel,"count: %d\n",count);
-	if (count) {
-	list_reset(s->results);
-	while((sp = list_get_next(s->results)) != 0) {
-		dprintf(dlevel,"sp->columns: %p\n", sp->columns);
-		if (sp->columns) {
-			dprintf(dlevel,"column_count: %d\n", sp->column_count);
-			for(i=0; i < sp->column_count; i++) {
-				dprintf(dlevel,"columns[%d]: %p\n", i, sp->columns[i]);
-				if (!sp->columns[i]) break;
-				free(sp->columns[i]);
-			}
-			free(sp->columns);
-		}
-		dprintf(dlevel,"sp->values: %p\n", sp->values);
-		if (sp->values) {
-			dprintf(dlevel,"value_count: %d\n", sp->value_count);
-			for(i=0; i < sp->value_count; i++) {
-				dprintf(dlevel,"values[%d]: %p\n", i, sp->values[i]);
-				if (!sp->values[i]) break;
-				for(j=0; j < sp->column_count; j++) {
-					vp = &sp->values[i][j];
-					if (vp->data) free(vp->data);
-				}
-				free(sp->values[i]);
-			}
-			free(sp->values);
-		}
-	}
-	}
-	list_destroy(s->results);
-	s->results = 0;
-#ifdef JS
-	s->results_val = 0;
+static void display_response(influx_response_t *r) {
+	influx_result_t *rp;
+//	int i;
+
+	printf("r: %p\n", r);
+	printf("error: %d\n", r->error);
+//	printf("result_count: %d\n", r->result_count);
+	printf("result_count: %d\n", list_count(r->results));
+//	for(i=0; i < r->result_count; i++) display_result(r->results[i]);
+	list_reset(r->results);
+	while(rp = list_get_next(r->results)) != 0) display_result(rp);
+}
 #endif
-	dprintf(dlevel,"done!\n");
-	return;
+
+int influx_destroy_series(influx_series_t *sp) {
+	int i,j;
+	influx_value_t *vp;
+
+	dprintf(dlevel,"sp: %p\n", sp);
+	if (!sp) return 0;
+
+	dprintf(dlevel,"refs: %d\n", sp->refs);
+	if (sp->refs) return 1;
+
+	dprintf(dlevel,"sp->columns: %p\n", sp->columns);
+	if (sp->columns) {
+		dprintf(dlevel,"column_count: %d\n", sp->column_count);
+		for(i=0; i < sp->column_count; i++) {
+			dprintf(dlevel,"columns[%d]: %p\n", i, sp->columns[i]);
+			if (!sp->columns[i]) break;
+			free(sp->columns[i]);
+		}
+		free(sp->columns);
+		sp->columns = 0;
+	}
+	dprintf(dlevel,"sp->values: %p\n", sp->values);
+	if (sp->values) {
+		dprintf(dlevel,"value_count: %d\n", sp->value_count);
+		for(i=0; i < sp->value_count; i++) {
+			dprintf(dlevel,"values[%d]: %p\n", i, sp->values[i]);
+			if (!sp->values[i]) continue;
+			for(j=0; j < sp->column_count; j++) {
+				vp = sp->values[i][j];
+				if (vp && vp->data) {
+					dprintf(dlevel,"freeing value[%d][%d]\n",i,j);
+					free(vp->data);
+				}
+			}
+			free(sp->values[i]);
+		}
+		free(sp->values);
+		sp->values = 0;
+	}
+
+	if (sp->parent) {
+		dprintf(dlevel,"sp->parent: %p\n", sp->parent);
+		list_delete(sp->parent->series,sp);
+	}
+	return 0;
+}
+
+int influx_destroy_result(influx_result_t *rp) {
+	influx_series_t *sp;
+	int c;
+
+	dprintf(dlevel,"rp: %p\n", rp);
+	if (!rp) return 0;
+
+	dprintf(dlevel,"refs: %d\n", rp->refs);
+	if (rp->refs) return 1;
+
+	/* Destroy series */
+	list_reset(rp->series);
+	while((sp = list_get_next(rp->series)) != 0) influx_destroy_series(sp);
+	c = list_count(rp->series);
+	dprintf(dlevel,"c: %d\n", c);
+	if (!c) {
+		list_destroy(rp->series);
+		if (rp->parent) {
+			dprintf(dlevel,"rp->parent: %p\n", rp->parent);
+			list_delete(rp->parent->results,rp);
+		}
+	}
+	return c;
+}
+
+int influx_destroy_response(influx_response_t *r) {
+	influx_result_t *rp;
+	int c;
+
+	dprintf(dlevel,"r: %p\n", r);
+	if (!r) return 0;
+
+	dprintf(dlevel,"refs: %d\n", r->refs);
+	if (r->refs) return 1;
+
+	list_reset(r->results);
+	while((rp = list_get_next(r->results)) != 0) influx_destroy_result(rp);
+	c = list_count(r->results);
+	if (!c) {
+		list_destroy(r->results);
+		if (r->parent) {
+			dprintf(dlevel,"r->parent: %p\n", r->parent);
+			list_delete(r->parent->responses,r);
+		}
+	}
+	return c;
 }
 
 static void influx_cleanup(influx_session_t *s) {
+	influx_response_t *r;
 	if (s->buffer) {
 		free(s->buffer);
 		s->buffer = 0;
 		s->bufsize = 0;
 	}
-	if (s->results) influx_destroy_results(s);
-	if (s->data) {
-		json_destroy_value(s->data);
-		s->data = 0;
-	}
+	list_reset(s->responses);
+	while((r = list_get_next(s->responses)) != 0) influx_destroy_response(r);
 }
 
 void influx_destroy_session(influx_session_t *s) {
@@ -252,10 +370,6 @@ void influx_shutdown(void) {
 	}
 }
 
-list influx_get_results(influx_session_t *s) {
-	return s->results;
-}
-
 char *influx_mkurl(influx_session_t *s, char *action, char *query) {
 	char *url,*eq,*p;
 	int size,db;
@@ -279,13 +393,14 @@ char *influx_mkurl(influx_session_t *s, char *action, char *query) {
 		size += strlen(action) + 1; /* + "/" */
 		size += strlen(s->database) + 4;	/* + "?db=" */
 	}
+	if (strlen(s->epoch)) size += strlen(s->epoch) + 7; /* + "&epoch=" */
 	eq = (query ? curl_easy_escape(s->curl, query, strlen(query)) : 0);
 	if (eq) size += strlen(eq) + 3; /* + "&q=" */
 	dprintf(dlevel,"size: %d\n", size);
 	url = malloc(size+1);
 	dprintf(dlevel,"url: %p\n", url);
 	if (!url) {
-		log_syserror("influx_mkurl: malloc(%d)",size);
+		strcpy(s->errmsg,"memory allocation error");
 		return 0;
 	}
 	p = url;
@@ -294,6 +409,7 @@ char *influx_mkurl(influx_session_t *s, char *action, char *query) {
 		p += sprintf(p,"/%s",action);
 		if (db) p += sprintf(p,"?db=%s",s->database);
 	}
+	if (strlen(s->epoch)) p += sprintf(p,"&epoch=%s",s->epoch);
 	if (eq) {
 		p += sprintf(p,"&q=%s",eq);
 		curl_free(eq);
@@ -302,202 +418,246 @@ char *influx_mkurl(influx_session_t *s, char *action, char *query) {
 	return url;
 }
 
-static void getval(influx_session_t *s, json_value_t *rv, influx_value_t *vp) {
+static influx_value_t *get_value(json_value_t *rv) {
+	influx_value_t *vp;
 	int type;
 	register char *p;
 
+	vp = malloc(sizeof(*vp));
 	dprintf(dlevel,"vp: %p\n", vp);
-	if (!vp) return;
+	if (!vp) return 0;
 	memset(vp,0,sizeof(*vp));
+	vp->type = DATA_TYPE_NULL;
 
 	type = json_value_get_type(rv);
 	dprintf(dlevel,"type: %d (%s)\n", type, json_typestr(type));
 	switch(type) {
-	case JSON_TYPE_NULL:
-		vp->type = DATA_TYPE_NULL;
-		break;
 	case JSON_TYPE_NUMBER:
 	    {
 		vp->type = DATA_TYPE_DOUBLE;
 		vp->data = malloc(sizeof(double));
 		if (!vp->data) {
-			log_syserror("influx_getval: malloc(%d)",sizeof(double));
-			return;
+			free(vp);
+			return 0;
 		}
 		*((double *)vp->data) = json_value_get_number(rv);
+		dprintf(dlevel,"number: %f\n", *((double *)vp->data));
 	    }
 	    break;
 	case JSON_TYPE_STRING:
 		vp->type = DATA_TYPE_STRING;
 		p = json_value_get_string(rv);
 		vp->len = strlen(p);
-		vp->data = malloc(vp->len+1);
+		vp->data = strdup(p);
 		if (!vp->data) {
-			log_syserror("influx_getval: malloc(%d)\n", vp->len+1);
-			return;
+			free(vp);
+			return 0;
 		}
-		strcpy((char *)vp->data,p);
+		dprintf(dlevel,"string: %s\n", (char *)vp->data);
 		break;
-	default:
-		vp->type = DATA_TYPE_NULL;
-		log_error("influx_getval: unhandled type: %d(%s)\n", type, json_typestr(type));
 	}
+
+	dprintf(dlevel,"returning: %p\n", vp);
+	return vp;
 }
 
-static int getseries(influx_session_t *s, json_array_t *a) {
-	int i,j,k,type;
-	json_object_t *o;
-	json_array_t *columns_array,*values_array;
-	influx_series_t newseries;
+static int _get_series(json_object_t *o, influx_series_t *sp) {
+	json_array_t *columns_array,*values_array,*aa;
+	int i,j,type;
 	char *p;
 
-	for(i=0; i < a->count; i++) {
-		type = json_value_get_type(a->items[i]);
-		dprintf(dlevel,"type[%d]: %s\n", i, json_typestr(type));
-		if (json_value_get_type(a->items[i]) != JSON_TYPE_OBJECT) continue;
-		o = json_value_object(a->items[i]);
-		dprintf(dlevel,"count: %d\n", o->count);
-		memset(&newseries,0,sizeof(newseries));
-#ifdef JS
-		newseries.convdt = s->convdt;
-#endif
-		columns_array = values_array = 0;
-		for(j=0; j < o->count; j++) {
-			dprintf(dlevel,"o->names[%d]: %s\n", j, o->names[j]);
+	columns_array = values_array = 0;
+	dprintf(dlevel,"o->count: %d\n", o->count);
+	for(i=0; i < o->count; i++) {
+		type = json_value_get_type(o->values[i]);
+		dprintf(dlevel,"o->names[%d]: %s, type: %s\n", i, o->names[i], json_typestr(type));
 
-			/* measurement name */
-			if (strcmp(o->names[j],"name") == 0) {
-				strncpy(newseries.name,o->names[j],sizeof(newseries.name));
+		/* measurement name */
+		if (strcmp(o->names[i],"name") == 0) {
+			strncpy(sp->name,o->names[i],sizeof(sp->name));
 
-			/* columns */
-			} else if (strcmp(o->names[j],"columns") == 0 && json_value_get_type(o->values[j]) == JSON_TYPE_ARRAY) {
-				columns_array = json_value_array(o->values[j]);
+		/* columns */
+		} else if (strcmp(o->names[i],"columns") == 0 && type == JSON_TYPE_ARRAY) {
+			columns_array = json_value_array(o->values[i]);
 
-			/* values */
-			} else if (strcmp(o->names[j],"values") == 0 && json_value_get_type(o->values[j]) == JSON_TYPE_ARRAY) {
-				values_array = json_value_array(o->values[j]);
+		/* values */
+		} else if (strcmp(o->names[i],"values") == 0 && type == JSON_TYPE_ARRAY) {
+			values_array = json_value_array(o->values[i]);
+		}
+	}
+	/* need both or its invalid response */
+	if (!columns_array || !values_array) goto get_series_error;
+
+	/* Get the columns */
+	sp->column_count = columns_array->count;
+	sp->columns = calloc(sp->column_count*sizeof(char *),1);
+	dprintf(dlevel,"sp->columns: %p\n", sp->columns);
+	if (!sp->columns) goto get_series_error;
+	dprintf(dlevel,"column_count: %d\n", sp->column_count);
+	for(i=0; i < sp->column_count; i++) {
+		p = json_value_get_string(columns_array->items[i]);
+		dprintf(dlevel,"column[%d]: %s\n", i, p);
+		if (!p) goto get_series_error;
+		sp->columns[i] = strdup(p);
+		if (!sp->columns[i]) goto get_series_error;
+	}
+
+	/* Get the values */
+	/* Values are a multidemential array of [values][column_count] */
+	sp->value_count = values_array->count;
+	sp->values = calloc(sp->value_count * sizeof(influx_value_t **),1);
+	dprintf(dlevel,"values: %p\n", sp->values);
+	if (!sp->values) goto get_series_error;
+	dprintf(dlevel,"value_count: %d\n", sp->value_count);
+	for(i=0; i < sp->value_count; i++) {
+		/* MUST be array of arrays */
+		if (json_value_get_type(values_array->items[i]) != JSON_TYPE_ARRAY) goto get_series_error;
+		aa = json_value_array(values_array->items[i]);
+
+		/* number of values MUST equal column_count */
+		dprintf(dlevel,"aa->count: %d, column_count: %d\n", aa->count, sp->column_count);
+		if (aa->count != sp->column_count) goto get_series_error;
+
+		/* get the values */
+		sp->values[i] = calloc(sp->column_count * sizeof(influx_value_t *),1);
+		if (!sp->values[i]) goto get_series_error;
+		for(j=0; j < aa->count; j++) {
+			type = json_value_get_type(aa->items[j]);
+			dprintf(dlevel,"items[%d] type: %s (%d)\n", j, json_typestr(type), type);
+			sp->values[i][j] = get_value(aa->items[j]);
+		}
+	}
+
+	return 0;
+
+get_series_error:
+	influx_destroy_series(sp);
+	return 1;
+}
+
+static int _get_result(json_object_t *o, influx_result_t *rp) {
+	influx_series_t newseries,*sp;
+	int i,type;
+
+	dprintf(dlevel,"o->count: %d\n", o->count);
+	for(i=0; i < o->count; i++) {
+		type = json_value_get_type(o->values[i]);
+		dprintf(dlevel,"o->names[%d]: %s, type: %s\n", i, o->names[i], json_typestr(type));
+
+		/* Statement ID */
+		if (strcmp(o->names[i],"statement_id") == 0 && type == JSON_TYPE_NUMBER) {
+			rp->statement_id = json_value_get_number(o->values[i]);
+			dprintf(dlevel,"statement_id: %d\n", rp->statement_id);
+		}
+
+		if (strcmp(o->names[i],"error") == 0 && type == JSON_TYPE_STRING) {
+			strncpy(rp->errmsg,json_value_get_string(o->values[i]),sizeof(rp->errmsg)-1);
+			dprintf(dlevel,"errmsg: %s\n", rp->errmsg);
+		}
+
+		/* Series */
+		if (strcmp(o->names[i],"series") == 0 && type == JSON_TYPE_ARRAY) {
+			json_array_t *a = json_value_array(o->values[i]);
+
+			dprintf(dlevel,"a->count: %d\n", a->count);
+			/* XXX */
+			if (!rp->series) continue;
+			for(i=0; i < a->count; i++) {
+				type = json_value_get_type(a->items[i]);
+				dprintf(dlevel,"type[%d]: %s\n", i, json_typestr(type));
+				if (type != JSON_TYPE_OBJECT) continue;
+				memset(&newseries,0,sizeof(newseries));
+				/* XXX */
+				if (_get_series(json_value_object(a->items[i]),&newseries)) continue;
+				sp = list_add(rp->series,&newseries,sizeof(newseries));
+				dprintf(dlevel,"sp: %p\n", sp);
 			}
-		}
-		if (!columns_array) {
-			sprintf(s->errmsg,"no columns array");
-			return 1;
-		}
-		if (!values_array) {
-			sprintf(s->errmsg,"no values array");
-			return 1;
-		}
 
-		/* Get the columns */
-		newseries.column_count = columns_array->count;
-		newseries.columns = calloc(newseries.column_count*sizeof(char *),1);
-		if (!newseries.columns) {
-			sprintf(s->errmsg,"malloc columns");
-			return 1;
 		}
-		for(j=0; j < newseries.column_count; j++) {
-			p = json_value_get_string(columns_array->items[j]);
-			dprintf(dlevel,"column[%d]: %s\n", j, p);
-			if (!p) {
-				sprintf(s->errmsg,"error getting column name");
-				return 1;
-			}
-			newseries.columns[j] = malloc(strlen(p)+1);
-			if (!newseries.columns[j]) {
-				sprintf(s->errmsg,"malloc column name");
-				return 1;
-			}
-			strcpy(newseries.columns[j],p);
-		}
-
-		/* Get the values */
-		/* Values are a mulidemential array of [values][column_count] */
-		dprintf(dlevel,"value count: %d\n", values_array->count);
-		newseries.value_count = values_array->count;
-		dprintf(dlevel,"column_count: %d, value size: %d\n", newseries.column_count, sizeof(influx_value_t));
-		newseries.values = calloc(newseries.value_count * sizeof(influx_value_t *),1);
-		dprintf(dlevel,"values: %p\n", newseries.values);
-		if (!newseries.values) {
-			sprintf(s->errmsg,"malloc values");
-			return 1;
-		}
-		for(j=0; j < newseries.value_count; j++) {
-			if (json_value_get_type(values_array->items[j]) == JSON_TYPE_ARRAY) {
-				json_array_t *aa = json_value_array(values_array->items[j]);
-				dprintf(dlevel,"aa->count: %d\n", aa->count);
-				if (aa->count != newseries.column_count) {
-					sprintf(s->errmsg,"internal error: value item count(%d) != column count(%d)",
-						(int)aa->count,newseries.column_count);
-					return 1;
-				}
-				newseries.values[j] = calloc(aa->count * sizeof(influx_value_t),1);
-				if (!newseries.values[j]) {
-					sprintf(s->errmsg,"malloc values");
-					return 1;
-				}
-				for(k=0; k < aa->count; k++) getval(s,aa->items[k],&newseries.values[j][k]);
-			}
-		}
-		list_add(s->results,&newseries,sizeof(newseries));
 	}
 	return 0;
 }
 
-static int _process_results(influx_session_t *s) {
-
-	if (s->results) influx_destroy_results(s);
+static int _get_response(influx_session_t *s, influx_response_t *r) {
+	influx_result_t newresult,*rp;
+	json_object_t *o;
+	int type;
+	json_value_t *v;
+	int i;
 
 	/* Parse the buffer */
 //	dprintf(dlevel,"buffer: %s\n", s->buffer);
 	dprintf(dlevel,"bufidx: %d\n", s->bufidx);
-	s->data = json_parse(s->buffer);
-	dprintf(dlevel,"data: %p\n", s->data);
-	/* May not be json data? */
-	if (!s->data) {
-		sprintf(s->errmsg,"influx_health: invalid result data");
+	v = json_parse(s->buffer);
+	dprintf(dlevel,"v: %p\n", v);
+	/* May not be valiid json data */
+	if (!v) {
+		r->error = true;
+		sprintf(r->errmsg,"invalid json output");
 		return 1;
 	}
 
-	/* If it's results, process it */
-	dprintf(dlevel,"type: %s\n", json_typestr(json_value_get_type(s->data)));
-	if (json_value_get_type(s->data) == JSON_TYPE_OBJECT) {
-		json_object_t *o;
-
-		o = json_value_object(s->data);
-		if (o->count >= 1 && strcmp(o->names[0],"results") == 0 && json_value_get_type(o->values[0]) == JSON_TYPE_ARRAY) {
-			int i,j,type;
-			json_object_t *oo;
-			json_array_t *a = json_value_array(o->values[0]);
-
-			dprintf(dlevel,"count: %d\n", a->count);
-			s->results = list_create();
-			for(i=0; i < a->count; i++) {
-				type = json_value_get_type(a->items[i]);
-				dprintf(dlevel,"type[%d]: %s\n", i, json_typestr(type));
-				if (json_value_get_type(a->items[i]) != JSON_TYPE_OBJECT) continue;
-				oo = json_value_object(a->items[i]);
-				dprintf(dlevel,"count: %d\n", oo->count);
-				for(j=0; j < oo->count; j++) {
-					dprintf(dlevel,"oo->names[%d]: %s\n", j, oo->names[j]);
-					if (strcmp(oo->names[j],"series") == 0 && json_value_get_type(oo->values[j]) == JSON_TYPE_ARRAY) {
-						if (getseries(s, json_value_array(oo->values[j]))) {
-							influx_cleanup(s);
-							return 1;
-						}
-					}
+	/* top level must be object */
+	type = json_value_get_type(v);
+	dprintf(dlevel,"type: %s\n", json_typestr(type));
+	if (type == JSON_TYPE_OBJECT) {
+		o = json_value_object(v);
+		dprintf(dlevel,"o->count: %d\n", o->count);
+		for(i=0; i < o->count; i++) {
+			type = json_value_get_type(o->values[0]);
+			dprintf(dlevel,"o->names[%d]: %s, type: %s\n", i, o->names[i], json_typestr(type));
+			if (strcmp(o->names[i],"results") == 0 && type == JSON_TYPE_ARRAY) {
+				json_array_t *a = json_value_array(o->values[i]);
+				if (!r->results) r->results = list_create();
+				dprintf(dlevel,"r->results: %p\n", r->results);
+				if (!r->results) {
+					r->error = true;
+					sprintf(r->errmsg,"memory allocation error");
+					return 1;
+				}
+				dprintf(dlevel,"a->count: %d\n", a->count);
+				for(i=0; i < a->count; i++) {
+					type = json_value_get_type(a->items[i]);
+					dprintf(dlevel,"type[%d]: %s\n", i, json_typestr(type));
+					if (type != JSON_TYPE_OBJECT) continue;
+					memset(&newresult,0,sizeof(newresult));
+					newresult.series = list_create();
+					dprintf(dlevel,"newresult.series: %p\n", newresult.series);
+					if (!newresult.series) continue;
+					if (_get_result(json_value_object(a->items[i]),&newresult)) continue;
+					rp = list_add(r->results,&newresult,sizeof(newresult));
+					dprintf(dlevel,"rp: %p\n", rp);
 				}
 			}
 		}
 	}
-
+	json_destroy_value(v);
 	return 0;
 }
 
-static int influx_request(influx_session_t *s, char *url, int post, char *data) {
+static influx_response_t *influx_request(influx_session_t *s, char *url, int post, char *data) {
+	influx_response_t newresp,*r;
+	influx_result_t *rp;
+	influx_series_t *sp;
+//	char cl[128];
 	CURLcode res;
-	int rc,err;
+	int rc;
+//,err;
 	char *msg;
 
-	if (!s->enabled) return 0;
+	memset(&newresp,0,sizeof(newresp));
+	newresp.results = list_create();
+	if (!newresp.results) {
+		newresp.error = true;
+		strcpy(newresp.errmsg,"list_create results");
+		goto influx_request_done;
+	}
+
+	if (!s->enabled) {
+		newresp.error = true;
+		strcpy(newresp.errmsg,"not enabled");
+		goto influx_request_done;
+	}
 
 	dprintf(dlevel,"url: %s, post: %d, data: %s\n", url, post, data);
 
@@ -505,6 +665,12 @@ static int influx_request(influx_session_t *s, char *url, int post, char *data) 
 	s->bufidx = 0;
 
 	/* Make the request */
+#if 0
+	if (data) {
+		sprintf(cl,"Content-length: %d\n", (int)strlen(data));
+		curl_easy_setopt(s->curl, CURLOPT_HTTPHEADER, curl_slist_append(0,cl));
+	}
+#endif
 	curl_easy_setopt(s->curl, CURLOPT_VERBOSE, s->verbose);
 	curl_easy_setopt(s->curl, CURLOPT_URL, url);
 	curl_easy_setopt(s->curl, CURLOPT_POST, post);
@@ -515,23 +681,23 @@ static int influx_request(influx_session_t *s, char *url, int post, char *data) 
 	dprintf(dlevel,"res: %d\n", res);
 	if (res != CURLE_OK) {
 		sprintf(s->errmsg,"influx_request failed: %s", curl_easy_strerror(res));
-		dprintf(dlevel,"%s\n",s->errmsg);
-		return 1;
+		return 0;
 	}
 
 	/* Get the response code */
 	dprintf(dlevel,"getting rc...\n");
 	curl_easy_getinfo(s->curl, CURLINFO_RESPONSE_CODE, &rc);
 	dprintf(dlevel,"rc: %d\n", rc);
-	err = 1;
+	msg = "";
+	newresp.error = true;
 	switch(rc) {
 	case 200:
 		msg = "Success";
-		err = 0;
+		newresp.error = false;
 		break;
 	case 204:
 		msg = "No content";
-		err = 0;
+		newresp.error = false;
 		break;
 	case 400:
 		msg = "Bad Request";
@@ -562,58 +728,65 @@ static int influx_request(influx_session_t *s, char *url, int post, char *data) 
 		msg = "unknown response code";
 		break;
 	}
-	if (msg) sprintf(s->errmsg,msg);
-	return err;
-}
+	strncpy(newresp.errmsg,msg,sizeof(newresp.errmsg)-1);
+	/* _get_response could/should? be part of this func */
+	if (!newresp.error) _get_response(s,&newresp);
+influx_request_done:
+	r = list_add(s->responses,&newresp,sizeof(newresp));
+	dprintf(dlevel,"r: %p\n", r);
+	if (r) r->parent = s;
 
-#if 0
-static void display_results(influx_session_t *s) {
-	influx_series_t *sp;
-	influx_value_t *vp;
-	int i,j;
-	char value[258];
-
-	if (!s->buffer) return;
-	dprintf(dlevel,"buffer: %s\n", s->buffer);
-	dprintf(dlevel,"results count: %d\n", list_count(s->results));
-	list_reset(s->results);
-	while((sp = list_get_next(s->results)) != 0) {
-		printf("sp->name: %s\n", sp->name);
-		for(i=0; i < sp->column_count; i++) printf("column[%d]: %s\n", i, sp->columns[i]);
-		for(i=0; i < sp->value_count; i++) {
-			for(j=0; j < sp->column_count; j++) {
-				vp = &sp->values[i][j];
-				conv_type(DATA_TYPE_STRING,value,sizeof(value),vp->type,vp->data,vp->len);
-				printf("value[%d][%d]: %s\n", i,j, value);
-			}
-		}
+	/* XXX must be done here */
+	dprintf(dlevel,"r->results: %p\n", r->results);
+	list_reset(r->results);
+	while ((rp = list_get_next(r->results)) != 0) {
+		dprintf(dlevel,"rp->series: %p\n", rp->series);
+		list_reset(rp->series);
+		while ((sp = list_get_next(rp->series)) != 0) sp->parent = rp;
+		rp->parent = r;
 	}
+
+	r->refs++;
+	return r;
 }
-#endif
+
+int influx_release_response(influx_response_t *r) {
+	dprintf(dlevel,"r: %p\n", r);
+	if (!r) return 1;
+	dprintf(dlevel,"r->refs: %d\n", r->refs);
+	if (!r->refs) return 1;
+	r->refs--;
+	influx_destroy_response(r);
+	return 0;
+}
 
 int influx_health(influx_session_t *s) {
+	influx_response_t *r;
 	char *url;
-	long rc;
-	char *p;
+	int error;
 
 	if (!s->enabled) return 0;
 
 	url = influx_mkurl(s,"health",0);
 	dprintf(dlevel,"url: %p\n", url);
 	if (!url) return 1;
-	if (influx_request(s,url,0,0)) {
-		free(url);
-		return 1;
-	}
+	r = influx_request(s,url,0,0);
+	error = r->error;
+	influx_destroy_response(r);
+	free(url);
+	return error;
+
+#if 0
 	curl_easy_getinfo(s->curl, CURLINFO_RESPONSE_CODE, &rc);
 	dprintf(dlevel,"rc: %d\n", rc);
 	free(url);
 //	if (rc != 200) return(1);
+#if 0
 	if (_process_results(s)) return 1;
+#if 0
 	dprintf(dlevel,"data: %p\n", s->data);
 	dprintf(dlevel,"type: %s\n", json_typestr(json_value_get_type(s->data)));
 	if (json_value_get_type(s->data) != JSON_TYPE_OBJECT) return 1;
-#if 0
 	p = json_object_dotget_string(json_value_object(s->data),"status");
 	if (!p) {
 		sprintf(s->errmsg,"unable to get influxdb status", p);
@@ -630,6 +803,8 @@ int influx_health(influx_session_t *s) {
 	dprintf(dlevel,"p: %s\n", p);
 	if (!p) return 1;
 	strncpy(s->version,p,sizeof(s->version)-1);
+#endif
+#endif
 	return 0;
 }
 
@@ -656,10 +831,11 @@ int influx_ping(influx_session_t *s) {
 	return (rc == 200 || rc == 204 ? 0 : 1);
 }
 
-int influx_query(influx_session_t *s, char *query) {
+influx_response_t *influx_query(influx_session_t *s, char *query) {
+	influx_response_t *r;
 	char *postcmds[] = { "ALTER", "CREATE", "DELETE", "DROP", "GRANT", "KILL", "REVOKE", "SELECT INTO", 0 };
 	char *url,*lcq,**p;
-	int r,post;
+	int post;
 
 	dprintf(dlevel,"enabled: %d\n", s->enabled);
 	if (!s->enabled) return 0;
@@ -668,7 +844,7 @@ int influx_query(influx_session_t *s, char *query) {
 	dprintf(dlevel,"lcq: %s\n", lcq);
 	post = 0;
 	for(p = postcmds; *p; p++) {
-		dprintf(dlevel,"p: %s\n", *p);
+		dprintf(dlevel+2,"p: %s\n", *p);
 		if (strstr(lcq,*p)) {
 			post = 1;
 			break;
@@ -678,38 +854,78 @@ int influx_query(influx_session_t *s, char *query) {
 
 	url = influx_mkurl(s,"query",query);
 	dprintf(dlevel,"url: %p\n", url);
-	if (!url) return 1;
+	if (!url) return 0;
 	dprintf(dlevel,"calling request..\n");
 	r = influx_request(s,url,post,0);
-	dprintf(dlevel,"r: %d\n", r);
-	if (!r) r = _process_results(s);
-//	if (!r) display_results(s);
+	dprintf(dlevel,"r: %p\n", r);
 	dprintf(dlevel,"freeing url...\n");
 	free(url);
 	return r;
 }
 
+int influx_get_first_value(influx_response_t *r, double *val, char *text, int text_size) {
+        influx_result_t *rp;
+        influx_series_t *sp;
+	influx_value_t *vp;
+
+        dprintf(dlevel,"r: %p\n", r);
+        if (!r) return 1;
+
+	dprintf(0,"r->results: %p\n", r->results);
+	dprintf(0,"results count: %d\n", list_count(r->results));
+	if (!list_count(r->results)) return 1;
+	rp = list_get_first(r->results);
+	dprintf(0,"rp: %p\n", rp);
+	dprintf(0,"rp->series: %p\n", rp->series);
+	dprintf(0,"series count: %d\n", list_count(rp->series));
+	if (!list_count(rp->series)) return 1;
+	sp = list_get_first(rp->series);
+	dprintf(0,"sp: %p\n", sp);
+	dprintf(0,"value_count: %d\n", sp->value_count);
+	if (!sp->value_count) return 1;
+
+	vp = sp->values[0][1];
+	if (text) conv_type(DATA_TYPE_STRING,text,text_size,vp->type,vp->data,vp->len);
+	if (val) conv_type(DATA_TYPE_DOUBLE,val,sizeof(*val),vp->type,vp->data,vp->len);
+#if 0
+	dprintf(0,"result_count: %d\n", r->result_count);
+        if (r->result_count > 0) {
+                rp = r->results[0];
+		dprintf(0,"series_count: %d\n", rp->series_count);
+                if (rp->series_count > 0) {
+                        sp = rp->series[0];
+			dprintf(0,"value_count: %d\n", sp->value_count);
+                        if (sp->value_count > 0) {
+				*vp = *sp->values[0][1];
+				return 0;
+                        }
+                }
+        }
+#endif
+	return 1;
+}
+
 int influx_connect(influx_session_t *s) {
-	int r;
+	influx_response_t *r;
+	int error;
 
 	dprintf(dlevel,"connected: %d\n", s->connected);
 	if (s->connected) return 0;
 
-	dprintf(dlevel,"enabled: %d\n", s->enabled);
-	if (!s->enabled) return 0;
-
-	r = 1;
+	error = 1;
 	dprintf(dlevel,"endpoint: %s\n", s->endpoint);
 	if (!strlen(s->endpoint)) goto influx_connect_done;
 	dprintf(dlevel,"database: %s\n", s->database);
 	if (!strlen(s->database)) goto influx_connect_done;
 	dprintf(dlevel,"calling show measurements...\n");
 	r = influx_query(s,"show measurements");
+	if (!r) goto influx_connect_done;
+	error = r->error;
+	influx_destroy_response(r);
 influx_connect_done:
-	dprintf(dlevel,"r: %d\n", r);
-	s->connected = (r == 0);
-	influx_cleanup(s);
-	return r;
+	dprintf(dlevel,"error: %d\n", error);
+	s->connected = (error == 0);
+	return error;
 }
 
 int influx_connected(influx_session_t *s) {
@@ -717,11 +933,11 @@ int influx_connected(influx_session_t *s) {
 	else return s->connected;
 }
 
-/* XXX fix this - mm is ignored! (have to embed in string) */
-int influx_write(influx_session_t *s, char *mm, char *string) {
-	char *url;
-	int r;
+influx_response_t *influx_write(influx_session_t *s, char *mm, char *string) {
+	influx_response_t *r;
+	char *temp,*url;
 
+	dprintf(dlevel,"enabled: %d\n", s->enabled);
 	if (!s->enabled) return 0;
 
 	dprintf(dlevel,"mm: %s, string: %s\n", mm, string);
@@ -735,16 +951,30 @@ u=<username>	Optional if you haven.t enabled authentication. Required if you.ve 
 #endif
 	url = influx_mkurl(s,"write",0);
 	dprintf(dlevel,"url: %p\n", url);
-	if (!url) return 1;
+	if (!url) return 0;
 	dprintf(dlevel,"calling request..\n");
-	r = influx_request(s,url,1,string);
+	/* mm + <space> + string + 0 */
+	temp = malloc(strlen(mm) + 1 + strlen(string) + 1);
+	if (!temp) {
+		strcpy(s->errmsg,"memory allocation error");
+		free(url);
+		return 0;
+	}
+	strcpy(temp,mm);
+	strcat(temp," ");
+	strcat(temp,string);
+	dprintf(dlevel,"temp: %s\n", temp);
+	r = influx_request(s,url,1,temp);
 	dprintf(dlevel,"r: %d\n", r);
 	free(url);
-	influx_cleanup(s);
+	free(temp);
 	return r;
 }
 
+#ifndef NO_CONFIG
+#include "config.h"
 int influx_write_props(influx_session_t *s, char *name, config_property_t *props) {
+	influx_response_t *r;
 	register config_property_t *pp;
 	char value[2048], *string;
 	int strsize,stridx,newidx,len,count;
@@ -756,7 +986,8 @@ int influx_write_props(influx_session_t *s, char *name, config_property_t *props
 
 	strsize = INFLUX_INIT_BUFSIZE;
 	string = malloc(strsize);
-	stridx = sprintf(string,"%s ",name);
+//	stridx = sprintf(string,"%s ",name);
+	stridx = 0;
 	count = 0;
 	for(pp = props; pp->name; pp++) {
 		dprintf(dlevel,"name: %s, type: %x, dest: %p, len: %d\n", pp->name, pp->type, pp->dest, pp->len);
@@ -794,13 +1025,43 @@ int influx_write_props(influx_session_t *s, char *name, config_property_t *props
 		count++;
 	}
 	dprintf(dlevel,"string: %s\n", string);
-	len = influx_write(s,name,string);
+	r = influx_write(s,name,string);
 	free(string);
-	dprintf(dlevel,"returning: %d\n", len);
-	return len;
+	dprintf(dlevel,"returning: %d\n", r->error);
+	return r->error;
 }
 
+int enabled_set(void *ctx, config_property_t *p, void *old_value) {
+	influx_session_t *s = ctx;
+
+	dprintf(dlevel,"enabled: %d, connected: %d\n", s->enabled, s->connected);
+	if (s->enabled && !s->connected) return influx_connect(s);
+	else if (!s->enabled && s->connected) s->connected = false;
+	return 0;
+}
+
+void influx_add_props(influx_session_t *s, config_t *cp, char *name) {
+	config_property_t influx_private_props[] = {
+		{ "influx_enabled", DATA_TYPE_BOOL, &s->enabled, 0, "yes", 0, 0, 0, 0, 0, 0, 1, enabled_set, s },
+		{ "influx_timeout", DATA_TYPE_INT, &s->timeout, 0, "10", 0, 0, 0, 0, 0, 0, 1, 0, 0 },
+		{ "influx_endpoint", DATA_TYPE_STRING, s->endpoint, sizeof(s->endpoint)-1, "http://localhost:8086", 0, },
+//                        0, 0, 0, 1, (char *[]){ "InfluxDB endpoint" }, 0, 1, 0 },
+		{ "influx_database", DATA_TYPE_STRING, s->database, sizeof(s->database)-1, "", 0, },
+//                        0, 0, 0, 1, (char *[]){ "InfluxDB database" }, 0, 1, 0 },
+		{ "influx_username", DATA_TYPE_STRING, s->username, sizeof(s->username)-1, "", 0, },
+//                        0, 0, 0, 1, (char *[]){ "InfluxDB username" }, 0, 1, 0 },
+		{ "influx_password", DATA_TYPE_STRING, s->password, sizeof(s->password)-1, "", 0, },
+//                        0, 0, 0, 1, (char *[]){ "InfluxDB password" }, 0, 1, 0 },
+		{ 0 }
+	};
+
+	dprintf(dlevel,"name: %s\n", name);
+	config_add_props(cp, name, influx_private_props, 0);
+}
+#endif
+
 int influx_write_json(influx_session_t *s, char *name, json_value_t *rv) {
+	influx_response_t *r;
 	json_object_t *o;
 	char value[2048], *string;
 	int strsize,stridx,newidx,len,count;
@@ -815,7 +1076,8 @@ int influx_write_json(influx_session_t *s, char *name, json_value_t *rv) {
 	}
 	strsize = INFLUX_INIT_BUFSIZE;
 	string = malloc(strsize);
-	stridx = sprintf(string,"%s ",name);
+//	stridx = sprintf(string,"%s ",name);
+	stridx = 0;
 	count = 0;
 	o = json_value_object(rv);
 	for(i=0; i < o->count; i++) {
@@ -855,53 +1117,10 @@ int influx_write_json(influx_session_t *s, char *name, json_value_t *rv) {
 		count++;
 	}
 	dprintf(dlevel,"string: %s\n", string);
-	len = influx_write(s,name,string);
+	r = influx_write(s,name,string);
 	free(string);
-	dprintf(dlevel,"returning: %d\n", len);
-	return len;
-}
-
-static int enabled_set(void *ctx, config_property_t *p, void *old_value) {
-	influx_session_t *s = ctx;
-
-	dprintf(dlevel,"enabled: %d, connected: %d\n", s->enabled, s->connected);
-	if (s->enabled && !s->connected) return influx_connect(s);
-	else if (!s->enabled && s->connected) s->connected = false;
-	return 0;
-}
-
-void influx_add_props(influx_session_t *s, config_t *cp, char *name) {
-	config_property_t influx_private_props[] = {
-		{ "influx_enabled", DATA_TYPE_BOOL, &s->enabled, 0, "yes", 0, 0, 0, 0, 0, 0, 1, enabled_set, s },
-		{ "influx_timeout", DATA_TYPE_INT, &s->timeout, 0, "10", 0, 0, 0, 0, 0, 0, 1, 0, 0 },
-		{ "influx_endpoint", DATA_TYPE_STRING, s->endpoint, sizeof(s->endpoint)-1, "http://localhost:8086", 0, },
-//                        0, 0, 0, 1, (char *[]){ "InfluxDB endpoint" }, 0, 1, 0 },
-		{ "influx_database", DATA_TYPE_STRING, s->database, sizeof(s->database)-1, "", 0, },
-//                        0, 0, 0, 1, (char *[]){ "InfluxDB database" }, 0, 1, 0 },
-		{ "influx_username", DATA_TYPE_STRING, s->username, sizeof(s->username)-1, "", 0, },
-//                        0, 0, 0, 1, (char *[]){ "InfluxDB username" }, 0, 1, 0 },
-		{ "influx_password", DATA_TYPE_STRING, s->password, sizeof(s->password)-1, "", 0, },
-//                        0, 0, 0, 1, (char *[]){ "InfluxDB password" }, 0, 1, 0 },
-		{ 0 }
-	};
-
-#if 0
-	config_property_t influx_global_props[] = {
-		{ "endpoint", DATA_TYPE_STRING, s->endpoint, sizeof(s->endpoint)-1, "http://localhost:8086", 0,
-                        0, 0, 0, 1, (char *[]){ "InfluxDB endpoint" }, 0, 1, 0 },
-		{ "database", DATA_TYPE_STRING, s->database, sizeof(s->database)-1, "", 0,
-                        0, 0, 0, 1, (char *[]){ "InfluxDB database" }, 0, 1, 0 },
-		{ "username", DATA_TYPE_STRING, s->username, sizeof(s->username)-1, "", 0,
-                        0, 0, 0, 1, (char *[]){ "InfluxDB username" }, 0, 1, 0 },
-		{ "password", DATA_TYPE_STRING, s->password, sizeof(s->password)-1, "", 0,
-                        0, 0, 0, 1, (char *[]){ "InfluxDB password" }, 0, 1, 0 },
-		{ 0 }
-	};
-#endif
-
-	dprintf(dlevel,"name: %s\n", name);
-	config_add_props(cp, name, influx_private_props, 0);
-//	config_add_props(cp, "influx", influx_global_props, 0);
+	dprintf(dlevel,"returning: %d\n", r->error);
+	return r->error;
 }
 
 /********************************************************************************/
@@ -915,22 +1134,24 @@ void influx_add_props(influx_session_t *s, config_t *cp, char *name) {
 #include "jsstr.h"
 
 JSObject *js_influx_values_new(JSContext *cx, JSObject *obj, influx_series_t *sp) {
-	JSObject *values,*vo,*dateobj;
+	JSObject *js_values,*vo,*dateobj;
 	jsval ie,ke;
 	int i,j,time_col,doconv;
 	influx_value_t *vp;
 	JSString *str;
 	jsdouble d;
-	char *p;
+//	char *p;
 
-	/* values is just a multimensional array */
-	values = JS_NewArrayObject(cx, sp->value_count, NULL);
-	dprintf(dlevel,"values: %p\n", values);
-	if (!values) return 0;
+	/* values is an array of influx_value pointers */
+	dprintf(dlevel,"value_count: %d\n", sp->value_count);
+	js_values = JS_NewArrayObject(cx, sp->value_count, NULL);
+	dprintf(dlevel,"js_values: %p\n", js_values);
+	if (!js_values) return 0;
 
 	/* Get the time column */
 	time_col = -1;
 	for(i=0; i < sp->column_count; i++) {
+//		printf("columns[%d]: %p\n", i, sp->columns[i]);
 		if (strcmp(sp->columns[i],"time") == 0) {
 			time_col = i;
 			break;
@@ -941,12 +1162,15 @@ JSObject *js_influx_values_new(JSContext *cx, JSObject *obj, influx_series_t *sp
 		dprintf(dlevel,"vo: %p\n", vo);
 		if (!vo) break;
 		for(j=0; j < sp->column_count; j++) {
-			vp = &sp->values[i][j];
+			vp = sp->values[i][j];
 			doconv = 1;
 			/* Automatically convert the time field into a date object */
 			if (j == time_col && sp->convdt) {
-				p = vp->data;
-				str = JS_NewString(cx, p, strlen(p));
+				char value[128];
+
+				/* In case time is a number */
+				conv_type(DATA_TYPE_STRING,value,sizeof(value),vp->type,vp->data,vp->len);
+				str = JS_NewString(cx, value, strlen(value));
 				if (str && date_parseString(str,&d)) {
 					dateobj = js_NewDateObjectMsec(cx,d);
 					if (dateobj) {
@@ -959,10 +1183,10 @@ JSObject *js_influx_values_new(JSContext *cx, JSObject *obj, influx_series_t *sp
 			JS_SetElement(cx, vo, j, &ke);
 		}
 		ie = OBJECT_TO_JSVAL(vo);
-		JS_SetElement(cx, values, i, &ie);
+		JS_SetElement(cx, js_values, i, &ie);
 	}
-	dprintf(dlevel,"returning: %p\n", values);
-	return values;
+	dprintf(dlevel,"returning: %p\n", js_values);
+	return js_values;
 }
 
 enum SERIES_PROPERTY_ID {
@@ -970,6 +1194,18 @@ enum SERIES_PROPERTY_ID {
 	SERIES_PROPERTY_ID_COLUMNS,
 	SERIES_PROPERTY_ID_VALUES,
 };
+
+static void js_influx_series_free(JSContext *cx, JSObject *obj) {
+	influx_series_t *sp;
+
+	sp = JS_GetPrivate(cx, obj);
+	dprintf(dlevel,"sp: %p\n", sp);
+	if (sp) {
+		dprintf(dlevel,"sp->refs: %d\n", sp->refs);
+		if (sp->refs) sp->refs--;
+		influx_destroy_series(sp);
+	}
+}
 
 static JSBool js_influx_series_getprop(JSContext *cx, JSObject *obj, jsval id, jsval *rval) {
 	influx_series_t *sp;
@@ -988,16 +1224,33 @@ static JSBool js_influx_series_getprop(JSContext *cx, JSObject *obj, jsval id, j
 		dprintf(dlevel,"prop_id: %d\n", prop_id);
 		switch(prop_id) {
 		case SERIES_PROPERTY_ID_NAME:
-			if (!sp->name_val) sp->name_val = type_to_jsval(cx,DATA_TYPE_STRING,sp->name,strlen(sp->name));
-			*rval = sp->name_val;
+//			if (!sp->name_val) sp->name_val = type_to_jsval(cx,DATA_TYPE_STRING,sp->name,strlen(sp->name));
+//			*rval = sp->name_val;
+			*rval = type_to_jsval(cx,DATA_TYPE_STRING,sp->name,strlen(sp->name));
 			break;
 		case SERIES_PROPERTY_ID_COLUMNS:
-			if (!sp->columns_val) sp->columns_val = type_to_jsval(cx,DATA_TYPE_STRING_ARRAY,sp->columns,sp->column_count);
-			*rval = sp->columns_val;
+//			if (!sp->columns_val) sp->columns_val = type_to_jsval(cx,DATA_TYPE_STRING_ARRAY,sp->columns,sp->column_count);
+//			*rval = sp->columns_val;
+			*rval = type_to_jsval(cx,DATA_TYPE_STRING_ARRAY,sp->columns,sp->column_count);
 			break;
 		case SERIES_PROPERTY_ID_VALUES:
-			if (!sp->values_val) sp->values_val = OBJECT_TO_JSVAL(js_influx_values_new(cx,obj,sp));
-			*rval = sp->values_val;
+			*rval = OBJECT_TO_JSVAL(js_influx_values_new(cx,obj,sp));
+#if 0
+			{
+				int i;
+				JSObject *a,*aa;
+				jsval e;
+
+				a = JS_NewArrayObject(cx, sp->values_count, NULL);
+				for(i=0; i < sp->values_count; i++) {
+					aa = JS_NewArrayObject(cx, sp->column_count, NULL);
+					for(j=0; j < sp->column_count; j++) {
+						e = OBJECT_TO_JSVAL(js_influx_values_new(cx,obj,sp->values[i][j]));
+						JS_SetElement(cx, aa, i, &e);
+				}
+				*rval = OBJECT_TO_JSVAL(a);
+			}
+#endif
 			break;
 		}
 	}
@@ -1014,7 +1267,7 @@ static JSClass js_influx_series_class = {
 	JS_EnumerateStub,	/* enumerate */
 	JS_ResolveStub,		/* resolve */
 	JS_ConvertStub,		/* convert */
-	JS_FinalizeStub,	/* finalize */
+	js_influx_series_free,	/* finalize */
 	JSCLASS_NO_OPTIONAL_MEMBERS
 };
 
@@ -1027,7 +1280,7 @@ JSObject *js_InitInfluxSeriesClass(JSContext *cx, JSObject *parent) {
 	};
 	JSObject *obj;
 
-	dprintf(2,"creating %s class...\n",js_influx_series_class.name);
+	dprintf(dlevel,"creating %s class...\n",js_influx_series_class.name);
 	obj = JS_InitClass(cx, parent, 0, &js_influx_series_class, 0, 0, series_props, 0, 0, 0);
 	if (!obj) {
 		JS_ReportError(cx,"unable to initialize %s class", js_influx_series_class.name);
@@ -1041,46 +1294,235 @@ JSObject *js_influx_series_new(JSContext *cx, JSObject *parent, influx_series_t 
 	JSObject *newobj;
 
 	/* Create the new object */
-	dprintf(2,"Creating %s object...\n", js_influx_series_class.name);
+	dprintf(dlevel,"Creating %s object...\n", js_influx_series_class.name);
 	newobj = JS_NewObject(cx, &js_influx_series_class, 0, parent);
 	if (!newobj) return 0;
 
 	JS_SetPrivate(cx,newobj,sp);
+	/* inc ref count */
+	sp->refs++;
+	dprintf(dlevel,"sp->refs: %d\n", sp->refs);
 
-	dprintf(dlevel,"newobj: %p!\n",newobj);
+	dprintf(dlevel,"newobj: %p\n",newobj);
 	return newobj;
 }
 
 /********************************************************************************/
 /*
-*** RESULTS
+*** RESULT
 */
-static JSObject *js_results_new(JSContext *cx, JSObject *obj, influx_session_t *s) {
-	influx_series_t *sp;
-	JSObject *results;
-	jsval element;
-	int count,i;
+enum RESULT_PROPERTY_ID {
+	RESULT_PROPERTY_ID_STMTID=1,
+	RESULT_PROPERTY_ID_ERRMSG,
+	RESULT_PROPERTY_ID_SERIES,
+};
 
-	dprintf(dlevel,"s->results: %p\n", s->results);
-	if (!s->results) return 0;
+static void js_influx_result_free(JSContext *cx, JSObject *obj) {
+	influx_result_t *rp;
 
-	/* Results is just an array of series */
-	count = list_count(s->results);
-	dprintf(dlevel,"count: %d\n", count);
-	if (count < 1) return 0;
-	results = JS_NewArrayObject(cx, count, NULL);
-	if (!results) return 0;
-
-	i = 0;
-	list_reset(s->results);
-	while((sp = list_get_next(s->results)) != 0) {
-		element = OBJECT_TO_JSVAL(js_influx_series_new(cx,obj,sp));
-		JS_SetElement(cx, results, i++, &element);
+	rp = JS_GetPrivate(cx, obj);
+	dprintf(dlevel,"rp: %p\n", rp);
+	if (rp) {
+		dprintf(dlevel,"rp->refs: %d\n", rp->refs);
+		if (rp->refs) rp->refs--;
+		influx_destroy_result(rp);
 	}
-	dprintf(dlevel,"returning: %p\n", results);
-	return results;
 }
 
+static JSBool js_influx_result_getprop(JSContext *cx, JSObject *obj, jsval id, jsval *rval) {
+	influx_result_t *rp;
+	int prop_id;
+
+	rp = JS_GetPrivate(cx, obj);
+	dprintf(dlevel,"rp: %p\n", rp);
+	if (!rp) {
+		JS_ReportError(cx, "js_influx_results_getprop: private is null!");
+		return JS_FALSE;
+	}
+
+	dprintf(dlevel,"is_int: %d\n", JSVAL_IS_INT(id));
+	if (JSVAL_IS_INT(id)) {
+		prop_id = JSVAL_TO_INT(id);
+		dprintf(dlevel,"prop_id: %d\n", prop_id);
+		switch(prop_id) {
+		case RESULT_PROPERTY_ID_STMTID:
+			*rval = type_to_jsval(cx,DATA_TYPE_INT,&rp->statement_id,0);
+			break;
+		case RESULT_PROPERTY_ID_SERIES:
+			{
+				JSObject *a;
+				int i;
+				influx_series_t *sp;
+				jsval e;
+
+				a = JS_NewArrayObject(cx, list_count(rp->series), NULL);
+				list_reset(rp->series);
+				i = 0;
+				while((sp = list_get_next(rp->series)) != 0) {
+					e = OBJECT_TO_JSVAL(js_influx_series_new(cx,obj,sp));
+					JS_SetElement(cx, a, i++, &e);
+				}
+				*rval = OBJECT_TO_JSVAL(a);
+			}
+			break;
+		}
+	}
+	return JS_TRUE;
+}
+
+static JSClass js_influx_result_class = {
+	"InfluxResult",		/* Name */
+	JSCLASS_HAS_PRIVATE,	/* Flags */
+	JS_PropertyStub,	/* addProperty */
+	JS_PropertyStub,	/* delProperty */
+	js_influx_result_getprop,/* getProperty */
+	JS_PropertyStub,	/* setProperty */
+	JS_EnumerateStub,	/* enumerate */
+	JS_ResolveStub,		/* resolve */
+	JS_ConvertStub,		/* convert */
+	js_influx_result_free,	/* finalize */
+	JSCLASS_NO_OPTIONAL_MEMBERS
+};
+
+JSObject *js_InitInfluxResultClass(JSContext *cx, JSObject *parent) {
+	JSPropertySpec result_props[] = { 
+		{ "statement_id",	RESULT_PROPERTY_ID_STMTID,	JSPROP_ENUMERATE | JSPROP_READONLY },
+		{ "series",		RESULT_PROPERTY_ID_SERIES,	JSPROP_ENUMERATE | JSPROP_READONLY },
+		{0}
+	};
+	JSObject *obj;
+
+	dprintf(dlevel,"creating %s class...\n",js_influx_result_class.name);
+	obj = JS_InitClass(cx, parent, 0, &js_influx_result_class, 0, 0, result_props, 0, 0, 0);
+	if (!obj) {
+		JS_ReportError(cx,"unable to initialize %s class", js_influx_result_class.name);
+		return 0;
+	}
+	dprintf(dlevel,"done!\n");
+	return obj;
+}
+
+static JSObject *js_influx_result_new(JSContext *cx, JSObject *parent, influx_result_t *rp) {
+	JSObject *newobj;
+
+	/* Create the new object */
+	dprintf(dlevel,"Creating %s object...\n", js_influx_result_class.name);
+	newobj = JS_NewObject(cx, &js_influx_result_class, 0, parent);
+	if (!newobj) return 0;
+
+	JS_SetPrivate(cx,newobj,rp);
+	/* inc ref count */
+	rp->refs++;
+	dprintf(dlevel,"rp->refs: %d\n", rp->refs);
+
+	dprintf(dlevel,"newobj: %p\n",newobj);
+	return newobj;
+}
+
+/********************************************************************************/
+/*
+*** RESPONSE
+*/
+enum RESPONSE_PROPERTY_ID {
+	RESPONSE_PROPERTY_ID_STATUS=1,
+	RESPONSE_PROPERTY_ID_RESULTS,
+};
+
+static void js_influx_response_free(JSContext *cx, JSObject *obj) {
+	influx_response_t *r;
+
+	r = JS_GetPrivate(cx, obj);
+	dprintf(dlevel,"r: %p\n", r);
+	if (r) influx_release_response(r);
+}
+
+static JSBool js_influx_response_getprop(JSContext *cx, JSObject *obj, jsval id, jsval *rval) {
+	influx_response_t *r;
+	int prop_id;
+
+	r = JS_GetPrivate(cx, obj);
+	dprintf(dlevel,"r: %p\n", r);
+	if (!r) {
+		JS_ReportError(cx, "js_influx_response_getprop: private is null!");
+		return JS_FALSE;
+	}
+
+	dprintf(dlevel,"is_int: %d\n", JSVAL_IS_INT(id));
+	if (JSVAL_IS_INT(id)) {
+		prop_id = JSVAL_TO_INT(id);
+		dprintf(dlevel,"prop_id: %d\n", prop_id);
+		switch(prop_id) {
+		case RESPONSE_PROPERTY_ID_STATUS:
+			*rval = type_to_jsval(cx,DATA_TYPE_INT,&r->error,0);
+			break;
+		case RESPONSE_PROPERTY_ID_RESULTS:
+			{
+				JSObject *a;
+				int i;
+				influx_result_t *rp;
+				jsval e;
+
+				a = JS_NewArrayObject(cx, list_count(r->results), NULL);
+				list_reset(r->results);
+				i = 0;
+				while((rp = list_get_next(r->results)) != 0) {
+					e = OBJECT_TO_JSVAL(js_influx_result_new(cx,obj,rp));
+					JS_SetElement(cx, a, i++, &e);
+				}
+				*rval = OBJECT_TO_JSVAL(a);
+			}
+			break;
+		}
+	}
+	return JS_TRUE;
+}
+
+static JSClass js_influx_response_class = {
+	"InfluxResponse",	/* Name */
+	JSCLASS_HAS_PRIVATE,	/* Flags */
+	JS_PropertyStub,	/* addProperty */
+	JS_PropertyStub,	/* delProperty */
+	js_influx_response_getprop,/* getProperty */
+	JS_PropertyStub,	/* setProperty */
+	JS_EnumerateStub,	/* enumerate */
+	JS_ResolveStub,		/* resolve */
+	JS_ConvertStub,		/* convert */
+	js_influx_response_free,/* finalize */
+	JSCLASS_NO_OPTIONAL_MEMBERS
+};
+
+JSObject *js_InitInfluxResponseClass(JSContext *cx, JSObject *parent) {
+	JSPropertySpec response_props[] = { 
+		{ "status",		RESPONSE_PROPERTY_ID_STATUS,	JSPROP_ENUMERATE | JSPROP_READONLY },
+		{ "results",		RESPONSE_PROPERTY_ID_RESULTS,	JSPROP_ENUMERATE | JSPROP_READONLY },
+		{0}
+	};
+	JSObject *obj;
+
+	dprintf(dlevel,"creating %s class...\n",js_influx_response_class.name);
+	obj = JS_InitClass(cx, parent, 0, &js_influx_response_class, 0, 0, response_props, 0, 0, 0);
+	if (!obj) {
+		JS_ReportError(cx,"unable to initialize %s class", js_influx_response_class.name);
+		return 0;
+	}
+	dprintf(dlevel,"done!\n");
+	return obj;
+}
+
+static JSObject *js_influx_response_new(JSContext *cx, JSObject *parent, influx_response_t *r) {
+	JSObject *newobj;
+
+	/* Create the new object */
+	dprintf(dlevel,"Creating %s object...\n", js_influx_response_class.name);
+	newobj = JS_NewObject(cx, &js_influx_response_class, 0, parent);
+	if (!newobj) return 0;
+
+	JS_SetPrivate(cx,newobj,r);
+	/* XXX no need to inc responses refs - its done @ request */
+
+	dprintf(dlevel,"newobj: %p\n",newobj);
+	return newobj;
+}
 /********************************************************************************/
 /*
 *** INFLUX
@@ -1093,9 +1535,9 @@ enum INFLUX_PROPERTY_ID {
 	INFLUX_PROPERTY_ID_USERNAME,
 	INFLUX_PROPERTY_ID_PASSWORD,
 	INFLUX_PROPERTY_ID_VERBOSE,
-	INFLUX_PROPERTY_ID_RESULTS,
 	INFLUX_PROPERTY_ID_ERRMSG,
 	INFLUX_PROPERTY_ID_CONVDT,
+	INFLUX_PROPERTY_ID_EPOCH,
 	INFLUX_PROPERTY_ID_CONNECTED,
 };
 
@@ -1134,19 +1576,14 @@ static JSBool influx_getprop(JSContext *cx, JSObject *obj, jsval id, jsval *rval
 			dprintf(dlevel,"verbose: %d\n", s->verbose);
 			*rval = type_to_jsval(cx,DATA_TYPE_BOOL,&s->verbose,0);
 			break;
-		case INFLUX_PROPERTY_ID_RESULTS:
-			dprintf(dlevel,"results_val: %d\n", s->results_val);
-			if (!s->results_val) {
-				JSObject *ro = js_results_new(cx,obj,s);
-				if (ro) s->results_val = OBJECT_TO_JSVAL(ro);
-			}
-			if (s->results_val) *rval = s->results_val;
-			break;
 		case INFLUX_PROPERTY_ID_ERRMSG:
 			*rval = type_to_jsval(cx,DATA_TYPE_STRING,s->errmsg,strlen(s->errmsg));
 			break;
 		case INFLUX_PROPERTY_ID_CONVDT:
 			*rval = type_to_jsval(cx,DATA_TYPE_BOOL,&s->convdt,0);
+			break;
+		case INFLUX_PROPERTY_ID_EPOCH:
+			*rval = type_to_jsval(cx,DATA_TYPE_STRING,s->epoch,strlen(s->epoch));
 			break;
 		case INFLUX_PROPERTY_ID_CONNECTED:
 			*rval = type_to_jsval(cx,DATA_TYPE_BOOL,&s->connected,0);
@@ -1195,6 +1632,9 @@ static JSBool influx_setprop(JSContext *cx, JSObject *obj, jsval id, jsval *vp) 
 		case INFLUX_PROPERTY_ID_CONVDT:
 			jsval_to_type(DATA_TYPE_BOOL,&s->convdt,0,cx,*vp);
 			break;
+		case INFLUX_PROPERTY_ID_EPOCH:
+			jsval_to_type(DATA_TYPE_STRING,s->epoch,sizeof(s->epoch),cx,*vp);
+			break;
 		default:
 			break;
 		}
@@ -1227,9 +1667,9 @@ static char *js_string(JSContext *cx, jsval val) {
 static JSBool js_influx_query(JSContext *cx, uintN argc, jsval *vp) {
 	JSObject *obj;
 	influx_session_t *s;
+	influx_response_t *r;
 	jsval *argv = vp + 2;
 	char *type,*query;
-	int r;
 
 	obj = JS_THIS_OBJECT(cx, vp);
 	if (!obj) return JS_FALSE;
@@ -1247,13 +1687,8 @@ static JSBool js_influx_query(JSContext *cx, uintN argc, jsval *vp) {
 	dprintf(dlevel,"query: %s\n", query);
 	r = influx_query(s,query);
 	JS_free(cx,query);
-	if (r) {
-		*vp = JSVAL_VOID;
-		return JS_TRUE;
-	}
-	s->results_val = OBJECT_TO_JSVAL(js_results_new(cx, obj, s));
-	dprintf(dlevel,"results_val: %s\n", jstypestr(cx,s->results_val));
-	*vp = s->results_val;
+	if (!r) *vp = JSVAL_VOID;
+	else *vp = OBJECT_TO_JSVAL(js_influx_response_new(cx, obj, r));
 	return JS_TRUE;
 
 js_influx_query_usage:
@@ -1267,6 +1702,7 @@ static JSBool js_influx_write(JSContext *cx, uintN argc, jsval *vp) {
 	jsval *ids;
 	char *name;
 	influx_session_t *s;
+	influx_response_t *r;
 	jsval *argv = vp + 2;
 	int i;
 	char *type,*key;
@@ -1290,21 +1726,22 @@ static JSBool js_influx_write(JSContext *cx, uintN argc, jsval *vp) {
 	if (strcmp(type,"string") == 0) {
 		char *value = (char *)JS_EncodeString(cx,JSVAL_TO_STRING(argv[1]));
 		dprintf(dlevel,"value: %s\n", value);
-		*vp = INT_TO_JSVAL(influx_write(s,name,value));
+		r = influx_write(s,name,value);
 		JS_free(cx,value);
 
 	/* Otherwise it's an object - gets the keys and values */
 	} else if (strcmp(type,"object") == 0) {
 		char *string,temp[2048],value[1536];
-		int index,size,newidx,len;
+		int strsize,stridx,newidx,len;
 
 		rec = JSVAL_TO_OBJECT(argv[1]);
 		ida = JS_Enumerate(cx, rec);
 		dprintf(dlevel,"ida: %p, count: %d\n", ida, ida->length);
 		ids = &ida->vector[0];
-		size = 1024;
-		string = malloc(size);
-		index = sprintf(string,"%s",name);
+		strsize = INFLUX_INIT_BUFSIZE;
+		string = malloc(strsize);
+//		stridx = sprintf(string,"%s",name);
+		stridx = 0;
 		for(i=0; i< ida->length; i++) {
 	//		dprintf(dlevel+1,"ids[%d]: %s\n", i, jstypestr(cx,ids[i]));
 			key = js_string(cx,ids[i]);
@@ -1335,9 +1772,9 @@ static JSBool js_influx_write(JSContext *cx, uintN argc, jsval *vp) {
 			}
 			dprintf(dlevel,"temp: %s\n", temp);
 			/* XXX include comma */
-			newidx = index + len + 1;
-			dprintf(dlevel,"newidx: %d, size: %d\n", newidx, size);
-			if (newidx > size) {
+			newidx = stridx + len + 1;
+			dprintf(dlevel,"newidx: %d, size: %d\n", newidx, strsize);
+			if (newidx > strsize) {
 				char *newstr;
 
 				dprintf(dlevel,"string: %p\n", string);
@@ -1351,24 +1788,26 @@ static JSBool js_influx_write(JSContext *cx, uintN argc, jsval *vp) {
 					return JS_FALSE;
 				}
 				string = newstr;
-				size = newidx;
+				strsize = newidx;
 			}
-			sprintf(string + index,"%s%s",(i ? "," : " "),temp);
-			index = newidx;
+			sprintf(string + stridx,"%s%s",(i ? "," : " "),temp);
+			stridx = newidx;
 			JS_free(cx,key);
 //			JS_free(cx,value);
 		}
 //		JS_free(cx,ida);
 		JS_DestroyIdArray(cx, ida);
-		string[index] = 0;
+		string[stridx] = 0;
 		dprintf(dlevel,"string: %s\n", string);
-		*vp = INT_TO_JSVAL(influx_write(s,name,string));
+		r = influx_write(s,name,string);
 		free(string);
 	} else {
 		JS_free(cx,name);
 		goto js_influx_write_usage;
 	}
 	JS_free(cx,name);
+	if (!r) *vp = JSVAL_VOID;
+	else *vp = OBJECT_TO_JSVAL(js_influx_response_new(cx, obj, r));
     	return JS_TRUE;
 js_influx_write_usage:
 	JS_ReportError(cx,"Influx.write requires 2 arguments (measurement:string, rec:object OR rec:string)");
@@ -1394,7 +1833,7 @@ static JSBool js_influx_ctor(JSContext *cx, JSObject *obj, uintN argc, jsval *ar
 	char *url, *db, *user, *pass;
 
 	dprintf(dlevel,"argc: %d\n", argc);
-	if (argc && argc != 2) {
+	if (argc && argc < 2) {
 		JS_ReportError(cx, "INFLUX requires 2 arguments (endpoint:string, database:string) and 2 optional arguments (username:string, password:string)");
 		return JS_FALSE;
 	}
@@ -1429,7 +1868,6 @@ static JSBool js_influx_ctor(JSContext *cx, JSObject *obj, uintN argc, jsval *ar
 
 static JSObject *js_InitInfluxClass(JSContext *cx, JSObject *global_object) {
 	JSPropertySpec influx_props[] = { 
-//		{ "", 0 },
 		{ "enabled",		INFLUX_PROPERTY_ID_ENABLED,	JSPROP_ENUMERATE },
 		{ "url",		INFLUX_PROPERTY_ID_URL,		JSPROP_ENUMERATE },
 		{ "endpoint",		INFLUX_PROPERTY_ID_URL,		JSPROP_ENUMERATE },
@@ -1438,8 +1876,8 @@ static JSObject *js_InitInfluxClass(JSContext *cx, JSObject *global_object) {
 		{ "password",		INFLUX_PROPERTY_ID_PASSWORD,	JSPROP_ENUMERATE },
 		{ "connected",		INFLUX_PROPERTY_ID_CONNECTED,	JSPROP_ENUMERATE | JSPROP_READONLY },
 		{ "verbose",		INFLUX_PROPERTY_ID_VERBOSE,	JSPROP_ENUMERATE },
+		{ "epoch",		INFLUX_PROPERTY_ID_EPOCH,	JSPROP_ENUMERATE },
 		{ "convert_time",	INFLUX_PROPERTY_ID_CONVDT,	JSPROP_ENUMERATE },
-		{ "results",		INFLUX_PROPERTY_ID_RESULTS,	JSPROP_ENUMERATE | JSPROP_READONLY },
 		{ "errmsg",		INFLUX_PROPERTY_ID_ERRMSG,	JSPROP_ENUMERATE | JSPROP_READONLY },
 		{0}
 	};
@@ -1451,7 +1889,7 @@ static JSObject *js_InitInfluxClass(JSContext *cx, JSObject *global_object) {
 	};
 	JSObject *obj;
 
-	dprintf(2,"Creating %s class...\n", js_influx_class.name);
+	dprintf(dlevel,"Creating %s class...\n", js_influx_class.name);
 	obj = JS_InitClass(cx, global_object, 0, &js_influx_class, js_influx_ctor, 2, influx_props, influx_funcs, 0, 0);
 	if (!obj) {
 		JS_ReportError(cx,"unable to initialize influx class");
@@ -1465,18 +1903,20 @@ JSObject *js_influx_new(JSContext *cx, JSObject *parent, influx_session_t *s) {
 	JSObject *newobj;
 
 	/* Create the new object */
-	dprintf(2,"Creating %s object...\n", js_influx_class.name);
+	dprintf(dlevel,"Creating %s object...\n", js_influx_class.name);
 	newobj = JS_NewObject(cx, &js_influx_class, 0, parent);
 	if (!newobj) return 0;
 
 	JS_SetPrivate(cx,newobj,s);
 
-	dprintf(dlevel,"newobj: %p!\n",newobj);
+	dprintf(dlevel,"newobj: %p\n",newobj);
 	return newobj;
 }
 
 int influx_jsinit(JSEngine *e) {
 	JS_EngineAddInitClass(e, "js_InitInfluxClass", js_InitInfluxClass);
+	JS_EngineAddInitClass(e, "js_InitInfluxResponseClass", js_InitInfluxResponseClass);
+	JS_EngineAddInitClass(e, "js_InitInfluxResultClass", js_InitInfluxResultClass);
 	JS_EngineAddInitClass(e, "js_InitInfluxSeriesClass", js_InitInfluxSeriesClass);
 	return 0;
 }

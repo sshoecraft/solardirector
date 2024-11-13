@@ -1,0 +1,11 @@
+{
+    "sc": {
+	"name": "sctest",
+	"script_dir": ".",
+        "agents": "one,two,three",
+        "interval": 3
+    },
+    "one": {
+        "conf": "\/etc\/aconf"
+    }
+}

@@ -515,9 +515,9 @@ int JS_EngineExec(JSEngine *e, char *filename, char *function_name, int argc, js
 	}
 	r = 1;
 	strncpy(local_filename,filename,sizeof(local_filename)-1);
-	fixpath(local_filename,sizeof(local_filename)-1);
+//	fixpath(local_filename,sizeof(local_filename)-1);
 	if (newcx) cx = JS_EngineNewContext(e);
-	else cx = _getcx(e,1,1);
+	else cx = _getcx(e,0,1);
 	dprintf(dlevel,"cx: %p\n", cx);
 	if (!cx) goto JS_EngineExec_error;
 	if (!function_name || !strlen(function_name)) {
@@ -541,7 +541,8 @@ JS_EngineExec_error:
 	if (newcx && cx) {
 		dprintf(dlevel,"destroying CX!!\n");
 		JS_DestroyContext(cx);
-	} else _relcx(e);
+	}
+//	} else _relcx(e);
 	return r;
 }
 
@@ -575,9 +576,9 @@ void JS_EngineCleanup(JSEngine *e) {
 
 	if (!e) return;
 
-	cx = _getcx(e,1,0);
+	cx = _getcx(e,0,0);
 	if (cx) JS_GC(cx);
-	_relcx(e);
+//	_relcx(e);
 	return;
 }
 

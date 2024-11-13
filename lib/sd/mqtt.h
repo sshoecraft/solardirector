@@ -17,8 +17,8 @@ LICENSE file in the root directory of this source tree.
 #include <MQTTClient.h>
 
 #define MQTT_URI_LEN 128
-#define MQTT_USER_LEN 256
-#define MQTT_PASS_LEN 64
+#define MQTT_USER_LEN 512
+#define MQTT_PASS_LEN 512
 #define MQTT_CLIENTID_LEN 64
 #define MQTT_TOPIC_LEN 128
 #define MQTT_MAX_MESSAGE_SIZE 262144

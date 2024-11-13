@@ -1,6 +1,6 @@
 #!/opt/sd/bin/sdjs
 
-include(dirname(script_name)+"/../../core/utils.js");
+include(dirname(script_name)+"/../../lib/sd/utils.js");
 
 function set_astring() {
 	printf("new astring: %s\n", dummy.astring);
@@ -22,7 +22,7 @@ function agent_main() {
 		dprintf(0,"write: control: %s, buflen: %s\n", control, buflen);
 	}
 	dummy.run = function() {
-//		dprintf(0,"*** RUN ***\n");
+		dprintf(0,"*** RUN ***\n");
 		return;
 	}
 	dummy.get_info = function() {

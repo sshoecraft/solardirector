@@ -56,6 +56,7 @@ function init_main() {
 		"grid",
 		"gen",
 		"soc",
+		"current",
 	];
 
 	dprintf(1,"length: %d\n", init_funcs.length);

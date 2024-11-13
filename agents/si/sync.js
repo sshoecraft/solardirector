@@ -147,7 +147,7 @@ if (0) {
 				dprintf(dlevel,"si_time: %s, my_time: %s\n", si_dt.getTime(), my_dt.getTime());
 				let diff = (my_dt.getTime() - si_dt.getTime()) / 1000;
 				dprintf(dlevel,"diff: %s\n", diff);
-				if (diff < 23 || diff > 23) {
+				if (diff < -23 || diff > 23) {
 					let my_dstr = my_dt.getFullYear().toString() + sprintf("%02d",my_dt.getMonth()+1) + sprintf("%02d",my_dt.getDate());
 					dprintf(dlevel,"si_dstr: %s, my_dstr: %s\n", si_dstr, my_dstr);
 					if (si_dstr != my_dstr) {

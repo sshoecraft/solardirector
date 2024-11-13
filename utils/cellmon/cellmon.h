@@ -15,15 +15,15 @@ LICENSE file in the root directory of this source tree.
 
 struct cellmon_config {
 	solard_client_t *c;
-	int cells;
+//	int cells;
 	list packs;
-	int state;
+//	int state;
 };
 typedef struct cellmon_config cellmon_config_t;
 
 #define BATTERY_MAX_PACKS 32
 
-void display(cellmon_config_t *);
+void display(cellmon_config_t *,bool,bool);
 void web_display(cellmon_config_t *, int);
 
 #endif

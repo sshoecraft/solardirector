@@ -1,0 +1,526 @@
+debug: -1
+debug_flag: 0
+opts.c(181) opt_combine_opts: std_opts: 0x1ca840, add_opts: 0x1bff838
+opts.c(167) opt_addopt: newopt->type: 16809984
+opts.c(169) opt_addopt: adding
+opts.c(139) opt_addopt: kw1: -d:#, kw2: -b
+opts.c(167) opt_addopt: newopt->type: 16777220
+opts.c(169) opt_addopt: adding
+opts.c(139) opt_addopt: kw1: -Z, kw2: -b
+opts.c(139) opt_addopt: kw1: -Z, kw2: -d:#
+opts.c(167) opt_addopt: newopt->type: 16809984
+opts.c(169) opt_addopt: adding
+opts.c(139) opt_addopt: kw1: -h, kw2: -b
+opts.c(139) opt_addopt: kw1: -h, kw2: -d:#
+opts.c(139) opt_addopt: kw1: -h, kw2: -Z
+opts.c(167) opt_addopt: newopt->type: 16809984
+opts.c(169) opt_addopt: adding
+opts.c(139) opt_addopt: kw1: -l:%, kw2: -b
+opts.c(139) opt_addopt: kw1: -l:%, kw2: -d:#
+opts.c(139) opt_addopt: kw1: -l:%, kw2: -Z
+opts.c(139) opt_addopt: kw1: -l:%, kw2: -h
+opts.c(167) opt_addopt: newopt->type: 2
+opts.c(169) opt_addopt: adding
+opts.c(139) opt_addopt: kw1: -a, kw2: -b
+opts.c(139) opt_addopt: kw1: -a, kw2: -d:#
+opts.c(139) opt_addopt: kw1: -a, kw2: -Z
+opts.c(139) opt_addopt: kw1: -a, kw2: -h
+opts.c(139) opt_addopt: kw1: -a, kw2: -l:%
+opts.c(167) opt_addopt: newopt->type: 16809984
+opts.c(169) opt_addopt: adding
+opts.c(139) opt_addopt: kw1: -v, kw2: -b
+opts.c(139) opt_addopt: kw1: -v, kw2: -d:#
+opts.c(139) opt_addopt: kw1: -v, kw2: -Z
+opts.c(139) opt_addopt: kw1: -v, kw2: -h
+opts.c(139) opt_addopt: kw1: -v, kw2: -l:%
+opts.c(139) opt_addopt: kw1: -v, kw2: -a
+opts.c(167) opt_addopt: newopt->type: 16809984
+opts.c(169) opt_addopt: adding
+opts.c(139) opt_addopt: kw1: -V, kw2: -b
+opts.c(139) opt_addopt: kw1: -V, kw2: -d:#
+opts.c(139) opt_addopt: kw1: -V, kw2: -Z
+opts.c(139) opt_addopt: kw1: -V, kw2: -h
+opts.c(139) opt_addopt: kw1: -V, kw2: -l:%
+opts.c(139) opt_addopt: kw1: -V, kw2: -a
+opts.c(139) opt_addopt: kw1: -V, kw2: -v
+opts.c(167) opt_addopt: newopt->type: 16809984
+opts.c(169) opt_addopt: adding
+opts.c(139) opt_addopt: kw1: -m::, kw2: -b
+opts.c(139) opt_addopt: kw1: -m::, kw2: -d:#
+opts.c(139) opt_addopt: kw1: -m::, kw2: -Z
+opts.c(139) opt_addopt: kw1: -m::, kw2: -h
+opts.c(139) opt_addopt: kw1: -m::, kw2: -l:%
+opts.c(139) opt_addopt: kw1: -m::, kw2: -a
+opts.c(139) opt_addopt: kw1: -m::, kw2: -v
+opts.c(139) opt_addopt: kw1: -m::, kw2: -V
+opts.c(167) opt_addopt: newopt->type: 2
+opts.c(169) opt_addopt: adding
+opts.c(139) opt_addopt: kw1: -M, kw2: -b
+opts.c(139) opt_addopt: kw1: -M, kw2: -d:#
+opts.c(139) opt_addopt: kw1: -M, kw2: -Z
+opts.c(139) opt_addopt: kw1: -M, kw2: -h
+opts.c(139) opt_addopt: kw1: -M, kw2: -l:%
+opts.c(139) opt_addopt: kw1: -M, kw2: -a
+opts.c(139) opt_addopt: kw1: -M, kw2: -v
+opts.c(139) opt_addopt: kw1: -M, kw2: -V
+opts.c(139) opt_addopt: kw1: -M, kw2: -m::
+opts.c(167) opt_addopt: newopt->type: 16809984
+opts.c(169) opt_addopt: adding
+opts.c(139) opt_addopt: kw1: -T, kw2: -b
+opts.c(139) opt_addopt: kw1: -T, kw2: -d:#
+opts.c(139) opt_addopt: kw1: -T, kw2: -Z
+opts.c(139) opt_addopt: kw1: -T, kw2: -h
+opts.c(139) opt_addopt: kw1: -T, kw2: -l:%
+opts.c(139) opt_addopt: kw1: -T, kw2: -a
+opts.c(139) opt_addopt: kw1: -T, kw2: -v
+opts.c(139) opt_addopt: kw1: -T, kw2: -V
+opts.c(139) opt_addopt: kw1: -T, kw2: -m::
+opts.c(139) opt_addopt: kw1: -T, kw2: -M
+opts.c(167) opt_addopt: newopt->type: 2
+opts.c(169) opt_addopt: adding
+opts.c(139) opt_addopt: kw1: -c:%, kw2: -b
+opts.c(139) opt_addopt: kw1: -c:%, kw2: -d:#
+opts.c(139) opt_addopt: kw1: -c:%, kw2: -Z
+opts.c(139) opt_addopt: kw1: -c:%, kw2: -h
+opts.c(139) opt_addopt: kw1: -c:%, kw2: -l:%
+opts.c(139) opt_addopt: kw1: -c:%, kw2: -a
+opts.c(139) opt_addopt: kw1: -c:%, kw2: -v
+opts.c(139) opt_addopt: kw1: -c:%, kw2: -V
+opts.c(139) opt_addopt: kw1: -c:%, kw2: -m::
+opts.c(139) opt_addopt: kw1: -c:%, kw2: -M
+opts.c(139) opt_addopt: kw1: -c:%, kw2: -T
+opts.c(167) opt_addopt: newopt->type: 2
+opts.c(169) opt_addopt: adding
+opts.c(139) opt_addopt: kw1: -s::, kw2: -b
+opts.c(139) opt_addopt: kw1: -s::, kw2: -d:#
+opts.c(139) opt_addopt: kw1: -s::, kw2: -Z
+opts.c(139) opt_addopt: kw1: -s::, kw2: -h
+opts.c(139) opt_addopt: kw1: -s::, kw2: -l:%
+opts.c(139) opt_addopt: kw1: -s::, kw2: -a
+opts.c(139) opt_addopt: kw1: -s::, kw2: -v
+opts.c(139) opt_addopt: kw1: -s::, kw2: -V
+opts.c(139) opt_addopt: kw1: -s::, kw2: -m::
+opts.c(139) opt_addopt: kw1: -s::, kw2: -M
+opts.c(139) opt_addopt: kw1: -s::, kw2: -T
+opts.c(139) opt_addopt: kw1: -s::, kw2: -c:%
+opts.c(167) opt_addopt: newopt->type: 2
+opts.c(169) opt_addopt: adding
+opts.c(139) opt_addopt: kw1: -n::, kw2: -b
+opts.c(139) opt_addopt: kw1: -n::, kw2: -d:#
+opts.c(139) opt_addopt: kw1: -n::, kw2: -Z
+opts.c(139) opt_addopt: kw1: -n::, kw2: -h
+opts.c(139) opt_addopt: kw1: -n::, kw2: -l:%
+opts.c(139) opt_addopt: kw1: -n::, kw2: -a
+opts.c(139) opt_addopt: kw1: -n::, kw2: -v
+opts.c(139) opt_addopt: kw1: -n::, kw2: -V
+opts.c(139) opt_addopt: kw1: -n::, kw2: -m::
+opts.c(139) opt_addopt: kw1: -n::, kw2: -M
+opts.c(139) opt_addopt: kw1: -n::, kw2: -T
+opts.c(139) opt_addopt: kw1: -n::, kw2: -c:%
+opts.c(139) opt_addopt: kw1: -n::, kw2: -s::
+opts.c(167) opt_addopt: newopt->type: 2
+opts.c(169) opt_addopt: adding
+opts.c(139) opt_addopt: kw1: -i::, kw2: -b
+opts.c(139) opt_addopt: kw1: -i::, kw2: -d:#
+opts.c(139) opt_addopt: kw1: -i::, kw2: -Z
+opts.c(139) opt_addopt: kw1: -i::, kw2: -h
+opts.c(139) opt_addopt: kw1: -i::, kw2: -l:%
+opts.c(139) opt_addopt: kw1: -i::, kw2: -a
+opts.c(139) opt_addopt: kw1: -i::, kw2: -v
+opts.c(139) opt_addopt: kw1: -i::, kw2: -V
+opts.c(139) opt_addopt: kw1: -i::, kw2: -m::
+opts.c(139) opt_addopt: kw1: -i::, kw2: -M
+opts.c(139) opt_addopt: kw1: -i::, kw2: -T
+opts.c(139) opt_addopt: kw1: -i::, kw2: -c:%
+opts.c(139) opt_addopt: kw1: -i::, kw2: -s::
+opts.c(139) opt_addopt: kw1: -i::, kw2: -n::
+opts.c(167) opt_addopt: newopt->type: 2
+opts.c(169) opt_addopt: adding
+opts.c(139) opt_addopt: kw1: -e:%, kw2: -b
+opts.c(139) opt_addopt: kw1: -e:%, kw2: -d:#
+opts.c(139) opt_addopt: kw1: -e:%, kw2: -Z
+opts.c(139) opt_addopt: kw1: -e:%, kw2: -h
+opts.c(139) opt_addopt: kw1: -e:%, kw2: -l:%
+opts.c(139) opt_addopt: kw1: -e:%, kw2: -a
+opts.c(139) opt_addopt: kw1: -e:%, kw2: -v
+opts.c(139) opt_addopt: kw1: -e:%, kw2: -V
+opts.c(139) opt_addopt: kw1: -e:%, kw2: -m::
+opts.c(139) opt_addopt: kw1: -e:%, kw2: -M
+opts.c(139) opt_addopt: kw1: -e:%, kw2: -T
+opts.c(139) opt_addopt: kw1: -e:%, kw2: -c:%
+opts.c(139) opt_addopt: kw1: -e:%, kw2: -s::
+opts.c(139) opt_addopt: kw1: -e:%, kw2: -n::
+opts.c(139) opt_addopt: kw1: -e:%, kw2: -i::
+opts.c(167) opt_addopt: newopt->type: 2
+opts.c(169) opt_addopt: adding
+opts.c(139) opt_addopt: kw1: -U:#, kw2: -b
+opts.c(139) opt_addopt: kw1: -U:#, kw2: -d:#
+opts.c(139) opt_addopt: kw1: -U:#, kw2: -Z
+opts.c(139) opt_addopt: kw1: -U:#, kw2: -h
+opts.c(139) opt_addopt: kw1: -U:#, kw2: -l:%
+opts.c(139) opt_addopt: kw1: -U:#, kw2: -a
+opts.c(139) opt_addopt: kw1: -U:#, kw2: -v
+opts.c(139) opt_addopt: kw1: -U:#, kw2: -V
+opts.c(139) opt_addopt: kw1: -U:#, kw2: -m::
+opts.c(139) opt_addopt: kw1: -U:#, kw2: -M
+opts.c(139) opt_addopt: kw1: -U:#, kw2: -T
+opts.c(139) opt_addopt: kw1: -U:#, kw2: -c:%
+opts.c(139) opt_addopt: kw1: -U:#, kw2: -s::
+opts.c(139) opt_addopt: kw1: -U:#, kw2: -n::
+opts.c(139) opt_addopt: kw1: -U:#, kw2: -i::
+opts.c(139) opt_addopt: kw1: -U:#, kw2: -e:%
+opts.c(167) opt_addopt: newopt->type: 16777220
+opts.c(169) opt_addopt: adding
+opts.c(139) opt_addopt: kw1: -K:#, kw2: -b
+opts.c(139) opt_addopt: kw1: -K:#, kw2: -d:#
+opts.c(139) opt_addopt: kw1: -K:#, kw2: -Z
+opts.c(139) opt_addopt: kw1: -K:#, kw2: -h
+opts.c(139) opt_addopt: kw1: -K:#, kw2: -l:%
+opts.c(139) opt_addopt: kw1: -K:#, kw2: -a
+opts.c(139) opt_addopt: kw1: -K:#, kw2: -v
+opts.c(139) opt_addopt: kw1: -K:#, kw2: -V
+opts.c(139) opt_addopt: kw1: -K:#, kw2: -m::
+opts.c(139) opt_addopt: kw1: -K:#, kw2: -M
+opts.c(139) opt_addopt: kw1: -K:#, kw2: -T
+opts.c(139) opt_addopt: kw1: -K:#, kw2: -c:%
+opts.c(139) opt_addopt: kw1: -K:#, kw2: -s::
+opts.c(139) opt_addopt: kw1: -K:#, kw2: -n::
+opts.c(139) opt_addopt: kw1: -K:#, kw2: -i::
+opts.c(139) opt_addopt: kw1: -K:#, kw2: -e:%
+opts.c(139) opt_addopt: kw1: -K:#, kw2: -U:#
+opts.c(167) opt_addopt: newopt->type: 16777220
+opts.c(169) opt_addopt: adding
+opts.c(139) opt_addopt: kw1: -D::, kw2: -b
+opts.c(139) opt_addopt: kw1: -D::, kw2: -d:#
+opts.c(139) opt_addopt: kw1: -D::, kw2: -Z
+opts.c(139) opt_addopt: kw1: -D::, kw2: -h
+opts.c(139) opt_addopt: kw1: -D::, kw2: -l:%
+opts.c(139) opt_addopt: kw1: -D::, kw2: -a
+opts.c(139) opt_addopt: kw1: -D::, kw2: -v
+opts.c(139) opt_addopt: kw1: -D::, kw2: -V
+opts.c(139) opt_addopt: kw1: -D::, kw2: -m::
+opts.c(139) opt_addopt: kw1: -D::, kw2: -M
+opts.c(139) opt_addopt: kw1: -D::, kw2: -T
+opts.c(139) opt_addopt: kw1: -D::, kw2: -c:%
+opts.c(139) opt_addopt: kw1: -D::, kw2: -s::
+opts.c(139) opt_addopt: kw1: -D::, kw2: -n::
+opts.c(139) opt_addopt: kw1: -D::, kw2: -i::
+opts.c(139) opt_addopt: kw1: -D::, kw2: -e:%
+opts.c(139) opt_addopt: kw1: -D::, kw2: -U:#
+opts.c(139) opt_addopt: kw1: -D::, kw2: -K:#
+opts.c(167) opt_addopt: newopt->type: 2
+opts.c(169) opt_addopt: adding
+opts.c(139) opt_addopt: kw1: -X::, kw2: -b
+opts.c(139) opt_addopt: kw1: -X::, kw2: -d:#
+opts.c(139) opt_addopt: kw1: -X::, kw2: -Z
+opts.c(139) opt_addopt: kw1: -X::, kw2: -h
+opts.c(139) opt_addopt: kw1: -X::, kw2: -l:%
+opts.c(139) opt_addopt: kw1: -X::, kw2: -a
+opts.c(139) opt_addopt: kw1: -X::, kw2: -v
+opts.c(139) opt_addopt: kw1: -X::, kw2: -V
+opts.c(139) opt_addopt: kw1: -X::, kw2: -m::
+opts.c(139) opt_addopt: kw1: -X::, kw2: -M
+opts.c(139) opt_addopt: kw1: -X::, kw2: -T
+opts.c(139) opt_addopt: kw1: -X::, kw2: -c:%
+opts.c(139) opt_addopt: kw1: -X::, kw2: -s::
+opts.c(139) opt_addopt: kw1: -X::, kw2: -n::
+opts.c(139) opt_addopt: kw1: -X::, kw2: -i::
+opts.c(139) opt_addopt: kw1: -X::, kw2: -e:%
+opts.c(139) opt_addopt: kw1: -X::, kw2: -U:#
+opts.c(139) opt_addopt: kw1: -X::, kw2: -K:#
+opts.c(139) opt_addopt: kw1: -X::, kw2: -D::
+opts.c(167) opt_addopt: newopt->type: 2
+opts.c(169) opt_addopt: adding
+opts.c(139) opt_addopt: kw1: -N, kw2: -b
+opts.c(139) opt_addopt: kw1: -N, kw2: -d:#
+opts.c(139) opt_addopt: kw1: -N, kw2: -Z
+opts.c(139) opt_addopt: kw1: -N, kw2: -h
+opts.c(139) opt_addopt: kw1: -N, kw2: -l:%
+opts.c(139) opt_addopt: kw1: -N, kw2: -a
+opts.c(139) opt_addopt: kw1: -N, kw2: -v
+opts.c(139) opt_addopt: kw1: -N, kw2: -V
+opts.c(139) opt_addopt: kw1: -N, kw2: -m::
+opts.c(139) opt_addopt: kw1: -N, kw2: -M
+opts.c(139) opt_addopt: kw1: -N, kw2: -T
+opts.c(139) opt_addopt: kw1: -N, kw2: -c:%
+opts.c(139) opt_addopt: kw1: -N, kw2: -s::
+opts.c(139) opt_addopt: kw1: -N, kw2: -n::
+opts.c(139) opt_addopt: kw1: -N, kw2: -i::
+opts.c(139) opt_addopt: kw1: -N, kw2: -e:%
+opts.c(139) opt_addopt: kw1: -N, kw2: -U:#
+opts.c(139) opt_addopt: kw1: -N, kw2: -K:#
+opts.c(139) opt_addopt: kw1: -N, kw2: -D::
+opts.c(139) opt_addopt: kw1: -N, kw2: -X::
+opts.c(167) opt_addopt: newopt->type: 16809984
+opts.c(169) opt_addopt: adding
+opts.c(139) opt_addopt: kw1: -Z, kw2: -b
+opts.c(139) opt_addopt: kw1: -Z, kw2: -d:#
+opts.c(139) opt_addopt: kw1: -Z, kw2: -Z
+opts.c(141) opt_addopt: found!
+opts.c(139) opt_addopt: kw1: -Z, kw2: -h
+opts.c(139) opt_addopt: kw1: -Z, kw2: -l:%
+opts.c(139) opt_addopt: kw1: -Z, kw2: -a
+opts.c(139) opt_addopt: kw1: -Z, kw2: -v
+opts.c(139) opt_addopt: kw1: -Z, kw2: -V
+opts.c(139) opt_addopt: kw1: -Z, kw2: -m::
+opts.c(139) opt_addopt: kw1: -Z, kw2: -M
+opts.c(139) opt_addopt: kw1: -Z, kw2: -T
+opts.c(139) opt_addopt: kw1: -Z, kw2: -c:%
+opts.c(139) opt_addopt: kw1: -Z, kw2: -s::
+opts.c(139) opt_addopt: kw1: -Z, kw2: -n::
+opts.c(139) opt_addopt: kw1: -Z, kw2: -i::
+opts.c(139) opt_addopt: kw1: -Z, kw2: -e:%
+opts.c(139) opt_addopt: kw1: -Z, kw2: -U:#
+opts.c(139) opt_addopt: kw1: -Z, kw2: -K:#
+opts.c(139) opt_addopt: kw1: -Z, kw2: -D::
+opts.c(139) opt_addopt: kw1: -Z, kw2: -X::
+opts.c(139) opt_addopt: kw1: -Z, kw2: -N
+opts.c(167) opt_addopt: newopt->type: 16809984
+opts.c(169) opt_addopt: adding
+opts.c(139) opt_addopt: kw1: -I, kw2: -b
+opts.c(139) opt_addopt: kw1: -I, kw2: -d:#
+opts.c(139) opt_addopt: kw1: -I, kw2: -h
+opts.c(139) opt_addopt: kw1: -I, kw2: -l:%
+opts.c(139) opt_addopt: kw1: -I, kw2: -a
+opts.c(139) opt_addopt: kw1: -I, kw2: -v
+opts.c(139) opt_addopt: kw1: -I, kw2: -V
+opts.c(139) opt_addopt: kw1: -I, kw2: -m::
+opts.c(139) opt_addopt: kw1: -I, kw2: -M
+opts.c(139) opt_addopt: kw1: -I, kw2: -T
+opts.c(139) opt_addopt: kw1: -I, kw2: -c:%
+opts.c(139) opt_addopt: kw1: -I, kw2: -s::
+opts.c(139) opt_addopt: kw1: -I, kw2: -n::
+opts.c(139) opt_addopt: kw1: -I, kw2: -i::
+opts.c(139) opt_addopt: kw1: -I, kw2: -e:%
+opts.c(139) opt_addopt: kw1: -I, kw2: -U:#
+opts.c(139) opt_addopt: kw1: -I, kw2: -K:#
+opts.c(139) opt_addopt: kw1: -I, kw2: -D::
+opts.c(139) opt_addopt: kw1: -I, kw2: -X::
+opts.c(139) opt_addopt: kw1: -I, kw2: -N
+opts.c(139) opt_addopt: kw1: -I, kw2: -Z
+opts.c(167) opt_addopt: newopt->type: 16809984
+opts.c(169) opt_addopt: adding
+opts.c(139) opt_addopt: kw1: %, kw2: -b
+opts.c(139) opt_addopt: kw1: %, kw2: -d:#
+opts.c(139) opt_addopt: kw1: %, kw2: -h
+opts.c(139) opt_addopt: kw1: %, kw2: -l:%
+opts.c(139) opt_addopt: kw1: %, kw2: -a
+opts.c(139) opt_addopt: kw1: %, kw2: -v
+opts.c(139) opt_addopt: kw1: %, kw2: -V
+opts.c(139) opt_addopt: kw1: %, kw2: -m::
+opts.c(139) opt_addopt: kw1: %, kw2: -M
+opts.c(139) opt_addopt: kw1: %, kw2: -T
+opts.c(139) opt_addopt: kw1: %, kw2: -c:%
+opts.c(139) opt_addopt: kw1: %, kw2: -s::
+opts.c(139) opt_addopt: kw1: %, kw2: -n::
+opts.c(139) opt_addopt: kw1: %, kw2: -i::
+opts.c(139) opt_addopt: kw1: %, kw2: -e:%
+opts.c(139) opt_addopt: kw1: %, kw2: -U:#
+opts.c(139) opt_addopt: kw1: %, kw2: -K:#
+opts.c(139) opt_addopt: kw1: %, kw2: -D::
+opts.c(139) opt_addopt: kw1: %, kw2: -X::
+opts.c(139) opt_addopt: kw1: %, kw2: -N
+opts.c(139) opt_addopt: kw1: %, kw2: -Z
+opts.c(139) opt_addopt: kw1: %, kw2: -I
+opts.c(167) opt_addopt: newopt->type: 2
+opts.c(169) opt_addopt: adding
+opts.c(139) opt_addopt: kw1: -f:, kw2: -b
+opts.c(139) opt_addopt: kw1: -f:, kw2: -d:#
+opts.c(139) opt_addopt: kw1: -f:, kw2: -h
+opts.c(139) opt_addopt: kw1: -f:, kw2: -l:%
+opts.c(139) opt_addopt: kw1: -f:, kw2: -a
+opts.c(139) opt_addopt: kw1: -f:, kw2: -v
+opts.c(139) opt_addopt: kw1: -f:, kw2: -V
+opts.c(139) opt_addopt: kw1: -f:, kw2: -m::
+opts.c(139) opt_addopt: kw1: -f:, kw2: -M
+opts.c(139) opt_addopt: kw1: -f:, kw2: -T
+opts.c(139) opt_addopt: kw1: -f:, kw2: -c:%
+opts.c(139) opt_addopt: kw1: -f:, kw2: -s::
+opts.c(139) opt_addopt: kw1: -f:, kw2: -n::
+opts.c(139) opt_addopt: kw1: -f:, kw2: -i::
+opts.c(139) opt_addopt: kw1: -f:, kw2: -e:%
+opts.c(139) opt_addopt: kw1: -f:, kw2: -U:#
+opts.c(139) opt_addopt: kw1: -f:, kw2: -K:#
+opts.c(139) opt_addopt: kw1: -f:, kw2: -D::
+opts.c(139) opt_addopt: kw1: -f:, kw2: -X::
+opts.c(139) opt_addopt: kw1: -f:, kw2: -N
+opts.c(139) opt_addopt: kw1: -f:, kw2: -Z
+opts.c(139) opt_addopt: kw1: -f:, kw2: -I
+opts.c(139) opt_addopt: kw1: -f:, kw2: %
+opts.c(167) opt_addopt: newopt->type: 2
+opts.c(169) opt_addopt: adding
+opts.c(197) opt_combine_opts: end list:
+opts.c(201) opt_combine_opts: opt: keyword: -b|run in background
+opts.c(201) opt_combine_opts: opt: keyword: -d:#|set debugging level
+opts.c(201) opt_combine_opts: opt: keyword: -h|display program options
+opts.c(201) opt_combine_opts: opt: keyword: -l:%|redirect output to logfile
+opts.c(201) opt_combine_opts: opt: keyword: -a|append to logfile
+opts.c(201) opt_combine_opts: opt: keyword: -v|enable verbose output 
+opts.c(201) opt_combine_opts: opt: keyword: -V|program version 
+opts.c(201) opt_combine_opts: opt: keyword: -m::|mqtt host,clientid[,user[,pass]]
+opts.c(201) opt_combine_opts: opt: keyword: -M|get config from mqtt
+opts.c(201) opt_combine_opts: opt: keyword: -T|override mqtt topic
+opts.c(201) opt_combine_opts: opt: keyword: -c:%|config file
+opts.c(201) opt_combine_opts: opt: keyword: -s::|config section name
+opts.c(201) opt_combine_opts: opt: keyword: -n::|agent name
+opts.c(201) opt_combine_opts: opt: keyword: -i::|influx host[,user[,pass]]
+opts.c(201) opt_combine_opts: opt: keyword: -e:%|exectute javascript
+opts.c(201) opt_combine_opts: opt: keyword: -U:#|javascript runtime size
+opts.c(201) opt_combine_opts: opt: keyword: -K:#|javascript stack size
+opts.c(201) opt_combine_opts: opt: keyword: -D::|set JS script dir
+opts.c(201) opt_combine_opts: opt: keyword: -X::|execute JS script and exit
+opts.c(201) opt_combine_opts: opt: keyword: -N|dont exec any scripts
+opts.c(201) opt_combine_opts: opt: keyword: -Z|do not init js engine
+opts.c(201) opt_combine_opts: opt: keyword: -I|display agent info and exit
+opts.c(201) opt_combine_opts: opt: keyword: %|script
+opts.c(201) opt_combine_opts: opt: keyword: -f:|function name (default: <script_name>_main)
+opts.c(206) opt_combine_opts: returning: 0x1c0f088
+opts.c(322) opt_init: initializing options table...
+opts.c(324) opt_init: opt: key: -b|run in background, type: 16809984(BOOL), len: 0, req: 0
+opts.c(338) opt_init: value: 0x193f08
+conv.c(117) conv_type: dt: 16809984(BOOL), d: 0x1cfb6c, dl: 0, st: 2(STRING), s: 0x193f08, sl: 2
+conv.c(2365) conv_type: dt: 16809984(BOOL)
+conv.c(2399) conv_type: returning: 4
+opts.c(324) opt_init: opt: key: -d:#|set debugging level, type: 16777220(S32), len: 0, req: 0
+opts.c(338) opt_init: value: 0x193f28
+conv.c(117) conv_type: dt: 16777220(S32), d: 0x1cfb58, dl: 0, st: 2(STRING), s: 0x193f28, sl: 10
+conv.c(2365) conv_type: dt: 16777220(S32)
+conv.c(2399) conv_type: returning: 4
+opts.c(324) opt_init: opt: key: -h|display program options, type: 16809984(BOOL), len: 0, req: 0
+opts.c(338) opt_init: value: 0x193f54
+conv.c(117) conv_type: dt: 16809984(BOOL), d: 0x1cfb64, dl: 0, st: 2(STRING), s: 0x193f54, sl: 1
+conv.c(2365) conv_type: dt: 16809984(BOOL)
+conv.c(2399) conv_type: returning: 4
+opts.c(324) opt_init: opt: key: -l:%|redirect output to logfile, type: 2(STRING), len: 255, req: 0
+opts.c(338) opt_init: value: 0x193f94
+conv.c(117) conv_type: dt: 2(STRING), d: 0x1cfb78, dl: 255, st: 2(STRING), s: 0x193f94, sl: 0
+conv.c(130) conv_type: src: 
+conv.c(2365) conv_type: dt: 2(STRING)
+conv.c(2399) conv_type: returning: 0
+opts.c(324) opt_init: opt: key: -a|append to logfile, type: 16809984(BOOL), len: 0, req: 0
+opts.c(338) opt_init: value: 0x193f54
+conv.c(117) conv_type: dt: 16809984(BOOL), d: 0x1cfb70, dl: 0, st: 2(STRING), s: 0x193f54, sl: 1
+conv.c(2365) conv_type: dt: 16809984(BOOL)
+conv.c(2399) conv_type: returning: 4
+opts.c(324) opt_init: opt: key: -v|enable verbose output , type: 16809984(BOOL), len: 0, req: 0
+opts.c(338) opt_init: value: 0x193f54
+conv.c(117) conv_type: dt: 16809984(BOOL), d: 0x1cfb68, dl: 0, st: 2(STRING), s: 0x193f54, sl: 1
+conv.c(2365) conv_type: dt: 16809984(BOOL)
+conv.c(2399) conv_type: returning: 4
+opts.c(324) opt_init: opt: key: -V|program version , type: 16809984(BOOL), len: 0, req: 0
+opts.c(338) opt_init: value: 0x193f54
+conv.c(117) conv_type: dt: 16809984(BOOL), d: 0x1cfb74, dl: 0, st: 2(STRING), s: 0x193f54, sl: 1
+conv.c(2365) conv_type: dt: 16809984(BOOL)
+conv.c(2399) conv_type: returning: 4
+opts.c(324) opt_init: opt: key: -m::|mqtt host,clientid[,user[,pass]], type: 2(STRING), len: 199, req: 0
+opts.c(338) opt_init: value: 0x191880
+conv.c(117) conv_type: dt: 2(STRING), d: 0xbeb8502c, dl: 199, st: 2(STRING), s: 0x191880, sl: 0
+conv.c(130) conv_type: src: 
+conv.c(2365) conv_type: dt: 2(STRING)
+conv.c(2399) conv_type: returning: 0
+opts.c(324) opt_init: opt: key: -M|get config from mqtt, type: 16809984(BOOL), len: 0, req: 0
+opts.c(338) opt_init: value: 0x191ba4
+conv.c(117) conv_type: dt: 16809984(BOOL), d: 0xbeb850f4, dl: 0, st: 2(STRING), s: 0x191ba4, sl: 1
+conv.c(2365) conv_type: dt: 16809984(BOOL)
+conv.c(2399) conv_type: returning: 4
+opts.c(324) opt_init: opt: key: -T|override mqtt topic, type: 2(STRING), len: 255, req: 0
+opts.c(338) opt_init: value: 0x191880
+conv.c(117) conv_type: dt: 2(STRING), d: 0xbeb850f8, dl: 255, st: 2(STRING), s: 0x191880, sl: 0
+conv.c(130) conv_type: src: 
+conv.c(2365) conv_type: dt: 2(STRING)
+conv.c(2399) conv_type: returning: 0
+opts.c(324) opt_init: opt: key: -c:%|config file, type: 2(STRING), len: 255, req: 0
+opts.c(338) opt_init: value: 0x191880
+conv.c(117) conv_type: dt: 2(STRING), d: 0xbeb84e64, dl: 255, st: 2(STRING), s: 0x191880, sl: 0
+conv.c(130) conv_type: src: 
+conv.c(2365) conv_type: dt: 2(STRING)
+conv.c(2399) conv_type: returning: 0
+opts.c(324) opt_init: opt: key: -s::|config section name, type: 2(STRING), len: 63, req: 0
+opts.c(338) opt_init: value: 0x191880
+conv.c(117) conv_type: dt: 2(STRING), d: 0xbeb84e04, dl: 63, st: 2(STRING), s: 0x191880, sl: 0
+conv.c(130) conv_type: src: 
+conv.c(2365) conv_type: dt: 2(STRING)
+conv.c(2399) conv_type: returning: 0
+opts.c(324) opt_init: opt: key: -n::|agent name, type: 2(STRING), len: 31, req: 0
+opts.c(338) opt_init: value: 0x191880
+conv.c(117) conv_type: dt: 2(STRING), d: 0xbeb84e44, dl: 31, st: 2(STRING), s: 0x191880, sl: 0
+conv.c(130) conv_type: src: 
+conv.c(2365) conv_type: dt: 2(STRING)
+conv.c(2399) conv_type: returning: 0
+opts.c(324) opt_init: opt: key: -i::|influx host[,user[,pass]], type: 2(STRING), len: 199, req: 0
+opts.c(338) opt_init: value: 0x191880
+conv.c(117) conv_type: dt: 2(STRING), d: 0xbeb84f64, dl: 199, st: 2(STRING), s: 0x191880, sl: 0
+conv.c(130) conv_type: src: 
+conv.c(2365) conv_type: dt: 2(STRING)
+conv.c(2399) conv_type: returning: 0
+opts.c(324) opt_init: opt: key: -e:%|exectute javascript, type: 2(STRING), len: 4095, req: 0
+opts.c(338) opt_init: value: 0x191880
+conv.c(117) conv_type: dt: 2(STRING), d: 0xbeb85408, dl: 4095, st: 2(STRING), s: 0x191880, sl: 0
+conv.c(130) conv_type: src: 
+conv.c(2365) conv_type: dt: 2(STRING)
+conv.c(2399) conv_type: returning: 0
+opts.c(324) opt_init: opt: key: -U:#|javascript runtime size, type: 16777220(S32), len: 0, req: 0
+opts.c(338) opt_init: value: 0x191c5c
+conv.c(117) conv_type: dt: 16777220(S32), d: 0xbeb85204, dl: 0, st: 2(STRING), s: 0x191c5c, sl: 7
+conv.c(2365) conv_type: dt: 16777220(S32)
+conv.c(2399) conv_type: returning: 4
+opts.c(324) opt_init: opt: key: -K:#|javascript stack size, type: 16777220(S32), len: 0, req: 0
+opts.c(338) opt_init: value: 0x191c80
+conv.c(117) conv_type: dt: 16777220(S32), d: 0xbeb85200, dl: 0, st: 2(STRING), s: 0x191c80, sl: 5
+conv.c(2365) conv_type: dt: 16777220(S32)
+conv.c(2399) conv_type: returning: 4
+opts.c(324) opt_init: opt: key: -D::|set JS script dir, type: 2(STRING), len: 255, req: 0
+opts.c(338) opt_init: value: 0x191880
+conv.c(117) conv_type: dt: 2(STRING), d: 0xbeb85208, dl: 255, st: 2(STRING), s: 0x191880, sl: 0
+conv.c(130) conv_type: src: 
+conv.c(2365) conv_type: dt: 2(STRING)
+conv.c(2399) conv_type: returning: 0
+opts.c(324) opt_init: opt: key: -X::|execute JS script and exit, type: 2(STRING), len: 255, req: 0
+opts.c(338) opt_init: value: 0x191880
+conv.c(117) conv_type: dt: 2(STRING), d: 0xbeb85308, dl: 255, st: 2(STRING), s: 0x191880, sl: 0
+conv.c(130) conv_type: src: 
+conv.c(2365) conv_type: dt: 2(STRING)
+conv.c(2399) conv_type: returning: 0
+opts.c(324) opt_init: opt: key: -N|dont exec any scripts, type: 16809984(BOOL), len: 0, req: 0
+opts.c(338) opt_init: value: 0x191cdc
+conv.c(117) conv_type: dt: 16809984(BOOL), d: 0xbeb851fc, dl: 0, st: 2(STRING), s: 0x191cdc, sl: 2
+conv.c(2365) conv_type: dt: 16809984(BOOL)
+conv.c(2399) conv_type: returning: 4
+opts.c(324) opt_init: opt: key: -Z|do not init js engine, type: 16809984(BOOL), len: 0, req: 0
+opts.c(338) opt_init: value: 0x191cdc
+conv.c(117) conv_type: dt: 16809984(BOOL), d: 0xbeb851f8, dl: 0, st: 2(STRING), s: 0x191cdc, sl: 2
+conv.c(2365) conv_type: dt: 16809984(BOOL)
+conv.c(2399) conv_type: returning: 4
+opts.c(324) opt_init: opt: key: -I|display agent info and exit, type: 16809984(BOOL), len: 0, req: 0
+opts.c(338) opt_init: value: 0x191d1c
+conv.c(117) conv_type: dt: 16809984(BOOL), d: 0xbeb84e00, dl: 0, st: 2(STRING), s: 0x191d1c, sl: 1
+conv.c(2365) conv_type: dt: 16809984(BOOL)
+conv.c(2399) conv_type: returning: 4
+opts.c(324) opt_init: opt: key: %|script, type: 2(STRING), len: 255, req: 0
+opts.c(338) opt_init: value: 0x18d3b4
+conv.c(117) conv_type: dt: 2(STRING), d: 0xbeb879fc, dl: 255, st: 2(STRING), s: 0x18d3b4, sl: 0
+conv.c(130) conv_type: src: 
+conv.c(2365) conv_type: dt: 2(STRING)
+conv.c(2399) conv_type: returning: 0
+opts.c(324) opt_init: opt: key: -f:|function name (default: <script_name>_main), type: 2(STRING), len: 127, req: 0
+opts.c(338) opt_init: value: 0x18d3b4
+conv.c(117) conv_type: dt: 2(STRING), d: 0xbeb8797c, dl: 127, st: 2(STRING), s: 0x18d3b4, sl: 0
+conv.c(130) conv_type: src: 
+conv.c(2365) conv_type: dt: 2(STRING)
+conv.c(2399) conv_type: returning: 0
+opts.c(342) opt_init: done!
+debug: 9
+debug_flag: 7fffffff
+opts.c(352) opt_process: argc: 1, argv: 0xbeb87c74
+opts.c(355) opt_process: name: ./sdjs
+opts.c(358) opt_process: opt_process: creating getopt string...
+opts.c(377) opt_process: argc: 1, argv: 0xbeb87c74, getoptstr: :bd:hl:avVm:MTc:s:n:i:e:U:K:D:X:NZIf:
+opts.c(267) opt_getopt: optstr: :bd:hl:avVm:MTc:s:n:i:e:U:K:D:X:NZIf:
+opts.c(268) opt_getopt: place: 0
+opts.c(270) opt_getopt: optind: 1, argc: 1
+opts.c(399) opt_process: opt_process: getting other arguments...
+opts.c(403) opt_process: opt_process: op: %, argc: 0, optind: 1
+opts.c(418) opt_process: opt_process: checking for reqd args...
+opts.c(428) opt_process: opt_process: done!
+debug: 7fffffff
+debug_flag: 7fffffff

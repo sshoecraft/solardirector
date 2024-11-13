@@ -1,6 +1,7 @@
 
 function gen_init() {
 	var gen_props = [
+		[ "gen_enabled", DATA_TYPE_BOOL, "false", 0 ],
 		[ "dyngen", DATA_TYPE_BOOL, "false", 0 ],
 		[ "gen_max_power", DATA_TYPE_FLOAT, "24000", 0 ],
 	];

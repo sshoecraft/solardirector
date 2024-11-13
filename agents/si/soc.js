@@ -361,7 +361,7 @@ if (0) {
 	dprintf(dlevel,"new_soc: %f, charge_start_level: %f, battery_voltage: %f, charge_start_voltage: %f\n",
 		new_soc, si.charge_start_level, data.battery_voltage, si.charge_start_voltage);
 	if (new_soc < si.charge_start_level && pround(data.battery_voltage,1) > si.charge_start_voltage) {
-		dprintf(-1,"new_soc: %f, charge_start_level: %f, battery_voltage: %f, charge_start_voltage: %f\n",
+		dprintf(dlevel,"new_soc: %f, charge_start_level: %f, battery_voltage: %f, charge_start_voltage: %f\n",
 			new_soc, si.charge_start_level, pround(data.battery_voltage,1), si.charge_start_voltage);
 		new_soc = si.charge_start_level;
 	}
@@ -371,7 +371,7 @@ if (0) {
 		printf("p: %f\n", p);
 		if (p >= 10) new_soc = si.soc;
 	}
-	if (new_soc != obl) dprintf(-1,"FIXED: new_soc: %.1f\n", new_soc);
+	if (new_soc != obl) dprintf(dlevel,"FIXED: new_soc: %.1f\n", new_soc);
 	si.soc = si.battery_level = new_soc;
 
 	// Calculate remaining ah

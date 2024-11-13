@@ -1,4 +1,9 @@
 
 function read_main() {
-	dprintf(0,"*** IN READ ***\n");
+
+	let dlevel = -1;
+
+//	dprintf(0,"*** IN READ ***\n");
+
+	run(script_dir+"/monitor.js");
 }

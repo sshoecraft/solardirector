@@ -1,0 +1,27 @@
+#!/bin/bash
+test -z "$1" && exit 1
+name=$1
+desc="$2"
+ucname=$(echo $name | tr "[:lower:]" "[:upper:]")
+test ! -d $name && cp -r template $name
+cd $name || exit 1
+for f in template.*
+do
+	test "$f" = "template.*" && continue
+	n=`echo $f | sed "s:template:$name:"`
+	mv -v $f $n
+done
+for f in *
+do
+	test "$f" = "*" && continue
+	sed -i -e "s:template.h:${name}.h:" \
+		-e "s:template_:${name}_:g" \
+		-e "s:TEMPLATE_:${ucname}_:g" \
+		-e "s:\"template\":\"${name}\":g" \
+		$f
+done
+if test -n "$desc"; then
+	sed -i -e "s:+DESC+:$desc:" Makefile
+else
+	sed -i -e '/+DESC+/d' Makefile
+fi

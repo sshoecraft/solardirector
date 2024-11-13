@@ -30,7 +30,9 @@
 #define DEBUG DEBUG_THIS
 #endif
 
+#ifndef dlevel
 #define dlevel 6
+#endif
 #include "debug.h"
 
 #include "parson.h"

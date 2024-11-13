@@ -361,12 +361,15 @@ int os_gethostbyname(char *addr, int addrsize, char *name) {
 	if (!_os_gethostbyname_init) do_init();
 	p = name + strlen(name);
 	while(*p == 0 && p > name) p--;
-	dprintf(dlevel,"p: %c\n", *p);
+	dprintf(dlevel+2,"p: %c\n", *p);
 	if (*p == '.') return _os_gethostbyname(addr,addrsize,name);
 	list_reset(domains);
 	while((p = list_get_next(domains)) != 0) {
 		snprintf(temp,sizeof(temp)-1,"%s.%s",name,p);
-		if (_os_gethostbyname(addr,addrsize,temp) == 0) return 0;
+		if (_os_gethostbyname(addr,addrsize,temp) == 0) {
+			dprintf(dlevel,"addr: %s\n", addr);
+			return 0;
+		}
 	}
 	return 1;
 }

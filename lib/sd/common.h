@@ -50,6 +50,8 @@ enum SOLARD_MESSAGE_TYPE {
 #define SOLARD_ROLE_INVERTER	"Inverter"
 #define SOLARD_ROLE_PVINVERTER	"PVInverter"
 #define SOLARD_ROLE_UTILITY	"Utility"
+#define SOLARD_ROLE_SENSOR	"Sensor"
+#define SOLARD_ROLE_DEVICE	"Device"
 #define SOLARD_ROLE_LEN		16
 
 #define SOLARD_FUNC_STATUS	"Status"

@@ -88,6 +88,7 @@ static void _getsource(si_session_t *s, si_current_source_t *spec) {
 
 static int si_get_value(void *ctx, list args, char *errmsg, json_object_t *results) {
 	si_session_t *s = ctx;
+	config_arg_t *arg;
 	char *key;
 //	char *prefix;
 	char prefix[66];
@@ -97,7 +98,8 @@ static int si_get_value(void *ctx, list args, char *errmsg, json_object_t *resul
 
 	dprintf(dlevel,"args count: %d\n", list_count(args));
 	list_reset(args);
-	while((key = list_get_next(args)) != 0) {
+	while((arg = list_get_next(args)) != 0) {
+		key = arg->argv[0];
 		dprintf(dlevel,"key: %s\n", key);
 
 		/* handle special cases of info/config */
@@ -172,15 +174,16 @@ static int si_get_value(void *ctx, list args, char *errmsg, json_object_t *resul
 
 static int si_set_value(void *ctx, list args, char *errmsg, json_object_t *results) {
 	si_session_t *s = ctx;
-	char **argv, *name, *value;
+	config_arg_t *arg;
+	char *name, *value;
 	config_property_t *p;
 
 	dprintf(dlevel,"args: %p\n", args);
 	dprintf(dlevel,"args count: %d\n", list_count(args));
 	list_reset(args);
-	while((argv = list_get_next(args)) != 0) {
-		name = argv[0];
-		value = argv[1];
+	while((arg = list_get_next(args)) != 0) {
+		name = arg->argv[0];
+		value = arg->argv[1];
 		dprintf(dlevel,"name: %s, value: %s\n", name, value);
 		p = config_find_property(s->ap->cp, name);
 		dprintf(dlevel,"p: %p\n", p);
@@ -264,31 +267,32 @@ static int si_charge(void *ctx, list args, char *errmsg, json_object_t *results)
 	si_session_t *s = ctx;
 	jsval jstrue = BOOLEAN_TO_JSVAL(JS_TRUE);
 #endif
-	char *arg;
+	config_arg_t *arg;
+	char *action;
 
 	/* We take 1 arg: start/stop */
-	list_reset(args);
-	arg = list_get_next(args);
-//	dprintf(dlevel,"arg: %s\n", arg);
+	arg = list_get_first(args);
+	action = arg->argv[0];
+//	dprintf(dlevel,"action: %s\n", action);
 	*s->errmsg = 0;
 #ifdef JS
 	// XXX using jsexec works and works well - except it wont reload the script file if its modified
-	if (strcmp(arg,"start") == 0 || strcasecmp(arg,"on") == 0) {
+	if (strcmp(action,"start") == 0 || strcasecmp(action,"on") == 0) {
 //		agent_jsexec(s->ap, "charge_start(true);");
 		agent_start_jsfunc(s->ap, "charge.js", "charge_start", 1, &jstrue);
-	} else if (strcmp(arg,"startcv") == 0 || strcasecmp(arg,"cv") == 0) {
+	} else if (strcmp(action,"startcv") == 0 || strcasecmp(action,"cv") == 0) {
 //		agent_jsexec(s->ap, "charge_start_cv(true)");
 		agent_start_jsfunc(s->ap, "charge.js", "charge_start_cv", 1, &jstrue);
-	} else if (strcmp(arg,"stop") == 0 || strcasecmp(arg,"off") == 0) {
+	} else if (strcmp(action,"stop") == 0 || strcasecmp(action,"off") == 0) {
 //		agent_jsexec(s->ap, "charge_stop(true)");
 		agent_start_jsfunc(s->ap, "charge.js", "charge_stop", 1, &jstrue);
-	} else if (strcmp(arg,"end") == 0) {
+	} else if (strcmp(action,"end") == 0) {
 //		agent_jsexec(s->ap, "charge_end()");
 		agent_start_jsfunc(s->ap, "charge.js", "charge_end", 1, &jstrue);
 	} else
 #endif
 	{
-		sprintf(s->errmsg,"invalid charge mode: %s", arg);
+		sprintf(s->errmsg,"invalid charge mode: %s", action);
 	}
 	strcpy(errmsg,s->errmsg);
 	return (*errmsg != 0);
@@ -299,24 +303,25 @@ static int si_grid(void *ctx, list args, char *errmsg, json_object_t *results) {
 	si_session_t *s = ctx;
 	jsval jstrue = BOOLEAN_TO_JSVAL(JS_TRUE);
 #endif
-	char *arg;
+	config_arg_t *arg;
+	char *action;
 
 	/* We take 1 arg: start/stop */
-	list_reset(args);
-	arg = list_get_next(args);
-	dprintf(2,"arg: %s\n", arg);
+	arg = list_get_first(args);
+	action = arg->argv[0];
+	dprintf(2,"action: %s\n", action);
 	*s->errmsg = 0;
 #ifdef JS
-	if (strcasecmp(arg,"start") == 0 || strcasecmp(arg,"on") == 0) {
+	if (strcasecmp(action,"start") == 0 || strcasecmp(action,"on") == 0) {
 //		agent_jsexec(s->ap, "grid_start(true)");
 		agent_start_jsfunc(s->ap, "grid.js", "grid_start", 1, &jstrue);
-	} else if (strcasecmp(arg,"stop") == 0 || strcasecmp(arg,"off") == 0) {
+	} else if (strcasecmp(action,"stop") == 0 || strcasecmp(action,"off") == 0) {
 //		agent_jsexec(s->ap, "grid_stop(true)");
 		agent_start_jsfunc(s->ap, "grid.js", "grid_stop", 1, &jstrue);
 	} else
 #endif
 	{
-		sprintf(s->errmsg,"invalid grid mode: %s", arg);
+		sprintf(s->errmsg,"invalid grid mode: %s", action);
 	}
 	strcpy(errmsg,s->errmsg);
 	return (*errmsg != 0);
@@ -327,24 +332,25 @@ static int si_feed(void *ctx, list args, char *errmsg, json_object_t *results) {
 	si_session_t *s = ctx;
 	jsval jstrue = BOOLEAN_TO_JSVAL(JS_TRUE);
 #endif
-	char *arg;
+	config_arg_t *arg;
+	char *action;
 
 	/* We take 1 arg: start/stop */
-	list_reset(args);
-	arg = list_get_next(args);
-	dprintf(2,"arg: %s\n", arg);
+	arg = list_get_first(args);
+	action = arg->argv[0];
+	dprintf(2,"action: %s\n", action);
 	*s->errmsg = 0;
 #ifdef JS
-	if (strcasecmp(arg,"start") == 0 || strcasecmp(arg,"on") == 0) {
+	if (strcasecmp(action,"start") == 0 || strcasecmp(action,"on") == 0) {
 //		agent_jsexec(s->ap, "feed_start(true)");
 		agent_start_jsfunc(s->ap, "feed.js", "feed_start", 1, &jstrue);
-	} else if (strcasecmp(arg,"stop") == 0 || strcasecmp(arg,"off") == 0) {
+	} else if (strcasecmp(action,"stop") == 0 || strcasecmp(action,"off") == 0) {
 //		agent_jsexec(s->ap, "feed_stop(true)");
 		agent_start_jsfunc(s->ap, "feed.js", "feed_stop", 1, &jstrue);
 	} else
 #endif
 	{
-		sprintf(s->errmsg,"invalid feed mode: %s", arg);
+		sprintf(s->errmsg,"invalid feed mode: %s", action);
 	}
 	strcpy(errmsg,s->errmsg);
 	return (*errmsg != 0);

@@ -1,4 +1,5 @@
 
+
 /*
 Copyright (c) 2021, Stephen P. Shoecraft
 All rights reserved.
@@ -66,7 +67,7 @@ int agent_sub(solard_agent_t *ap, char *name, char *func) {
 
 	*topic = 0;
 	agent_mktopic(topic,sizeof(topic)-1,name,func);
-        dprintf(dlevel,"topic: %s\n", topic);
+	dprintf(dlevel,"topic: %s\n", topic);
 	return mqtt_sub(ap->m,topic);
 }
 
@@ -156,26 +157,41 @@ int agent_pubdata(solard_agent_t *ap, json_value_t *v) {
 	return r;
 }
 
-static void agent_process_message(solard_agent_t *ap, solard_message_t *msg) {
+static int agent_process_message(solard_agent_t *ap, solard_message_t *msg) {
 	char topic[SOLARD_TOPIC_LEN],*data,*name;
 	json_object_t *status;
+	int mdata;
+
+	/* XXX only process messages sent to our top level topic */
+	agent_mktopic(topic,sizeof(topic)-1,ap->instance_name,0);
+	dprintf(dlevel,"my topic: %s, msg topic: %s\n", topic, msg->topic);
+	if (strcmp(msg->topic,topic) != 0) return 1;
 
 	status = json_create_object();
 
 	config_process_request(ap->cp, msg->data, status);
 
-	data = json_dumps(json_object_value(status), 1);
-	dprintf(dlevel,"data: %s\n", data);
-	json_destroy_object(status);
-	if (!data) return;
+	/* if replyto is set, send the response */
+	if (msg->replyto && strlen(msg->replyto)) {
+		data = json_dumps(json_object_value(status), 1);
+		dprintf(dlevel,"data: %s\n", data);
+		if (!data) {
+			data = "{ \"status\": 1, \"message\": \"internal error\", \"results\": {} }";
+			mdata = 0;
+		} else {
+			mdata = 1;
+		}
 
-	name = strlen(ap->instance_name) ? ap->instance_name : ap->m->clientid;
-	dprintf(dlevel,"name: %s\n", name);
-	if (!strlen(name)) name = "agent";
-	snprintf(topic,sizeof(topic)-1,"%s/%s/%s/%s",SOLARD_TOPIC_ROOT,SOLARD_TOPIC_CLIENTS,msg->replyto,name);
-	dprintf(dlevel,"topic: %s\n", topic);
-	mqtt_pub(ap->m,topic,data,1,0);
-	free(data);
+		name = strlen(ap->instance_name) ? ap->instance_name : ap->m->clientid;
+		dprintf(dlevel,"name: %s\n", name);
+		if (!strlen(name)) name = "agent";
+		snprintf(topic,sizeof(topic)-1,"%s/%s/%s/%s",SOLARD_TOPIC_ROOT,SOLARD_TOPIC_CLIENTS,msg->replyto,name);
+		dprintf(dlevel,"topic: %s\n", topic);
+		mqtt_pub(ap->m,topic,data,1,0);
+		if (mdata) free(data);
+	}
+	json_destroy_object(status);
+	return 0;
 }
 
 static void agent_getmsg(void *ctx, char *topic, char *message, int msglen, char *replyto) {
@@ -245,6 +261,13 @@ int agent_get_info(solard_agent_t *ap, int info_flag, int pub) {
 	if (pub && agent_pubinfo(ap, info_flag)) return 1;
 #endif
 	if (info_flag) exit(0);
+	return 0;
+}
+
+int agent_repub(solard_agent_t *ap) {
+	agent_get_info(ap, false, true);
+	agent_pubconfig(ap);
+	agent_event(ap,"Agent","repub");
 	return 0;
 }
 
@@ -323,9 +346,11 @@ int cf_agent_getinfo(void *ctx, list args, char *errmsg, json_object_t *results)
 	if (!ap->info && agent_get_info(ap,false,false)) return 0;
 
 	j = json_dumps(ap->info,0);
+	dprintf(dlevel,"j: %p\n", j);
 	if (j) {
 		v = json_parse(j);
 		free(j);
+		dprintf(dlevel,"v: %p\n", v);
 		if (v) json_object_set_value(results,"info",v);
 	}
 	return 0;
@@ -349,14 +374,20 @@ int cf_agent_getconfig(void *ctx, list args, char *errmsg, json_object_t *result
 	return 0;
 }
 
+static int cf_agent_repub(void *ctx, list args, char *errmsg, json_object_t *results) {
+	return agent_repub(ctx);
+}
+
+
 int cf_agent_log_open(void *ctx, list args, char *errmsg, json_object_t *results) {
 	solard_agent_t *ap = ctx;
+	config_arg_t *arg;
 	char *filename;
 	extern int logopts;
 
 	dprintf(dlevel,"count: %d\n", list_count(args));
-	list_reset(args);
-	filename = list_get_next(args);
+	arg = list_get_first(args);
+	filename = arg->argv[0];
 	dprintf(dlevel,"filename: %s\n", filename);
 	if (strcmp(filename,"stdout") == 0) filename = 0;
 	log_open(ap->instance_name,filename,logopts);
@@ -368,12 +399,13 @@ int cf_agent_log_open(void *ctx, list args, char *errmsg, json_object_t *results
 /* man this is dangerous */
 int cf_agent_exec(void *ctx, list args, char *errmsg) {
 	solard_agent_t *ap = ctx;
+	config_arg_t *arg;
 	char *string;
 	extern int logopts;
 
 	dprintf(dlevel,"count: %d\n", list_count(args));
-	list_reset(args);
-	string = list_get_next(args);
+	arg = list_get_first(args);
+	string = arg->argv[0];
 	dprintf(dlevel,"string: %s\n", string);
 	if (JS_EngineExecString(ap->js.e, string)) {
 		sprintf(errmsg,"unable to execute");
@@ -386,6 +418,7 @@ int cf_agent_exec(void *ctx, list args, char *errmsg) {
 
 static int agent_config_get_value(void *ctx, list args, char *errmsg, json_object_t *results) {
 	solard_agent_t *ap = ctx;
+	config_arg_t *arg;
 	char *name;
 	config_property_t *p;
 	json_value_t *v;
@@ -393,7 +426,8 @@ static int agent_config_get_value(void *ctx, list args, char *errmsg, json_objec
 	/* handle special cases of info/config */
 	dprintf(dlevel,"args count: %d\n", list_count(args));
 	list_reset(args);
-	while((name = list_get_next(args)) != 0) {
+	while((arg = list_get_next(args)) != 0) {
+		name = arg->argv[0];
 		dprintf(dlevel,"name: %s\n", name);
 		p = config_find_property(ap->cp, name);
 		dprintf(dlevel,"p: %p\n", p);
@@ -441,13 +475,12 @@ static int agent_configfile_set(void *ctx, config_property_t *p, void *old_value
 	return 0;
 }
 
-static int agent_run_set(void *ctx, config_property_t *p, void *old_value) {
 #ifdef JS
+static int agent_run_set(void *ctx, config_property_t *p, void *old_value) {
 	solard_agent_t *ap = ctx;
 
 	dprintf(dlevel,"run_scripts: %d\n", ap->js.run_scripts);
 	if (!ap->js.run_scripts) return 0;
-	// We dont know what the old value was...
 	if (!ap->js.init_run) {
 		dprintf(dlevel,"init_script: %s\n", ap->js.init_script);
 		if (agent_script_exists(ap,ap->js.init_script) && agent_start_script(ap,ap->js.init_script)) {
@@ -457,7 +490,7 @@ static int agent_run_set(void *ctx, config_property_t *p, void *old_value) {
 		}
 		ap->js.init_run = true;
 	}
-	if (!ap->js.start_run) {
+	if (!ap->js.start_run && check_state(ap,SOLARD_AGENT_STATE_RUNNING)) {
 		dprintf(dlevel,"start_script: %s\n", ap->js.start_script);
 		if (agent_script_exists(ap,ap->js.start_script) && agent_start_script(ap,ap->js.start_script)) {
 			log_error("agent_run_set: start_script failed\n");
@@ -466,13 +499,12 @@ static int agent_run_set(void *ctx, config_property_t *p, void *old_value) {
 		}
 		ap->js.start_run = true;
 	}
-#endif
 	return 0;
 }
 
-#ifdef JS
 static int set_script_dir(void *ctx, config_property_t *p, void *old_value) {
 	solard_agent_t *ap = ctx;
+	char *old_dir = (old_value ? old_value : "");
 
 	/* Set script_dir if empty */
 	dprintf(dlevel,"script_dir(%d): %s\n", strlen(ap->js.script_dir), ap->js.script_dir);
@@ -480,6 +512,12 @@ static int set_script_dir(void *ctx, config_property_t *p, void *old_value) {
 		strncpy(ap->js.script_dir,ap->agent_libdir,sizeof(ap->js.script_dir)-1);
 		fixpath(ap->js.script_dir,sizeof(ap->js.script_dir));
 		dprintf(dlevel,"NEW script_dir(%d): %s\n", strlen(ap->js.script_dir), ap->js.script_dir);
+	}
+	dprintf(dlevel,"ap->js.e: %p\n", ap->js.e);
+	if (strcmp(ap->js.script_dir,old_dir) != 0) {
+		/* [re]run init+start scripts */
+		ap->js.init_run = ap->js.start_run = false;
+		agent_run_set(ap,p,0);
 	}
 	return 0;
 }
@@ -499,6 +537,9 @@ config_property_t *agent_get_props(solard_agent_t *ap) {
 		{ "run_count", DATA_TYPE_INT, &ap->run_count, 0, 0, CONFIG_FLAG_READONLY },
 		{ "read_count", DATA_TYPE_INT, &ap->read_count, 0, 0, CONFIG_FLAG_READONLY },
 		{ "write_count", DATA_TYPE_INT, &ap->write_count, 0, 0, CONFIG_FLAG_READONLY },
+#ifdef MQTT
+		{ "purge", DATA_TYPE_BOOL, &ap->purge, 0, "true", 0 },
+#endif
 #ifdef JS
 		{ "rtsize", DATA_TYPE_INT, &ap->js.rtsize, 0, 0, CONFIG_FLAG_READONLY },
 		{ "stacksize", DATA_TYPE_INT, &ap->js.stksize, 0, 0, CONFIG_FLAG_READONLY },
@@ -523,8 +564,7 @@ static int agent_startup(solard_agent_t *ap, char *mqtt_info, char *influx_info,
 	config_function_t agent_funcs[] = {
 		{ "ping", cf_agent_ping, ap, 0 },
 		{ "exit", cf_agent_exit, ap, 0 },
-		{ "get_info", cf_agent_getinfo, ap, 0 },
-		{ "get_config", cf_agent_getconfig, ap, 0 },
+		{ "repub", cf_agent_repub, ap, 0 },
 		{ "get", agent_config_get_value, ap, 1 },
 		{ "set", agent_service_set, ap, 2 },
 		{ "clear", agent_service_clear, ap, 1 },
@@ -550,7 +590,7 @@ static int agent_startup(solard_agent_t *ap, char *mqtt_info, char *influx_info,
 	agent_props = agent_get_props(ap);
 	dprintf(dlevel,"agent_props: %p\n", agent_props);
 	if (!agent_props) return 1;
-//	dprintf(dlevel,"driver_props: %p\n", driver_props);
+	dprintf(dlevel,"driver_props: %p\n", driver_props);
 	ap->props = config_combine_props(driver_props,agent_props);
 	dprintf(dlevel,"props: %p\n", ap->props);
 	ap->funcs = config_combine_funcs(driver_funcs,agent_funcs);
@@ -635,18 +675,22 @@ void agent_destroy_agent(solard_agent_t *ap) {
 #ifdef JS
 	if (ap->js.props) free(ap->js.props);
 	if (ap->js.funcs) free(ap->js.funcs);
+//	dprintf(dlevel,"roots: %p\n", ap->js.roots);
 	if (ap->js.roots) {
 		struct js_agent_rootinfo *ri;
 
+//		dprintf(dlevel,"roots count: %d\n",list_count(ap->js.roots));
 		list_reset(ap->js.roots);
 		while((ri = list_get_next(ap->js.roots)) != 0) {
-			dprintf(dlevel,"removing root: %s\n", ri->name);
+//			dprintf(dlevel,"removing root: %s\n", ri->name);
 			JS_RemoveRoot(ri->cx,ri->vp);
 			JS_free(ri->cx,ri->name);
 		}
 		list_destroy(ap->js.roots);
-        }
-	if (ap->js.e) JS_EngineDestroy(ap->js.e);
+	}
+	/* XXX dont destroy engine if NOJS flag is set */
+	dprintf(dlevel,"ap->js.e: %p, NOJS: %d\n", ap->js.e, (ap->flags & AGENT_FLAG_NOJS) != 0);
+	if (ap->js.e && (ap->flags & AGENT_FLAG_NOJS) == 0) JS_EngineDestroy(ap->js.e);
 #endif
 	if (ap->e) event_destroy(ap->e);
 	if (ap->aliases) list_destroy(ap->aliases);
@@ -686,6 +730,7 @@ solard_agent_t *agent_init(int argc, char **argv, char *agent_version, opt_proct
 	char jsexec[4096];
 	char script[256];
 	char script_dir[256];
+	int run_scripts;
 	int rtsize,stksize,noscript,nojs;
 #endif
 #ifdef MQTT
@@ -773,7 +818,8 @@ solard_agent_t *agent_init(int argc, char **argv, char *agent_version, opt_proct
 	if (nojs) flags |= AGENT_FLAG_NOJS;
 	ap->js.rtsize = rtsize;
 	ap->js.stksize = stksize;
-	ap->js.run_scripts = (noscript == 0);
+	run_scripts = (noscript == 0);
+	ap->js.run_scripts = false;
 	ap->js.roots = list_create();
 #endif
 //	ap->interval = interval;
@@ -795,7 +841,7 @@ solard_agent_t *agent_init(int argc, char **argv, char *agent_version, opt_proct
 	if (ap->flags & AGENT_FLAG_AUTOCONFIG && !config_from_mqtt && !strlen(configfile)) {
 		char *names[4];
 		char *types[] = { "json", "conf", 0 };
-		char path[256];
+		char path[512];
 		int c,i,j,f;
 
 		f = c = 0;
@@ -836,7 +882,8 @@ solard_agent_t *agent_init(int argc, char **argv, char *agent_version, opt_proct
 //	if (interval > 0) ap->interval = interval;
 
 #ifdef JS
-	dprintf(dlevel,">>>> ap->js.e: %p\n", ap->js.e);
+	ap->js.run_scripts = run_scripts;
+	dprintf(dlevel,"ap->js.e: %p\n", ap->js.e);
 	if (ap->js.e) {
 		/* script_dir from commanline overrides config */
 		if (strlen(script_dir)) strcpy(ap->js.script_dir,script_dir);
@@ -857,6 +904,7 @@ solard_agent_t *agent_init(int argc, char **argv, char *agent_version, opt_proct
 				log_error("agent_init: init_script failed\n");
 				goto agent_init_error;
 			}
+			ap->js.init_run = true;
 		}
 
 		/* if specified, Execute javascript file then exit */
@@ -904,12 +952,16 @@ int agent_run(solard_agent_t *ap) {
 	last_read = 0;
 #ifdef JS
 	/* Do a GC before we start */
+	dprintf(dlevel,"Cleaning up...\n");
 	JS_EngineCleanup(ap->js.e);
+	dprintf(dlevel,"back...\n");
 #endif
 	peak = last_peak = last_used = 0;
 	set_state(ap,SOLARD_AGENT_STATE_RUNNING);
 	ap->run_count = ap->read_count = ap->write_count = 0;
+	dprintf(dlevel,"Starting...\n");
 	agent_event(ap,"Agent","Start");
+	dprintf(dlevel,"state: %d\n", ap->state);
 	while(check_state(ap,SOLARD_AGENT_STATE_RUNNING)) {
 		/* Call read func */
 		time(&cur);
@@ -957,8 +1009,10 @@ int agent_run(solard_agent_t *ap) {
 		list_reset(ap->mq);
 		while((msg = list_get_next(ap->mq)) != 0) {
 //			solard_message_dump(msg,0);
-			agent_process_message(ap,msg);
-			list_delete(ap->mq,msg);
+			if (agent_process_message(ap,msg) == 0 || ap->purge) {
+				dprintf(dlevel,"deleting message...\n");
+				list_delete(ap->mq,msg);
+			}
 		}
 #endif
 
@@ -1053,6 +1107,7 @@ enum AGENT_PROPERTY_ID {
 	AGENT_PROPERTY_ID_MQTT,
 	AGENT_PROPERTY_ID_MSG,
 	AGENT_PROPERTY_ID_ADDMQ,
+	AGENT_PROPERTY_ID_PURGE,
 #endif
 #ifdef INFLUX
 	AGENT_PROPERTY_ID_INFLUX,
@@ -1119,6 +1174,9 @@ static JSBool js_agent_getprop(JSContext *cx, JSObject *obj, jsval id, jsval *rv
 			break;
 		case AGENT_PROPERTY_ID_ADDMQ:
 			*rval = type_to_jsval(cx,DATA_TYPE_BOOL,&ap->addmq,0);
+			break;
+		case AGENT_PROPERTY_ID_PURGE:
+			*rval = type_to_jsval(cx,DATA_TYPE_BOOL,&ap->purge,0);
 			break;
 #endif
 #ifdef INFLUX
@@ -1394,14 +1452,16 @@ static JSBool js_agent_callfunc(JSContext *cx, uintN argc, jsval *vp) {
 		return JS_FALSE;
 	}
 	ap = JS_GetPrivate(cx, obj);
+	dprintf(dlevel,"ap: %p\n", ap);
 	if (!ap) {
 		JS_ReportError(cx, "js_agent_callfunc: internal error: private is null!\n");
 		return JS_FALSE;
 	}
-	dprintf(dlevel,"ap: %p\n", ap);
-	if (!ap) return JS_TRUE;
 	dprintf(dlevel,"ap->cp: %p\n", ap->cp);
-	if (!ap->cp) return JS_TRUE;
+	if (!ap->cp) {
+		JS_ReportError(cx, "js_agent_callfunc: internal error: config ptr is null!\n");
+		return JS_FALSE;
+	}
 
 	dprintf(dlevel,"argc: %d\n", argc);
 	return js_config_callfunc(ap->cp, cx, argc, vp);
@@ -1472,7 +1532,10 @@ static JSBool js_agent_ctor(JSContext *cx, JSObject *obj, uintN argc, jsval *arg
 	if (pobj) {
 		props = js_config_obj2props(cx, pobj, dobj);
 		dprintf(dlevel,"props: %p\n", props);
-		if (!props) return JS_FALSE;
+		if (!props) {
+			JS_ReportError(cx, "agent_ctor: props is null!");
+			return JS_FALSE;
+		}
 //		config_dump_props(props);
 	} else {
 		props = 0;
@@ -1482,7 +1545,10 @@ static JSBool js_agent_ctor(JSContext *cx, JSObject *obj, uintN argc, jsval *arg
 	if (0 && fobj) {
 		funcs = js_config_obj2funcs(cx, fobj);
 		dprintf(dlevel,"funcs: %p\n", funcs);
-		if (!funcs) return JS_FALSE;
+		if (!funcs) {
+			JS_ReportError(cx, "agent_ctor: funcs is null!");
+			return JS_FALSE;
+		}
 	} else {
 		funcs = 0;
 	}
@@ -1493,18 +1559,41 @@ static JSBool js_agent_ctor(JSContext *cx, JSObject *obj, uintN argc, jsval *arg
 		for(i=0; i < count; i++) JS_free(cx, args[i]);
 		JS_free(cx,args);
 	}
+	/* add the funcs post-init */
+	if (ap && fobj) {
+		JSObject *config_obj;
+		jsval af_argv[] = { OBJECT_TO_JSVAL(dobj), OBJECT_TO_JSVAL(fobj) };
+		jsval af_rval;
+
+		config_obj = JSVAL_TO_OBJECT(ap->js.config_val);
+		dprintf(dlevel,"config_obj: %p\n", config_obj);
+		if (!config_obj) {
+			JS_ReportError(cx, "agent_ctor: unable to get config object");
+			return JS_FALSE;
+		}
+		js_config_add_funcs(cx, config_obj, 2, af_argv, &af_rval);
+		/* have to repub info */
+		agent_get_info(ap,false,true);
+	}
+
 	if (props) JS_free(cx,props);
 	JS_free(cx,name);
 	dprintf(dlevel,"ap: %p\n", ap);
 	if (!ap) {
-		JS_ReportError(cx, "agent_init returned null");
+		JS_ReportError(cx, "agent_init failed");
 		return JS_FALSE;
+	} else {
+		/* Driver's init func must create agent object */
+		dprintf(dlevel,"agent_val: %x\n", ap->js.agent_val);
+		*rval = ap->js.agent_val;
+		return JS_TRUE;
 	}
 
-	/* Driver's init func must create agent object */
-	dprintf(dlevel,"agent_val: %x\n", ap->js.agent_val);
-	*rval = ap->js.agent_val;
+#if 0
+	/* XXX rval is ignored - set private for the obj */
+	JS_SetPrivate(cx,obj,ap);
 	return JS_TRUE;
+#endif
 }
 
 JSObject *js_InitAgentClass(JSContext *cx, JSObject *global_object) {
@@ -1515,6 +1604,7 @@ JSObject *js_InitAgentClass(JSContext *cx, JSObject *global_object) {
 		{ "mqtt", AGENT_PROPERTY_ID_MQTT, JSPROP_ENUMERATE },
 		{ "messages", AGENT_PROPERTY_ID_MSG, JSPROP_ENUMERATE | JSPROP_READONLY },
 		{ "addmq", AGENT_PROPERTY_ID_ADDMQ, JSPROP_ENUMERATE },
+		{ "purge", AGENT_PROPERTY_ID_PURGE, JSPROP_ENUMERATE },
 #endif
 #ifdef INFLUX
 		{ "influx", AGENT_PROPERTY_ID_INFLUX, JSPROP_ENUMERATE },
@@ -1538,7 +1628,7 @@ JSObject *js_InitAgentClass(JSContext *cx, JSObject *global_object) {
 	};
 
 	dprintf(2,"creating %s class\n",js_agent_class.name);
-	obj = JS_InitClass(cx, global_object, 0, &js_agent_class, js_agent_ctor, 1, agent_props, agent_funcs, 0, 0);
+	obj = JS_InitClass(cx, global_object, 0, &js_agent_class, js_agent_ctor, 3, agent_props, agent_funcs, 0, 0);
 	if (!obj) {
 		JS_ReportError(cx,"unable to initialize %s class", js_agent_class.name);
 		return 0;

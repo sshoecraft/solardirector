@@ -155,7 +155,7 @@ static JSBool js_load(JSContext *cx, uintN argc, jsval *vp) {
 //printf("filename: %s\n", filename);
 		strncpy(fixedname,filename,sizeof(fixedname)-1);
 		JS_free(cx,filename);
-		fixpath(fixedname,sizeof(fixedname)-1);
+//		fixpath(fixedname,sizeof(fixedname)-1);
 		if (_JS_EngineExec(e, fixedname, cx, 0, 0, 0, 0)) {
 //			JS_ReportError(cx, "load(%s) failed\n",fixedname);
 			return JS_FALSE;
@@ -195,7 +195,7 @@ static JSBool js_run(JSContext *cx, uintN argc, jsval *vp) {
 	if (!obj) return JS_FALSE;
 	e = JS_GetPrivate(cx, obj);
 	strncpy(fixedname,name,sizeof(fixedname)-1);
-	fixpath(fixedname,sizeof(fixedname)-1);
+//	fixpath(fixedname,sizeof(fixedname)-1);
 	req = 1;
 	if (!func) {
 		register char *p;
@@ -214,7 +214,9 @@ static JSBool js_run(JSContext *cx, uintN argc, jsval *vp) {
 	r =  _JS_EngineExec(e, fixedname, cx, func, 0, 0, req);
 	JS_free(cx,name);
 	if (argc > 1) JS_free(cx,func);
-        return (r ? JS_FALSE : JS_TRUE);
+	*vp = INT_TO_JSVAL(r);
+//        return (r ? JS_FALSE : JS_TRUE);
+	return JS_TRUE;
 }
 
 static JSBool js_system(JSContext *cx, uintN argc, jsval *vp) {
@@ -472,7 +474,7 @@ static JSBool js_global_log_write(JSContext *cx, uintN argc, jsval *vp) {
 		return JS_FALSE;
 	}
 	jsval_to_type(DATA_TYPE_INT,&flags,sizeof(flags),cx,argv[0]);
-	dprintf(0,"flags: %x\n", flags);
+	dprintf(dlevel,"flags: %x\n", flags);
 	return js_log_write(flags,cx,argc,vp);
 }
 

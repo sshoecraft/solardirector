@@ -36,33 +36,22 @@ else
 	txt=0
 fi
 if test $txt -eq 0; then
-echo "From: solard@$(hostname) <Solar System>" > $tmp
+echo "From: solardirector@$(uname -n)" > $tmp
 echo "To: ${addr}" >> $tmp
 fi
 echo "Content-Type: text/html" >> $tmp
 echo "MIME-Version: 1.0" >> $tmp
 #echo "Subject: " >> $tmp
-test $txt -eq 0 &&
-echo "Subject: SOLAR SYSTEM NOTIFICATION" >> $tmp
+test $txt -eq 0 && echo "Subject: SOLAR SYSTEM NOTIFICATION" >> $tmp
 echo "" >> $tmp
 echo "<pre><font size=\"2\"><tt><font face=\"Courier New, Courier, mono\">" >> $tmp
-for i in $(seq 1 $#)
+i=0
+while test $i -lt $#
 do
-        v="echo \$${i}"
-        eval $v >> $tmp
+	eval line=\${$i}
+	echo $line | xargs >> $tmp
+	i=`expr $i + 1`
 done
 echo "</font></tt></pre>" >> $tmp
-cat $tmp
 cat $tmp | /usr/sbin/sendmail $addr
-exit 0
-
-echo "From: solard@$(hostname)" > $tmp
-echo "To: ${addr}" >> $tmp
-echo "" >> $tmp
-for i in $(seq 1 $#)
-do
-        v="echo \$${i}"
-        eval $v >> $tmp
-done
-cat $tmp | /usr/sbin/sendmail -t
 exit 0

@@ -15,18 +15,16 @@ LICENSE file in the root directory of this source tree.
 extern char *sd_version_string;
 
 static void *sc_new(void *driver, void *driver_handle) {
-	sc_session_t *s;
+	sc_session_t *sc;
 
-	s = malloc(sizeof(*s));
-	if (!s) {
-		perror("sc_new: malloc");
+	sc = calloc(sizeof(*sc),1);
+	if (!sc) {
+		log_syserr("sc_new: calloc");
 		return 0;
 	}
-	memset(s,0,sizeof(*s));
-//	s->running = -1;
 
-	dprintf(dlevel,"returning: %p\n", s);
-	return s;
+	dprintf(dlevel,"returning: %p\n", sc);
+	return sc;
 }
 
 static int sc_destroy(void *h) {
@@ -50,7 +48,6 @@ static int sc_destroy(void *h) {
 #endif
 
 	if (s->ap) agent_destroy_agent(s->ap);
-	if (s->c) client_destroy_client(s->c);
 
 	dprintf(dlevel,"freeing session!\n");
         free(s);
@@ -65,16 +62,6 @@ static int sc_open(void *h) {
 	dprintf(dlevel,"s: %p\n", s);
 
 	r = 0;
-#if 0
-	if (!check_state(s,SI_STATE_OPEN)) {
-		if (s->can->open(s->can_handle) == 0)
-			set_state(s,SI_STATE_OPEN);
-		else {
-			log_error("error opening %s device %s:%s\n", s->can_transport, s->can_target, s->can_topts);
-			r = 1;
-		}
-	}
-#endif
 	dprintf(dlevel,"returning: %d\n", r);
 	return r;
 }
@@ -83,35 +70,8 @@ static int sc_close(void *handle) {
 	sc_session_t *s = handle;
 
 	dprintf(dlevel,"s: %p\n", s);
-//	if (check_state(s,SI_STATE_OPEN) && s->can->close(s->can_handle) == 0) clear_state(s,SI_STATE_OPEN);
 	return 0;
 }
-
-#if 0
-#ifdef INFLUX
-static double _get_influx_value(influx_session_t *s, char *query) {
-	influx_series_t *sp;
-	influx_value_t *vp;
-	double value;
-	list results;
-
-	if (influx_query(s, query)) return 0;
-	results = influx_get_results(s);
-	dprintf(dlevel,"results: %p\n", results);
-	if (!results) return 0;
-	dprintf(dlevel,"results count: %d\n", list_count(results));
-	list_reset(results);
-	sp = list_get_next(results);
-	if (!sp) return 0;
-	dprintf(dlevel,"sp->values: %p\n", sp->values);
-	if (!sp->values) return 0;
-	vp = &sp->values[0][1];
-	conv_type(DATA_TYPE_FLOAT,&value,0,vp->type,vp->data,vp->len);
-	dprintf(dlevel,"value: %f\n", value);
-	return value;
-}
-#endif
-#endif
 
 static int sc_read(void *handle, uint32_t *control, void *buf, int buflen) {
 //	sc_session_t *s = handle;

@@ -10,7 +10,7 @@ LICENSE file in the root directory of this source tree.
 #define dlevel 2
 #include "debug.h"
 
-#include "solard.h"
+#include "sc.h"
 #include <sys/types.h>
 #include <sys/stat.h>
 
@@ -32,7 +32,7 @@ LICENSE file in the root directory of this source tree.
 	{ "topic", DATA_TYPE_STRING, info->topic, sizeof(info->topic)-1, "", 0 }, \
 	{ 0 }
 
-static void sd_agentinfo_dump(solard_agentinfo_t *info) {
+static void sd_agentinfo_dump(sc_agent_t *info) {
 	config_property_t props[] = { AGENTINFO_PROPS(info->path,info->conf,info->log,info) };
 	config_property_t *p;
 	char value[1024];
@@ -44,7 +44,7 @@ static void sd_agentinfo_dump(solard_agentinfo_t *info) {
 	}
 }
 
-int agent_get_config(solard_session_t *sd, solard_agentinfo_t *info) {
+int agent_get_config(sc_session_t *sd, sc_agent_t *info) {
 	char path[256],conf[256],log[256];
 	config_property_t props[] = { AGENTINFO_PROPS(path,conf,log,info) };
 	config_section_t *s;
@@ -61,7 +61,7 @@ int agent_get_config(solard_session_t *sd, solard_agentinfo_t *info) {
 	return 0;
 }
 
-int agent_set_config(solard_session_t *sd, solard_agentinfo_t *info) {
+int agent_set_config(sc_session_t *sd, sc_agent_t *info) {
 	char path[256],conf[256],log[256];
 //	config_property_t props[] = { AGENTINFO_PROPS(path,conf,log,info) };
 	config_section_t *s;
@@ -81,8 +81,8 @@ int agent_set_config(solard_session_t *sd, solard_agentinfo_t *info) {
 	return 0;
 }
 
-solard_agentinfo_t *agent_find(solard_session_t *s, char *name) {
-	solard_agentinfo_t *ap;
+sc_agent_t *agent_find(sc_session_t *s, char *name) {
+	sc_agent_t *ap;
 
 	dprintf(5,"name: %s\n",name);
 	list_reset(s->agents);
@@ -93,7 +93,8 @@ solard_agentinfo_t *agent_find(solard_session_t *s, char *name) {
 	return 0;
 }
 
-int agent_start(solard_session_t *s, solard_agentinfo_t *info) {
+int agent_start(sc_session_t *s, sc_agent_t *info) {
+#if 0
 	char *args[64],prog[256],configfile[256],logfile[512];
 #ifdef MQTT
 	char mqtt_info[256];
@@ -154,10 +155,11 @@ int agent_start(solard_session_t *s, solard_agentinfo_t *info) {
 	}
 	clear_state(info,AGENTINFO_STATUS_MASK);
 	time(&info->started);
+#endif
 	return 0;
 }
 
-int agent_stop(solard_session_t *s, solard_agentinfo_t *info) {
+int agent_stop(sc_session_t *s, sc_agent_t *info) {
 	int status,r;
 
 	/* If running, kill it */
@@ -174,12 +176,13 @@ int agent_stop(solard_session_t *s, solard_agentinfo_t *info) {
 	return r;
 }
 
-void agent_warning(solard_session_t *s, solard_agentinfo_t *info, int num) {
+#if 0
+void agent_warning(sc_session_t *s, sc_agent_t *info, int num) {
 	set_state(info,AGENTINFO_STATUS_WARNED);
 	log_write(LOG_WARNING,"Agent %s has not reported in %d seconds\n",info->name,num);
 }
 
-void agent_error(solard_session_t *s, solard_agentinfo_t *info, int secs) {
+void agent_error(sc_session_t *s, sc_agent_t *info, int secs) {
 	set_state(info,AGENTINFO_STATUS_ERROR);
 	if (!info->managed || info->pid < 1) {
 		log_write(LOG_ERROR,"%s has not reported in %d seconds, considered lost\n", info->name,secs);
@@ -189,8 +192,7 @@ void agent_error(solard_session_t *s, solard_agentinfo_t *info, int secs) {
 	solard_kill(info->pid);
 }
 
-#if 0
-static time_t get_updated(solard_session_t *s, solard_agentinfo_t *info) {
+static time_t get_updated(sc_session_t *s, sc_agent_t *info) {
 	time_t last_update;
 
 	dprintf(5,"name: %s\n", ap->name);
@@ -226,7 +228,8 @@ static time_t get_updated(solard_session_t *s, solard_agentinfo_t *info) {
 }
 #endif
 
-void agent_check(solard_session_t *s, solard_agentinfo_t *info) {
+#if 0
+void agent_check(sc_session_t *s, sc_agent_t *info) {
 	time_t cur,diff,last;
 
 	time(&cur);
@@ -272,9 +275,10 @@ void agent_check(solard_session_t *s, solard_agentinfo_t *info) {
 			agent_warning(s,info,diff);
 	}
 }
+#endif
 
 #if 0
-int agent_get_role(solard_session_t *s, solard_agentinfo_t *info) {
+int agent_get_role(sc_session_t *s, sc_agent_t *info) {
 	char temp[128],configfile[256],logfile[256],*args[32], *output, *p;
 	cfg_info_t *cfg;
 	json_value_t *v;

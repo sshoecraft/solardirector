@@ -81,22 +81,25 @@ json_value_t *jbd_get_info(jbd_session_t *s) {
 	if (!s) return 0;
 
 	/* Get the info */
-	if (jbd_open(s) < 0) return 0;
-	have_info = (jbd_get_hwinfo(s) ? 0 : 1);
+	dprintf(1,"tp: %p\n", s->tp);
+	if (s->tp) {
+		if (jbd_open(s) < 0) return 0;
+		have_info = (jbd_get_hwinfo(s) ? 0 : 1);
 
-	/* Get balance info */
-	if (jbd_eeprom_open(s) < 0) return 0;
-	bytes = jbd_rw(s, JBD_CMD_READ, JBD_REG_FUNCMASK, data, sizeof(data));
-	if (bytes < 0) return 0;
-	val = jbd_getshort(data);
-	dprintf(1,"val: %d\n", val);
-	if (val & JBD_FUNC_CHG_BALANCE)
-		s->balancing = 2;
-	else if (val & JBD_FUNC_BALANCE_EN)
-		s->balancing = 1;
-	else
-		s->balancing = 0;
-	jbd_eeprom_close(s);
+		/* Get balance info */
+		if (jbd_eeprom_open(s) < 0) return 0;
+		bytes = jbd_rw(s, JBD_CMD_READ, JBD_REG_FUNCMASK, data, sizeof(data));
+		if (bytes < 0) return 0;
+		val = jbd_getshort(data);
+		dprintf(1,"val: %d\n", val);
+		if (val & JBD_FUNC_CHG_BALANCE)
+			s->balancing = 2;
+		else if (val & JBD_FUNC_BALANCE_EN)
+			s->balancing = 1;
+		else
+			s->balancing = 0;
+		jbd_eeprom_close(s);
+	}
 
 	o = json_create_object();
 	if (!o) return 0;

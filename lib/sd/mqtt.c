@@ -15,11 +15,13 @@ LICENSE file in the root directory of this source tree.
 #include <MQTTClient.h>
 #include <MQTTAsync.h>
 #include <stdlib.h>
+#include <unistd.h>
 #include "mqtt.h"
 #include "utils.h"
 #include "config.h"
 #include "uuid.h"
 
+#define DEFAULT_PORT "1883"
 #define TIMEOUT 10000L
 static list mqtt_sessions = 0;
 #ifdef JS
@@ -97,6 +99,19 @@ static void mqtt_conlost(void *ctx, char *cause) {
 
 	dprintf(dlevel,"cause: %s\n", cause);
 	s->connected = false;
+}
+
+static void mqtt_get_reason(mqtt_session_t *s, int rc) {
+	char reason[2048];
+	char *p = (char *)MQTTReasonCode_toString(rc);
+
+	*reason = 0;
+	dprintf(dlevel,"p: %p\n", p);
+	if (p) dprintf(dlevel,"p(%d): %s\n", strlen(p), p);
+	if (p && strlen(p)) strncpy(reason,p,sizeof(reason)-1);
+	dprintf(dlevel,"reason(%d): %s\n", strlen(reason), reason);
+	if (!strlen(reason)) sprintf(reason,"rc: %d",rc);
+	sprintf(s->errmsg,"MQTTClient_connect: %s", reason);
 }
 
 static int mqtt_getmsg(void *ctx, char *topicName, int topicLen, MQTTClient_message *message) {
@@ -208,6 +223,7 @@ struct mqtt_session *mqtt_new(bool v3, mqtt_callback_t *cb, void *ctx) {
 
 int mqtt_set_ssl(mqtt_session_t *s, mqtt_sslinfo_t *info) {
 #if 0
+		mqtt_destroy_session(s);
 char 	struct_id [4]
 int 	struct_version
 const char * 	trustStore
@@ -248,6 +264,7 @@ int mqtt_connect(mqtt_session_t *s, int interval) {
 		will_opts.qos = 1;
 	}
 
+	dprintf(dlevel,"uri: %s\n", s->uri);
 	if (strncmp(s->uri,"ssl://",6) == 0) {
 		have_ssl = true;
 		ssl_opts.sslVersion = MQTT_SSL_VERSION_TLS_1_2;
@@ -298,8 +315,7 @@ int mqtt_connect(mqtt_session_t *s, int interval) {
 			strcpy(s->errmsg,"MQTT: bad username or password");
 			return 1;
 		} else {
-			char *p = (char *)MQTTReasonCode_toString(rc);
-			sprintf(s->errmsg,"MQTTClient_connect: %s",p ? p : "cant connect");
+			mqtt_get_reason(s,rc);
 		}
 		return 1;
 	} else if (strlen(s->lwt_topic)) {
@@ -348,16 +364,17 @@ int mqtt_resub(mqtt_session_t *s) {
 }
 
 int mqtt_reconnect(mqtt_session_t *s) {
+	int ldlevel = dlevel;
 
 	if (!s) return 1;
-	dprintf(dlevel,"enabled: %d\n", s->enabled);
+	dprintf(ldlevel,"enabled: %d\n", s->enabled);
 	if (!s->enabled) return 0;
 
-	dprintf(dlevel,"reconnecting...\n");
-	if (mqtt_disconnect(s,5)) return 1;
+	dprintf(ldlevel,"reconnecting...\n");
+	if (mqtt_disconnect(s,TIMEOUT)) return 1;
 	if (mqtt_connect(s,20)) return 1;
 	if (mqtt_resub(s)) return 1;
-	dprintf(dlevel,"reconnect done!\n");
+	dprintf(ldlevel,"reconnect done!\n");
 	return 0;
 }
 
@@ -487,6 +504,7 @@ again:
 	dprintf(dlevel,"rc: %d\n", rc);
 	if (rc != MQTTCLIENT_SUCCESS) {
 		dprintf(dlevel,"publish error\n");
+		mqtt_get_reason(s,rc);
 		if (!retry) {
 			mqtt_reconnect(s);
 			retry = 1;
@@ -629,11 +647,60 @@ int mqtt_unsubmany(mqtt_session_t *s, int count, char **topic) {
 	return rc;
 }
 
+static int mqtt_set_uri(void *ctx, config_property_t *p, void *old_value) {
+	mqtt_session_t *s = ctx;
+	char *new_uri = (p->dest ? p->dest : "");
+	char *old_uri = (old_value ? old_value : "");
+	char fixed_uri[MQTT_URI_LEN],*ptr;
+
+	dprintf(dlevel,"set_uri: new: %s, old: %s\n", new_uri, old_uri);
+	if (strcmp(new_uri,old_uri) == 0) return 0;
+	ptr = strstr(new_uri,"://");
+	dprintf(dlevel,"ptr: %p\n", ptr);
+	if (!ptr) {
+		ptr = strchr(new_uri,':');
+		dprintf(dlevel,"ptr: %p\n", ptr);
+		if (ptr) {
+			dprintf(dlevel,"ptr[1]: %c\n", ptr[1]);
+		}
+		sprintf(fixed_uri,"tcp://%s:%s",new_uri,DEFAULT_PORT);
+		dprintf(dlevel,"fixed_uri: %s\n", fixed_uri);
+		strcpy(s->uri,fixed_uri);
+	}
+//	if (strncmp(new_uri,"tcp://",6) == 0 || strncmp(new_uri,"ssl://",6) == 0) {
+	dprintf(dlevel,"connected: %d\n", s->connected);
+	if (s->connected) {
+		/* Set offline on old server */
+		mqtt_pub(s,s->lwt_topic,"Offline",1,1);
+		/* disconnect from old server */
+		mqtt_disconnect(s,TIMEOUT);
+		/* destroy old client */
+	        if (s->c) MQTTClient_destroy(&s->c);
+		/* create new client (with new uri) */
+		mqtt_newclient(s);
+		/* connect and resub */
+		mqtt_reconnect(s);
+		// send a message to any clients/agents to repub
+		dprintf(dlevel,"cb: %p\n", s->cb);
+		if (s->cb) {
+			char *topic;
+			char *msg = "{ \"repub\":[]}";
+
+			dprintf(dlevel,"sub count: %d\n", list_count(s->subs));
+			list_reset(s->subs);
+			while((topic = list_get_next(s->subs)) != 0) {
+				s->cb(s->ctx, topic, msg, strlen(msg), "");
+			}
+		}
+	}
+	return 0;
+}
+
 void mqtt_add_props(mqtt_session_t *s, config_t *cp, char *name) {
 	config_property_t mqtt_props[] = {
-		/* name, type, dest, dsize, def, flags, scope, values, labels, units, scale, precision */
+		/* name, type, dest, dsize, def, flags, scope, values, labels, units, scale, precision, trigger, arg */
 		{ "mqtt_enabled", DATA_TYPE_BOOL, &s->enabled, sizeof(s->enabled)-1, "yes", 0, 0, 0, 0, 0, 0, 0 },
-		{ "mqtt_uri", DATA_TYPE_STRING, s->uri, sizeof(s->uri)-1, "tcp://localhost:1883", 0, 0, 0, 0, 0, 0, 0 },
+		{ "mqtt_uri", DATA_TYPE_STRING, s->uri, sizeof(s->uri)-1, "tcp://localhost:"DEFAULT_PORT, 0, 0, 0, 0, 0, 0, 0, mqtt_set_uri, s },
 		{ "mqtt_clientid", DATA_TYPE_STRING, s->clientid, sizeof(s->clientid)-1, "", 0, 0, 0, 0, 0, 0, 0 },
 		{ "mqtt_username", DATA_TYPE_STRING, s->username, sizeof(s->username)-1, "", 0, 0, 0, 0, 0, 0, 0 },
 		{ "mqtt_password", DATA_TYPE_STRING, s->password, sizeof(s->password)-1, "", 0, 0, 0, 0, 0, 0, 0 },
@@ -1028,7 +1095,7 @@ JSObject * js_InitMQTTClass(JSContext *cx, JSObject *global_object) {
 		{ "password",		MQTT_PROPERTY_ID_PASSWORD,	JSPROP_ENUMERATE },
 		{ "errmsg",		MQTT_PROPERTY_ID_ERRMSG,	JSPROP_ENUMERATE | JSPROP_READONLY },
 		{ "connected",		MQTT_PROPERTY_ID_CONNECTED,	JSPROP_ENUMERATE | JSPROP_READONLY },
-		{ "mq",			MQTT_PROPERTY_ID_MQ,		JSPROP_ENUMERATE | JSPROP_READONLY },
+//		{ "mq",			MQTT_PROPERTY_ID_MQ,		JSPROP_ENUMERATE | JSPROP_READONLY },
 		{0}
 	};
 	JSFunctionSpec mqtt_funcs[] = {

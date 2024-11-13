@@ -14,7 +14,7 @@ ifeq ($(INFLUX),yes)
 	_OI=.influx
 endif
 LIBNAME=sd$(_NJ)$(_NM)$(_NI)
-SRCS=debug.c types.c list.c conv.c json.c log.c utils.c uuid.c common.c opts.c cfg.c config.c message.c mqtt.c influx.c driver.c can.c ip.c null.c rdev.c serial.c agent.c client.c battery.c pvinverter.c getpath.c daemon.c homedir.c findconf.c buffer.c tmpdir.c exec.c fork.c notify.c dns.c stredit.c websocket.c event.c
+SRCS=debug.c types.c list.c conv.c json.c log.c utils.c uuid.c common.c opts.c cfg.c config.c message.c mqtt.c influx.c driver.c can.c ip.c null.c rdev.c serial.c agent.c client.c battery.c pvinverter.c getpath.c daemon.c homedir.c findconf.c buffer.c tmpdir.c exec.c fork.c notify.c dns.c stredit.c websocket.c event.c location.c
 
 ifeq ($(DEBUG_MEM),yes)
 	SRCS+=debugmem.c

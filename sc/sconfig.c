@@ -14,41 +14,26 @@ LICENSE file in the root directory of this source tree.
 
 extern char *sc_version_string;
 
-static int sc_config_add_function(void *ctx, list args, char *errmsg, json_object_t *results) {
-//	sc_session_t *s = ctx;
-	char **argv, *name, *value;
-//	config_property_t *p;
-
-	dprintf(dlevel,"args count: %d\n", list_count(args));
-	list_reset(args);
-	while((argv = list_get_next(args)) != 0) {
-		name = argv[0];
-		value = argv[1];
-		dprintf(dlevel,"name: %s, value: %s\n", name, value);
-	}
-
-	return 0;
-}
-
-int sc_agent_init(int argc, char **argv, opt_proctab_t *sd_opts, sc_session_t *sd) {
+int sc_agent_init(int argc, char **argv, opt_proctab_t *sd_opts, sc_session_t *sc) {
 	config_property_t sc_props[] = {
-		{ "agents", DATA_TYPE_STRING_LIST, sd->names, 0, 0, 0 },
-		{ "agent_notify_time", DATA_TYPE_INT, &sd->agent_notify, 0, "600", 0, },
-//                        "range", 3, (int []){ 0, 1440, 1 }, 1, (char *[]) { "Dead agent notification timer" }, "S", 1, 0 },
-		{ "agent_error_time", DATA_TYPE_INT, &sd->agent_error, 0, "300", 0, },
+#if 0
+		{ "agent_notify_time", DATA_TYPE_INT, &sc->agent_notify, 0, "600", 0, },
+//			"range", 3, (int []){ 0, 1440, 1 }, 1, (char *[]) { "Dead agent notification timer" }, "S", 1, 0 },
+		{ "agent_error_time", DATA_TYPE_INT, &sc->agent_error, 0, "300", 0, },
 //                        "range", 3, (int []){ 0, 1440, 1 }, 1, (char *[]) { "Agent error timer" }, "S", 1, 0 },
-		{ "agent_warning_time", DATA_TYPE_INT, &sd->agent_warning, 0, "300", 0, },
+		{ "agent_warning_time", DATA_TYPE_INT, &sc->agent_warning, 0, "300", 0, },
 //                        "range", 3, (int []){ 0, 1440, 1 }, 1, (char *[]) { "Agent warning timer" }, "S", 1, 0 },
-		{ "notify", DATA_TYPE_STRING, &sd->notify_path, sizeof(sd->notify_path)-1, "", 0, },
+		{ "notify", DATA_TYPE_BOOL, &sc->notify, 0, "true", 0, },
 //			0, 0, 0, 0, 0, 0, 1, 0 },
-		{0}
-	};
-	config_function_t sc_funcs[] = {
-		{ "add", (config_funccall_t *)sc_config_add_function, sd, 2 },
+		{ "notify_path", DATA_TYPE_STRING, &sc->notify_path, sizeof(sc->notify_path)-1, "", 0, },
+//			0, 0, 0, 0, 0, 0, 1, 0 },
+		{ "battery_temp_min", DATA_TYPE_DOUBLE, &sc->battery_temp_min, 0, "0", 0, },
+		{ "battery_temp_max", DATA_TYPE_DOUBLE, &sc->battery_temp_max, 0, "45", 0, },
+#endif
 		{0}
 	};
 
-	return (agent_init(argc,argv,sc_version_string,sd_opts,&sc_driver,sd,0,sc_props,sc_funcs) == 0);
+	return (agent_init(argc,argv,sc_version_string,sd_opts,&sc_driver,sc,0,sc_props,0) == 0);
 }
 
 static json_value_t *sc_get_info(void *handle) {
@@ -79,29 +64,12 @@ int sc_config(void *h, int req, ...) {
 	va_start(va,req);
 	switch(req) {
 	case SOLARD_CONFIG_INIT:
-		{
-		char mqtt_info[256];
-
+		dprintf(1,"**** INIT *****\n");
 		s->ap = va_arg(va,solard_agent_t *);
-		s->c = client_init(0,0,sc_version_string,0,s->ap->instance_name,CLIENT_FLAG_NOJS,0,0,0,0);
-		dprintf(dlevel,"s->c: %p\n", s->c);
-		if (!s->c) return 1;
-		s->c->addmq = true;
-		mqtt_disconnect(s->c->m,1);
-		mqtt_get_config(mqtt_info,sizeof(mqtt_info),s->ap->m,0);
-		mqtt_parse_config(s->c->m,mqtt_info);
-		mqtt_newclient(s->c->m);
-		mqtt_connect(s->c->m,10);
-		mqtt_resub(s->c->m);
-		dprintf(1,"name: %s\n", s->ap->instance_name);
-		dprintf(1,"s->ap: %p\n", s->ap);
-		r = 0;
-//		r = sc_read_config(s);
-
+		dprintf(dlevel,"s->ap: %p\n", s->ap);
 #ifdef JS
-		if (!r) r = sc_jsinit(s);
+		r = sc_jsinit(s);
 #endif
-		}
 		break;
 	case SOLARD_CONFIG_GET_INFO:
 		{

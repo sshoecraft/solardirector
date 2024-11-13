@@ -144,7 +144,7 @@ int jbd_verify(uint8_t *buf, int len) {
 	pkt_crc = jbd_getshort(&buf[i]);
 	dprintf(5,"my_crc: %x, pkt_crc: %x\n", my_crc, pkt_crc);
 	if (my_crc != pkt_crc) {
-		log_error("CRC ERROR: my_crc: %x, pkt_crc: %x\n", my_crc, pkt_crc);
+		log_error("CRC MISMATCH: my_crc: %x, pkt_crc: %x\n", my_crc, pkt_crc);
 //		bindump("data",buf,len);
 		return 1;
 	}
@@ -154,6 +154,7 @@ int jbd_verify(uint8_t *buf, int len) {
 	if (buf[i++] != 0x77) return 1;
 
 	dprintf(3,"good data!\n");
+	bindump(0,buf,len);
 	return 0;
 }
 
@@ -633,6 +634,7 @@ int jbd_open(void *handle) {
 	dprintf(3,"s: %p\n", s);
 
 	r = 0;
+	dprintf(3,"state: %d\n", check_state(s,JBD_STATE_OPEN));
 	if (!check_state(s,JBD_STATE_OPEN)) {
 		if (s->tp && s->tp->open(s->tp_handle) == 0)
 			set_state(s,JBD_STATE_OPEN);
@@ -727,7 +729,14 @@ int jbd_read(void *handle, uint32_t *what, void *buf, int buflen) {
 		json_value_t *v = battery_to_flat_json(bp);
 		dprintf(2,"v: %p\n", v);
 		if (v) {
+			char *j;
+
 			influx_write_json(s->ap->i, "battery", v);
+			j = json_dumps(v,0);
+			if (j) {
+				log_info("%s\n",j);
+				free(j);
+			}
 			json_destroy_value(v);
 		}	
 	}

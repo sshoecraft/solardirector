@@ -1,0 +1,13 @@
+{
+    "sc": {
+        "interval": 3,
+        "script_dir": ".",
+        "agents": "one,two,three"
+    },
+    "one": {
+        "conf": "\/one.cfg"
+    },
+    "two": {
+        "conf": "\/two.json"
+    }
+}

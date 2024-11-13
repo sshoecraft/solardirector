@@ -212,6 +212,7 @@ static int pvc_config(void *h, int req, ...) {
 			s->c->addmq = true;
 			mqtt_disconnect(s->c->m,1);
 			mqtt_get_config(mqtt_info,sizeof(mqtt_info)-1,s->ap->m,0);
+printf("mqtt_info: %s\n", mqtt_info);
 			mqtt_parse_config(s->c->m,mqtt_info);
 			mqtt_newclient(s->c->m);
 			mqtt_connect(s->c->m,10);

@@ -26,9 +26,6 @@ typedef struct class_private class_private_t;
 
 enum CLASS_PROPERTY_ID {
 	CLASS_PROPERTY_ID_CONFIG=1,
-	CLASS_PROPERTY_ID_ONE,
-	CLASS_PROPERTY_ID_TWO,
-	CLASS_PROPERTY_ID_THREE,
 };
 
 static JSBool class_getprop(JSContext *cx, JSObject *obj, jsval id, jsval *rval) {
@@ -52,17 +49,22 @@ static JSBool class_getprop(JSContext *cx, JSObject *obj, jsval id, jsval *rval)
 			}
 			*rval = p->config_val;
 			break;
+		default:
+			if (p->cp) return js_config_common_getprop(cx, obj, id, rval, p->cp, 0);
+			break;
 		}
 	} else {
+#if 0
 		if (JSVAL_IS_STRING(id)) {
 			char *sname, *name;
 			JSClass *classp = OBJ_GET_CLASS(cx, obj);
 
 			sname = (char *)classp->name;
 			name = JS_EncodeString(cx, JSVAL_TO_STRING(id));
-			dprintf(0,"sname: %s, name: %s\n", sname, name);
+			dprintf(dlevel,"sname: %s, name: %s\n", sname, name);
 			if (name) JS_free(cx, name);
 		}
+#endif
 		dprintf(dlevel,"cp: %p\n", p->cp);
 		if (p->cp) return js_config_common_getprop(cx, obj, id, rval, p->cp, 0);
 	}
@@ -86,18 +88,25 @@ static JSBool class_setprop(JSContext *cx, JSObject *obj, jsval id, jsval *vp) {
 		case CLASS_PROPERTY_ID_CONFIG:
 			p->config_val = *vp;
 			p->cp = JS_GetPrivate(cx,JSVAL_TO_OBJECT(*vp));
+			dprintf(dlevel,"cp: %p\n", p->cp);
+			break;
+		default:
+			dprintf(dlevel,"cp: %p\n", p->cp);
+			if (p->cp) return js_config_common_setprop(cx, obj, id, vp, p->cp, 0);
 			break;
 		}
 	} else {
+#if 0
 		if (JSVAL_IS_STRING(id)) {
 			char *sname, *name;
 			JSClass *classp = OBJ_GET_CLASS(cx, obj);
 
 			sname = (char *)classp->name;
 			name = JS_EncodeString(cx, JSVAL_TO_STRING(id));
-			dprintf(0,"sname: %s, name: %s\n", sname, name);
+			dprintf(dlevel,"sname: %s, name: %s\n", sname, name);
 			if (name) JS_free(cx, name);
 		}
+#endif
 		dprintf(dlevel,"cp: %p\n", p->cp);
 		if (p->cp) return js_config_common_setprop(cx, obj, id, vp, p->cp, 0);
 	}
@@ -125,9 +134,6 @@ static JSBool class_ctor(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, 
 //	,*ccp = &class_class;
 	char *namep;
 	JSPropertySpec props[] = {
-		{ "one",CLASS_PROPERTY_ID_ONE,JSPROP_ENUMERATE },
-		{ "two",CLASS_PROPERTY_ID_TWO,JSPROP_ENUMERATE },
-		{ "three",CLASS_PROPERTY_ID_THREE,JSPROP_ENUMERATE },
 		{ "config",CLASS_PROPERTY_ID_CONFIG,JSPROP_ENUMERATE },
 		{0}
 	};

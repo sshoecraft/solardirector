@@ -578,7 +578,7 @@ function cv_check_amps() {
 		}
 		dprintf(dlevel,"amps: %f, samples: %d\n", amps, si.cv_samples);
 		var avg = amps / si.cv_samples;
-		dprintf(-1,"CV: avg: %.1f, cutoff: %.1f\n", avg, si.cv_cutoff);
+		dprintf(0,"CV: avg: %.1f, cutoff: %.1f\n", avg, si.cv_cutoff);
 		if (avg < si.cv_cutoff) return true;
 	}
 	return false;
@@ -649,20 +649,25 @@ function charge_main()  {
 		return 0;
 	}
 
-	// If we started the gen and the grid came back on, stop it and start the grid
-	if (si.gen_started) dprintf(0,"gen_started: %s, ignore_gnrn: %s, GnRn: %s\n", si.gen_started, si.ignore_gnrn, data.GnRn);
-	if (si.gen_started && (!si.ignore_gnrn && !data.GnRn)) {
-		printf("Stopping gen and starting grid...\n");
-		si_stop_gen(true);
-		charge_start_grid();
-	}
+	dprintf(dlevel,"gen_enabled: %s\n", si.gen_enabled);
+	if (si.gen_enabled) {
+		// If we started the gen and the grid came back on, stop it and start the grid
+		if (si.gen_started) dprintf(0,"gen_started: %s, ignore_gnrn: %s, GnRn: %s\n",
+			si.gen_started, si.ignore_gnrn, data.GnRn);
+		if (si.gen_started && (!si.ignore_gnrn && !data.GnRn)) {
+			printf("Stopping gen and starting grid...\n");
+			si_stop_gen(true);
+			charge_start_grid();
+		}
 
-	// If we started the grid and lost it, turn gen on
-	if (si.grid_started && !data.ExtVfOk) dprintf(0,"grid_started: %s, ExtVfOk: %s, ignore_gnrn: %s, GnRn: %s\n", si.grid_started, data.ExtVfOk, si.ignore_gnrn, data.GnRn);
-	if (si.grid_started && !data.ExtVfOk && (si.ignore_gnrn || data.GnRn)) {
-		printf("Stopping grid and starting gen...\n");
-		si_stop_grid(true);
-		si_start_gen();
+		// If we started the grid and lost it, turn gen on
+		if (si.grid_started && !data.ExtVfOk) dprintf(0,"grid_started: %s, ExtVfOk: %s, ignore_gnrn: %s, GnRn: %s\n",
+			si.grid_started, data.ExtVfOk, si.ignore_gnrn, data.GnRn);
+		if (si.grid_started && !data.ExtVfOk && (si.ignore_gnrn || data.GnRn)) {
+			printf("Stopping grid and starting gen...\n");
+			si_stop_grid(true);
+			si_start_gen();
+		}
 	}
 
 	// Charge auto start/stop
@@ -697,7 +702,7 @@ function charge_main()  {
 		// Just in case
 //		dprintf(0,"empty: %s, grid_started: %s, gen_started: %s\n", battery_is_empty(), si.grid_started, si.gen_started);
 		if (battery_is_empty() && !(si.grid_started || si.gen_started)) {
-			dprintf(dlevel,"ExtVfOk: %s, ignore_gnrn: %s, GnRn: %s\n", data.ExtVfOk, si.ignore_gnrn, data.GnRn);
+			dprintf(-1,"ExtVfOk: %s, ignore_gnrn: %s, GnRn: %s\n", data.ExtVfOk, si.ignore_gnrn, data.GnRn);
 			if (si.ignore_gnrn || data.GnRn) si_start_gen(true);
 			else if (data.ExtVfOk) charge_start_grid(true);
 		}

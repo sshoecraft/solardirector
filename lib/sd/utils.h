@@ -36,6 +36,8 @@ int is_ip(char *);
 int get_timestamp(char *ts, int tslen, int local);
 int become_daemon(void);
 int conv_type(int dtype,void *dest,int dsize,int stype,void *src,int slen);
+#define STR2INT(s,i) conv_type(DATA_TYPE_INT,&i,0,DATA_TYPE_STRING,s,strlen(s))
+
 int find_config_file(char *,char *,int);
 
 int solard_exec(char *, char *[], char *,int);
@@ -64,6 +66,7 @@ int double_equals(double a, double b);
 //#define double_equals(a,b) ((fabs(a) - fabs(b)) < 10e-7)
 int double_isint(double z);
 double pround(double val, int places);
+double *get_location(bool);
 
 #ifndef DEBUG_MEM
 size_t mem_used(void);

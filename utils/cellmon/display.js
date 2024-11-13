@@ -1,20 +1,21 @@
-include(agent.libdir+"/sd/utils.js");
+
+//include(agent.libdir+"/sd/utils.js");
 
 COLUMN_WIDTH = 7
 
 function FTEMP(v) { return ( ( ( parseFloat(v) * 9.0) / 5.0) + 32.0) }
 
 function gettd(start) {
-	var end,ts,diff,mins;
+	let end,ts,diff,mins;
 
 //	diff = difftime(end,start);
 	end = time();
 	diff = end - start;
-	dprintf(0,"start: %ld, end: %ld, diff: %d\n", start, end, diff);
+	dprintf(3,"start: %ld, end: %ld, diff: %d\n", start, end, diff);
 	if (diff > 0) {
 		mins = parseInt(diff / 60);
 		if (mins > 0) diff -= parseInt(mins * 60);
-		dprintf(0,"mins: %d, diff: %d\n", mins, diff);
+		dprintf(3,"mins: %d, diff: %d\n", mins, diff);
 	} else {
 		mins = diff = 0;
 	}
@@ -23,7 +24,7 @@ function gettd(start) {
 	} else {
 		ts = sprintf("%02d:%02d",mins,diff);
 	}
-	dprintf(0,"ts: %s\n", ts);
+	dprintf(3,"ts: %s\n", ts);
 	return ts;
 }
 
@@ -34,9 +35,9 @@ BATTERY_STATE_UPDATED = 0x01;
 function solard_check_state(x,y) { return 1; }
 
 function Create2DArray(rows) {
-  var arr = [];
+  let arr = [];
 
-  for (var i=0;i<rows;i++) {
+  for (let i=0;i<rows;i++) {
      arr[i] = [];
   }
 
@@ -44,16 +45,18 @@ function Create2DArray(rows) {
 }
 
 function display(agents) {
-	var values = Create2DArray(32);
-	var summ = Create2DArray(4);
-	var bsum = Create2DArray(4);
-	var lupd = [];
-	var v, cell_total, cell_min, cell_max, cell_diff, cell_avg, cap, kwh;
-	var x,y,npacks,cells,max_temps,pack_reported;
-	var str = [];
-	var slabels = [ "Min","Max","Avg","Diff" ];
-	var tlabels = [ "Current","Voltage" ];
-	var cdb;
+	let values = Create2DArray(32);
+	let summ = Create2DArray(4);
+	let bsum = Create2DArray(4);
+	let lupd = [];
+	let v, cell_total, cell_min, cell_max, cell_diff, cell_avg, cap, kwh;
+	let x,y,npacks,cells,max_temps,pack_reported;
+	let str = [];
+	let slabels = [ "Min","Max","Avg","Diff" ];
+	let tlabels = [ "Current","Voltage" ];
+	let cdb;
+
+	let dlevel = 1;
 
 	npacks = 0;
 	for(key in agents) {
@@ -61,7 +64,7 @@ function display(agents) {
 		if (!pp) continue;
 		npacks++;
 	}
-	dprintf(0,"npacks: %d\n", npacks);
+	dprintf(dlevel,"npacks: %d\n", npacks);
 	if (!npacks) return;
 
 	cells = 0;
@@ -70,19 +73,20 @@ function display(agents) {
 		pp = agents[key].data;
 		if (!pp) continue;
 //		printf("%s pp: %s\n", key, typeof(pp));
-//		dprintf(0,"updated: %d\n", solard_check_state(pp,BATTERY_STATE_UPDATED));
+//		dprintf(dlevel,"updated: %d\n", solard_check_state(pp,BATTERY_STATE_UPDATED));
 //		if (!solard_check_state(pp,BATTERY_STATE_UPDATED)) continue;
-		printf("pp.ntemps: %d, max_temps: %d\n", pp.ntemps, max_temps);
+		dprintf(dlevel,"pp.ntemps: %d, max_temps: %d\n", pp.ntemps, max_temps);
 		if (pp.ntemps > max_temps) max_temps = pp.ntemps;
 		if (!cells) cells = pp.ncells;
 	}
-	printf("max_temps: %d\n", max_temps);
-	var temps = Create2DArray(max_temps);
-	dprintf(0,"cells: %d\n",cells);
+	dprintf(dlevel,"max_temps: %d\n", max_temps);
+	let temps = Create2DArray(max_temps);
+	dprintf(dlevel,"cells: %d\n",cells);
 	if (!cells) return;
 	x = 0;
 	cap = 0.0;
 	pack_reported = 0;
+	let total_current = 0;
 	for(key in agents) {
 		pp = agents[key].data;
 		if (!pp) continue;
@@ -98,7 +102,7 @@ function display(agents) {
 				if (v > cell_max) cell_max = v;
 				cell_total += v;
 				values[y][x] = v;
-//				dprintf(0,"values[%d][%d]: %.3f\n", y, x, values[y][x]);
+//				dprintf(dlevel,"values[%d][%d]: %.3f\n", y, x, values[y][x]);
 			}
 			cap += pp.capacity;
 			pack_reported++;
@@ -106,7 +110,7 @@ function display(agents) {
 			cell_avg = cell_total / pp.ncells;
 		}
 		cell_diff = cell_max - cell_min;
-		dprintf(0,"cells: total: %.3f, min: %.3f, max: %.3f, diff: %.3f, avg: %.3f\n",
+		dprintf(dlevel,"cells: total: %.3f, min: %.3f, max: %.3f, diff: %.3f, avg: %.3f\n",
 			cell_total, cell_min, cell_max, cell_diff, cell_avg);
 		summ[0][x] = cell_min;
 		summ[1][x] = cell_max;
@@ -114,14 +118,15 @@ function display(agents) {
 		summ[3][x] = cell_diff;
 		bsum[0][x] = pp.current;
 		bsum[1][x] = cell_total;
+		total_current += pp.current;
 		lupd[x] = gettd(pp.last_update);
 		x++;
 	}
 
 //	if (!debug) system("clear; echo \"**** $(date) ****\"");
 
-	var format = sprintf("%%-%d.%ds ",COLUMN_WIDTH,COLUMN_WIDTH);
-	printf("format: %s\n", format);
+	let format = sprintf("%%-%d.%ds ",COLUMN_WIDTH,COLUMN_WIDTH);
+	dprintf(dlevel,"format: %s\n", format);
 	/* Header */
 	printf(format,"");
 	x = 1;
@@ -129,7 +134,7 @@ function display(agents) {
 		pp = agents[key].data;
 		if (!pp) continue;
 		if (pp.name.length > COLUMN_WIDTH) {
-			var temp = pp.name.substring(pp.name.length - COLUMN_WIDTH);
+			let temp = pp.name.substring(pp.name.length - COLUMN_WIDTH);
 			printf(format,temp);
 		} else {
 			printf(format,pp.name);
@@ -211,6 +216,7 @@ function display(agents) {
 	printf("\n");
 
 	printf("\n");
+	printf("Total current: %d\n", total_current);
 	printf("Total packs: %d\n", pack_reported);
 	kwh = (cap * 48.0) / 1000.0;
 //	printf("Capacity: %2.1f\n", cap);

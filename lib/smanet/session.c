@@ -53,7 +53,7 @@ static void *smanet_recv_thread(void *handle) {
 			diff = now - s->last_command;
 			dprintf(dlevel+2,"diff: %d\n", diff);
 			if (diff > s->auto_close_timeout) {
-				dprintf(-1,"SMANET: closing transport.\n");
+				dprintf(dlevel,"SMANET: closing transport.\n");
 				s->tp->close(s->tp_handle);
 				s->opened = false;
 			}

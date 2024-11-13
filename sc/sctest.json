@@ -1,6 +1,158 @@
 {
     "sc": {
-        "astring": "atest",
-        "script_dir": "."
+        "name": "sctest",
+        "interval": 5,
+        "script_dir": ".",
+        "mqtt_uri": "tcp:\/\/solardirector:1883",
+        "influx_database": "power",
+        "agents": "pack_01,pack_02,pack_03,pack_04,pack_05,pack_06,pack_07,pack_08,pack_09,pack_10,pack_11,pack_12,pack_13,pack_14,si,rheem,btc,pvc",
+        "monitor_disp": 1
+    },
+    "pack_01": {
+        "name": "jbd",
+        "role": "Battery",
+        "path": "\/opt\/sd\/bin\/jbd",
+        "conf": "\/opt\/sd\/etc\/pack_01.conf",
+        "log": "\/opt\/sd\/log\/pack_01.log",
+        "topic": "SolarD\/Agents\/pack_01\/Data"
+    },
+    "pack_02": {
+        "name": "jbd",
+        "role": "Battery",
+        "path": "\/opt\/sd\/bin\/jbd",
+        "conf": "\/opt\/sd\/etc\/pack_02.conf",
+        "log": "\/opt\/sd\/log\/pack_02.log",
+        "topic": "SolarD\/Agents\/pack_02\/Data"
+    },
+    "pack_03": {
+        "name": "jbd",
+        "role": "Battery",
+        "path": "\/opt\/sd\/bin\/jbd",
+        "conf": "\/opt\/sd\/etc\/pack_03.conf",
+        "log": "\/opt\/sd\/log\/pack_03.log",
+        "topic": "SolarD\/Agents\/pack_03\/Data"
+    },
+    "pack_04": {
+        "name": "jbd",
+        "role": "Battery",
+        "path": "\/opt\/sd\/bin\/jbd",
+        "conf": "\/opt\/sd\/etc\/pack_04.conf",
+        "log": "\/opt\/sd\/log\/pack_04.log",
+        "topic": "SolarD\/Agents\/pack_04\/Data"
+    },
+    "pack_05": {
+        "name": "jbd",
+        "role": "Battery",
+        "path": "\/opt\/sd\/bin\/jbd",
+        "conf": "\/opt\/sd\/etc\/pack_05.conf",
+        "log": "\/opt\/sd\/log\/pack_05.log",
+        "topic": "SolarD\/Agents\/pack_05\/Data"
+    },
+    "pack_06": {
+        "name": "jbd",
+        "role": "Battery",
+        "path": "\/opt\/sd\/bin\/jbd",
+        "conf": "\/opt\/sd\/etc\/pack_06.conf",
+        "log": "\/opt\/sd\/log\/pack_06.log",
+        "topic": "SolarD\/Agents\/pack_06\/Data"
+    },
+    "pack_07": {
+        "name": "jbd",
+        "role": "Battery",
+        "path": "\/opt\/sd\/bin\/jbd",
+        "conf": "\/opt\/sd\/etc\/pack_07.conf",
+        "log": "\/opt\/sd\/log\/pack_07.log",
+        "topic": "SolarD\/Agents\/pack_07\/Data"
+    },
+    "pack_08": {
+        "name": "jbd",
+        "role": "Battery",
+        "path": "\/opt\/sd\/bin\/jbd",
+        "conf": "\/opt\/sd\/etc\/pack_08.conf",
+        "log": "\/opt\/sd\/log\/pack_08.log",
+        "topic": "SolarD\/Agents\/pack_08\/Data"
+    },
+    "pack_09": {
+        "name": "jbd",
+        "role": "Battery",
+        "path": "\/opt\/sd\/bin\/jbd",
+        "conf": "\/opt\/sd\/etc\/pack_09.conf",
+        "log": "\/opt\/sd\/log\/pack_09.log",
+        "topic": "SolarD\/Agents\/pack_09\/Data"
+    },
+    "pack_10": {
+        "name": "jbd",
+        "role": "Battery",
+        "path": "\/opt\/sd\/bin\/jbd",
+        "conf": "\/opt\/sd\/etc\/pack_10.conf",
+        "log": "\/opt\/sd\/log\/pack_10.log",
+        "topic": "SolarD\/Agents\/pack_10\/Data"
+    },
+    "pack_11": {
+        "name": "jbd",
+        "role": "Battery",
+        "path": "\/opt\/sd\/bin\/jbd",
+        "conf": "\/opt\/sd\/etc\/pack_11.conf",
+        "log": "\/opt\/sd\/log\/pack_11.log",
+        "topic": "SolarD\/Agents\/pack_11\/Data"
+    },
+    "pack_12": {
+        "name": "jbd",
+        "role": "Battery",
+        "path": "\/opt\/sd\/bin\/jbd",
+        "conf": "\/opt\/sd\/etc\/pack_12.conf",
+        "log": "\/opt\/sd\/log\/pack_12.log",
+        "topic": "SolarD\/Agents\/pack_12\/Data"
+    },
+    "pack_13": {
+        "name": "jbd",
+        "role": "Battery",
+        "path": "\/opt\/sd\/bin\/jbd",
+        "conf": "\/opt\/sd\/etc\/pack_13.conf",
+        "log": "\/opt\/sd\/log\/pack_13.log",
+        "topic": "SolarD\/Agents\/pack_13\/Data"
+    },
+    "pack_14": {
+        "name": "jbd",
+        "role": "Battery",
+        "path": "\/opt\/sd\/bin\/jbd",
+        "conf": "\/opt\/sd\/etc\/pack_14.conf",
+        "log": "\/opt\/sd\/log\/pack_14.log",
+        "topic": "SolarD\/Agents\/pack_14\/Data"
+    },
+    "si": {
+        "name": "si",
+        "role": "Inverter",
+        "path": "\/opt\/sd\/bin\/si",
+        "conf": "\/opt\/sd\/etc\/si.json",
+        "log": "\/opt\/sd\/log\/si.log",
+        "topic": "SolarD\/Agents\/si\/Data"
+    },
+    "rheem": {
+        "name": "rheem",
+        "role": "Utility",
+        "path": "\/opt\/sd\/bin\/rheem",
+        "conf": "\/opt\/sd\/etc\/rheem.json",
+        "log": "\/opt\/sd\/log\/rheem.log",
+        "topic": "SolarD\/Agents\/rheem\/Data",
+        "warning_time": 300,
+        "error_time": 900,
+        "notify_time": 1200
+    },
+    "btc": {
+        "name": "btc",
+        "role": "Utility",
+        "path": "\/opt\/sd\/bin\/btc",
+        "conf": "\/opt\/sd\/etc\/btc.json",
+        "log": "\/opt\/sd\/log\/btc.log",
+        "topic": "SolarD\/Agents\/btc\/Data"
+    },
+    "pvc": {
+        "name": "pvc",
+        "role": "Utility",
+        "path": "\/opt\/sd\/bin\/pvc",
+        "conf": "\/opt\/sd\/etc\/pvc.json",
+        "log": "\/opt\/sd\/log\/pvc.log",
+        "topic": "SolarD\/Agents\/pvc\/Data"
     }
 }

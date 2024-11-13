@@ -88,7 +88,7 @@ static unsigned long long int _getmult(char *s) {
 	if (s) {
 		if (!*s) return 1;
 		uint8_t c = *((char *)s + (strlen(s) - 1));
-//		dprintf(0,"c(%x): %c\n", c, c);
+		dprintf(dlevel,"c(%x): %c\n", c, c);
 		m = 1;
 		switch(c) {
 		case 'T':
@@ -105,9 +105,24 @@ static unsigned long long int _getmult(char *s) {
 			m *= 1024;
 			break;
 		}
-//		dprintf(0,"m: %d\n", m);
+		dprintf(dlevel,"m: %d\n", m);
 	}
 	return m;
+}
+
+static int _str2int(char *s) {
+	int i;
+
+//	dprintf(dlevel,"s: %s\n", (char *)s);
+	if (strncmp(s,"0x",2) == 0 || strncmp(s,"0X",2) == 0) {
+		sscanf(s,"%x",&i);
+	} else {
+		sscanf(s,"%d",&i);
+	}
+//	dprintf(dlevel,"i: %x\n", i);
+	i *= _getmult(s);
+//	dprintf(dlevel,"i: %x\n", i);
+	return i;
 }
 
 int conv_type(int dt,void *d,int dl,int st,void *s,int sl) {
@@ -127,6 +142,7 @@ int conv_type(int dt,void *d,int dl,int st,void *s,int sl) {
 			break;
 		case DATA_TYPE_STRING:
 			*dest = 0;
+			dprintf(dlevel,"src: %s\n", (char *)s);
 			strncat(dest,s,dl);
 			trim(dest);
 			break;
@@ -216,7 +232,7 @@ int conv_type(int dt,void *d,int dl,int st,void *s,int sl) {
 			dprintf(dlevel,"l: %p\n", l);
 			if (!l) break;
 			*dest = 0;
-			dprintf(dlevel,"restting...\n");
+			dprintf(dlevel,"resetting...\n");
 			list_reset(l);
 			dprintf(dlevel,"iterating...\n");
 			r = dl;
@@ -243,7 +259,8 @@ int conv_type(int dt,void *d,int dl,int st,void *s,int sl) {
 			*((int8_t *)d) = 0;
 			break;
 		case DATA_TYPE_STRING:
-			*((int8_t *)d) = strtol(s,0,0) * _getmult(s);
+//			*((int8_t *)d) = strtol(s,0,0) * _getmult(s);
+			*((int8_t *)d) = _str2int(s);
 			break;
 		case DATA_TYPE_S8:
 			*((int8_t *)d) = *((int8_t *)s);
@@ -285,7 +302,8 @@ int conv_type(int dt,void *d,int dl,int st,void *s,int sl) {
 		    {
 			char **sa = (char **)s;
 			for(i=0; i < sl; i++) dprintf(1,"sa[%d]: %s\n", i, sa[i]);
-			*((int8_t *)d) = strtol(sa[0],0,0) * _getmult(sa[0]);
+//			*((int8_t *)d) = strtol(sa[0],0,0) * _getmult(sa[0]);
+			*((int8_t *)d) = _str2int(sa[0]);
 		    }
 		    break;
 		case DATA_TYPE_S8_ARRAY:
@@ -312,7 +330,8 @@ int conv_type(int dt,void *d,int dl,int st,void *s,int sl) {
 			*((int16_t *)d) = 0;
 			break;
 		case DATA_TYPE_STRING:
-			*((int16_t *)d) = strtol(s,0,0) * _getmult(s);
+//			*((int16_t *)d) = strtol(s,0,0) * _getmult(s);
+			*((int16_t *)d) = _str2int(s);
 			break;
 		case DATA_TYPE_S8:
 			*((int16_t *)d) = *((int8_t *)s);
@@ -353,7 +372,8 @@ int conv_type(int dt,void *d,int dl,int st,void *s,int sl) {
 		case DATA_TYPE_STRING_ARRAY:
 		    {
 			char **sa = (char **)s;
-			*((int16_t *)d) = strtol(sa[0],0,0) * _getmult(sa[0]);
+//			*((int16_t *)d) = strtol(sa[0],0,0) * _getmult(sa[0]);
+			*((int16_t *)d) = _str2int(sa[0]);
 		    }
 		    break;
 		case DATA_TYPE_S8_ARRAY:
@@ -380,7 +400,8 @@ int conv_type(int dt,void *d,int dl,int st,void *s,int sl) {
 			*((int32_t *)d) = 0;
 			break;
 		case DATA_TYPE_STRING:
-			*((int32_t *)d) = strtol(s,0,0) * _getmult(s);
+//			*((int32_t *)d) = strtol(s,0,0) * _getmult(s);
+			*((int32_t *)d) = _str2int(s);
 			break;
 		case DATA_TYPE_S8:
 			*((int32_t *)d) = *((int8_t *)s);
@@ -421,8 +442,11 @@ int conv_type(int dt,void *d,int dl,int st,void *s,int sl) {
 		case DATA_TYPE_STRING_ARRAY:
 		    {
 			char **sa = (char **)s;
-			for(i=0; i < sl; i++) dprintf(1,"sa[%d]: %s\n", i, sa[i]);
-			*((int32_t *)d) = strtol(sa[0],0,0) * _getmult(sa[0]);
+			if (sl) {
+				for(i=0; i < sl; i++) dprintf(-1,"sa[%d]: %s\n", i, sa[i]);
+//				*((int32_t *)d) = strtol(sa[0],0,0) * _getmult(sa[0]);
+				*((int32_t *)d) = _str2int(sa[0]);
+			}
 		    }
 		    break;
 		case DATA_TYPE_S8_ARRAY:
@@ -449,7 +473,7 @@ int conv_type(int dt,void *d,int dl,int st,void *s,int sl) {
 			*((int64_t *)d) = 0;
 			break;
 		case DATA_TYPE_STRING:
-			*((int64_t *)d) = strtol(s,0,0) * _getmult(s);
+			*((int64_t *)d) = strtoll(s,0,0) * _getmult(s);
 			break;
 		case DATA_TYPE_S8:
 			*((int64_t *)d) = *((int8_t *)s);
@@ -1472,7 +1496,8 @@ int conv_type(int dt,void *d,int dl,int st,void *s,int sl) {
 			count = 0;
 			for(i=0; i < dl && i < sl; i++) {
 //				dprintf(1,"sa[%d]: %s\n", i, sa[i]);
-				u8[i] = (unsigned char) strtol(sa[i],0,0);
+//				u8[i] = (unsigned char) strtol(sa[i],0,0);
+				u8[i] = (unsigned char) _str2int(sa[i]);
 //				dprintf(1,"u8[%d]: %02x\n", i, u8[i]);
 				count++;
 			}
@@ -2137,18 +2162,59 @@ int conv_type(int dt,void *d,int dl,int st,void *s,int sl) {
 		case DATA_TYPE_STRING_ARRAY:
 		    {
 			char **sa = (char **) s;
+			int count;
 
-			dprintf(dlevel,"sl: %d\n", sl);
-			for(i=0; i < sl && i < dl; i++) {
-				dprintf(dlevel,"sa[%d]: %s\n", i, sa[i]);
-				da[i] = malloc(strlen(sa[i])+1);
-				if (!da[i]) break;
-				strcpy(da[i],sa[i]);
+			for(i=0; i < 9999; i++) {
+				dprintf(-1,"sa[%d]: %p\n", i, sa[i]);
+				if (!sa[i]) break;
+			}
+			count = i;
+			dprintf(-1,"count: %d\n", count);
+			for(i=0; i < count; i++) {
+				dprintf(-1,"sa[%d]: %s\n", i, sa[i]);
+				da[i] = sa[i];
 			}
 			return_len = i;
 		    }
 		    break;
 		case DATA_TYPE_STRING:
+		    {
+			char *p;
+			int i;
+			char **dsa;
+
+			i = 0;
+			while(1) {
+				p = strele(i,",",s);
+				dprintf(-1,"p[%d]: %p\n", i, p);
+				if (p) dprintf(-1,"p[%d]: %s\n", i, p);
+				if (!p || !strlen(p)) {
+					break;
+				}
+				i++;
+			}
+			dprintf(-1,"count: %d\n", i);
+			return_len = 0;
+//			dsa = malloc(i * sizeof(char *));
+			dsa = da;
+			if (dsa) {
+				i = 0;
+				while(1) {
+					p = strele(i,",",s);
+					dprintf(dlevel,"p[%d]: %s\n", i, p);
+					if (!p || !strlen(p)) {
+						dsa[i] = 0;
+						break;
+					}
+					dsa[i] = strdup(p);
+					if (!dsa[i]) break;
+					i++;
+				}
+				return_len = i;
+//				for(i=0; da[i]; i++) dprintf(-1,"dsa[%d]: %s\n", i, dsa[i] ? dsa[i] : "null");
+			}
+		    }
+		case DATA_TYPE_STRING_LIST:
 		    {
 			list l;
 			char *p;
@@ -2201,7 +2267,6 @@ int conv_type(int dt,void *d,int dl,int st,void *s,int sl) {
 		case DATA_TYPE_U64_ARRAY:
 		case DATA_TYPE_F32_ARRAY:
 		case DATA_TYPE_F64_ARRAY:
-		case DATA_TYPE_STRING_LIST:
 		default:
 			log_error("**** conv dt: %04x(%s) unhandled st: %04x(%s)\n", dt, typestr(dt), st, typestr(st));
 			break;
@@ -2261,6 +2326,45 @@ int conv_type(int dt,void *d,int dl,int st,void *s,int sl) {
 			strcpy(temp,*((int *)s) ? "True" : "False");
 			list_add(l,temp,strlen(temp)+1);
 			break;
+		case DATA_TYPE_STRING_LIST:
+			{
+				list_purge(l);
+				list_add_list(l,(list)s);
+			}
+			break;
+		case DATA_TYPE_STRING_ARRAY:
+			{
+				char **sa = (char **) s;
+//				char **cl;
+				int i;
+				char *p;
+
+				list_purge(l);
+				i = 0;
+				dprintf(dlevel,"current list:\n");
+				list_reset(l);
+				while((p = list_get_next(l)) != 0) {
+					dprintf(dlevel,"i: %d, p: %s\n", i, p);
+					i++;
+				}
+//				cl = malloc(sl * sizeof(char *));
+//				for(i=0; i < sl; i++) cl[i] = strdup(sa[i]);
+				for(i=0; i < sl; i++) {
+//					dprintf(dlevel,"cl[%d]: %s\n", i, cl[i]);
+					dprintf(dlevel,"sa[%d]: %s\n", i, sa[i]);
+//					list_add(l,cl[i],strlen(cl[i])+1);
+					list_add(l,sa[i],strlen(sa[i])+1);
+				}
+				dprintf(dlevel,"after list:\n");
+				i = 0;
+				list_reset(l);
+				while((p = list_get_next(l)) != 0) {
+					dprintf(dlevel,"i: %d, p: %s\n", i, p);
+					i++;
+				}
+//exit(0);
+			}
+			break;
 		case DATA_TYPE_S8_ARRAY:
 		case DATA_TYPE_S16_ARRAY:
 		case DATA_TYPE_S32_ARRAY:
@@ -2271,8 +2375,6 @@ int conv_type(int dt,void *d,int dl,int st,void *s,int sl) {
 		case DATA_TYPE_U64_ARRAY:
 		case DATA_TYPE_F32_ARRAY:
 		case DATA_TYPE_F64_ARRAY:
-		case DATA_TYPE_STRING_ARRAY:
-		case DATA_TYPE_STRING_LIST:
 		default:
 			log_error("**** conv dt: %04x(%s) unhandled st: %04x(%s)\n", dt, typestr(dt), st, typestr(st));
 			break;
