@@ -65,7 +65,7 @@ struct config_property {
 	jsval jsval;			/* JSVal of this property object */
 	jsval arg;			/* Trigger arg */
 #endif
-//	struct config_section *sp;	/* backlink to section */
+	struct config_section *sp;	/* backlink to section */
 	struct config *cp;		/* backlink to config */
 };
 

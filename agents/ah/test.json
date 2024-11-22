@@ -3,8 +3,7 @@
         "air_in_ch": 0,
         "air_out_ch": 1,
         "water_in_ch": 2,
-        "water_out_ch": 3,
-        "name": "ah_1"
+        "water_out_ch": 3
     },
     "template": {
         "script_dir": "."

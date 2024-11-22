@@ -3,7 +3,7 @@
 NAME=$(shell basename $(shell pwd))
 
 PROGNAME=$(NAME)
-SRCS=main.c config.c driver.c info.c
+SRCS=main.c driver.c
 CFLAGS+=-DAGENT_NAME=\"$(NAME)\"
 
 LIBS+=-lwiringPi
@@ -11,7 +11,7 @@ LIBS+=-lwiringPi
 SERVICE_NAME=$(NAME)
 SERVICE_DESC=Air Handler Agent
 
-JS=yes
+JS=no
 MQTT=yes
 INFLUX=yes
 

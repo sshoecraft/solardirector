@@ -463,7 +463,7 @@ int config_section_add_property(config_t *cp, config_section_t *s, config_proper
 	/* Dont apply this to the property flags */
 	_clear_flag(flags,NOTRIG);
 	dprintf(dlevel,"p->name: %s, flags: %x, trig: %d\n", p->name, flags, trig);
-//	p->sp = s;
+	p->sp = s;
 
 	/* Alread there? maybe from file? replace it */
 	pp = config_section_get_property(s, p->name);
@@ -2318,9 +2318,7 @@ int js_config_property_set_trigger(JSContext *cx, config_property_t *p, jsval fu
 	JS_AddNamedRoot(cx,&ctx->func,ri.name);
 	ri.cx = cx;
 	ri.vp = &ctx->func;
-//	dprintf(dlevel,"p->sp: %p, p->sp->cp: %p\n", p->sp, p->sp ? p->sp->cp : 0);
 	dprintf(dlevel,"p->cp: %p\n", p->cp);
-//	if (p->sp && p->sp->cp) list_add(p->sp->cp->roots,&ri,sizeof(ri));
 	if (p->cp) list_add(p->cp->roots,&ri,sizeof(ri));
 
 	p->trigger = _js_config_trigger;
@@ -2335,7 +2333,6 @@ int js_config_property_set_trigger(JSContext *cx, config_property_t *p, jsval fu
 		dprintf(dlevel,"ri.name: %s\n", ri.name);
 		JS_AddNamedRoot(cx,&p->arg,ri.name);
 		ri.vp = &p->arg;
-//		if (p->sp && p->sp->cp) list_add(p->sp->cp->roots,&ri,sizeof(ri));
 		if (p->cp) list_add(p->cp->roots,&ri,sizeof(ri));
 	}
 

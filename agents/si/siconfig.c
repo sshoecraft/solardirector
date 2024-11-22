@@ -222,7 +222,7 @@ static int si_set_value(void *ctx, list args, char *errmsg, json_object_t *resul
 			}
 		}
 #endif
-		log_info("siconfig: Setting %s.%s to %s\n", p->sp->name, p->name, value);
+		log_info("siconfig: Setting %s.%s to %s\n", (p->sp ? p->sp->name : ""), p->name, value);
 		if (config_property_set_value(p,DATA_TYPE_STRING,value,strlen(value)+1,true,true)) return 1;
 		config_write(s->ap->cp);
 		agent_pubconfig(s->ap);

@@ -138,7 +138,7 @@ static int si_read(void *handle, uint32_t *control, void *buf, int buflen) {
 	si_session_t *s = handle;
 //	long start = mem_used();
 
-	printf("++++++++++++ READ +++++++++++++++++\n");
+	dprintf(dlevel,"++++++++++++ READ +++++++++++++++++\n");
 
 //	log_info("mem start: %ld\n", start);
 
@@ -247,8 +247,8 @@ static int si_read(void *handle, uint32_t *control, void *buf, int buflen) {
 static int si_write(void *handle, uint32_t *control, void *buffer, int len) {
 	si_session_t *s = handle;
 
-	printf("++++++++++++ WRITE +++++++++++++++++\n");
-	printf("READONLY: %d\n", s->readonly);
+	dprintf(dlevel,"++++++++++++ WRITE +++++++++++++++++\n");
+	dprintf(dlevel,"READONLY: %d\n", s->readonly);
 
 	dprintf(dlevel,"disable_si_write: %d\n", s->disable_si_write);
 	if (s->disable_si_write) return 0;

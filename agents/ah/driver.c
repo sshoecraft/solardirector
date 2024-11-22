@@ -15,24 +15,6 @@ LICENSE file in the root directory of this source tree.
 #define GAIN 1
 static float gainvolts[] = { 6.144, 4.096, 2.048, 1.024, 0.512, 0.256 };
 
-//ADS1115 is actually 15bit which will give you resolution of 32768, with default PGA setting you get: 6.144 / 32768 = 0.0001875V per bit.
-
-#if 0
-float Bval = 3930.0;   // best fit B-Value
-float Rstd = 8048.0;   // best fit standard resistance
-float Tstd = 30.0;     // best fit standard temp
-
-float calcTemp(float Res)
-{
-  float stA = (1.0 / (Tstd + 273.15)) - ((1.0 / Bval) * log(Rstd));  // Steinhart A
-  float stB = 1.0 / Bval;      // Steinhart B
-
-  float Tc = 1.0 / (stA + (stB * log(Res))) - 273.15;
-
-  return Tc;
-}
-#endif
-
 static void *ah_new(void *transport, void *transport_handle) {
 	ah_session_t *s;
 
@@ -108,6 +90,7 @@ int ah_read(void *handle, uint32_t *what, void *buf, int buflen) {
 	s->water_out = get_temp(s,s->water_out_ch);
 
 	o = json_create_object();
+	json_object_set_string(o,"name",s->ap->instance_name);
         json_object_set_number(o,"air_in",s->air_in);
         json_object_set_number(o,"air_out",s->air_out);
         json_object_set_number(o,"water_in",s->water_in);
@@ -116,49 +99,15 @@ int ah_read(void *handle, uint32_t *what, void *buf, int buflen) {
 #ifdef MQTT
 	if (mqtt_connected(s->ap->m)) agent_pubdata(s->ap, v);
 #endif
-#if 0
 #ifdef INFLUX
+	dprintf(dlevel,"influx_connected: %d\n", influx_connected(s->ap->i));
+        if (!influx_connected(s->ap->i)) {
+		influx_connect(s->ap->i);
+		dprintf(dlevel,"influx_connected: %d\n", influx_connected(s->ap->i));
+	}
 	if (influx_connected(s->ap->i)) influx_write_json(s->ap->i, "air_handler", v);
 #endif
-#endif
 	json_destroy_value(v);
-
-
-#if 0
-#ifdef JS
-	/* If JS and read script exists, we'll use that */
-	if (agent_script_exists(s->ap, s->ap->js.read_script)) return 0;
-#endif
-
-
-#ifdef MQTT
-	if (mqtt_connected(s->ap->m)) {
-		json_value_t *v = (s->flatten ? battery_to_flat_json(bp) : battery_to_json(bp));
-		dprintf(2,"v: %p\n", v);
-		if (v) {
-			agent_pubdata(s->ap, v);
-			json_destroy_value(v);
-		}	
-	}
-#endif
-#ifdef INFLUX
-	if (influx_connected(s->ap->i)) {
-		json_value_t *v = battery_to_flat_json(bp);
-		dprintf(2,"v: %p\n", v);
-		if (v) {
-			char *j;
-
-			influx_write_json(s->ap->i, "battery", v);
-			j = json_dumps(v,0);
-			if (j) {
-				log_info("%s\n",j);
-				free(j);
-			}
-			json_destroy_value(v);
-		}	
-	}
-#endif
-#endif
 	return 0;
 }
 

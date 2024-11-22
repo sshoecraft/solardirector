@@ -55,6 +55,12 @@ int ah_agent_init(int argc, char **argv, opt_proctab_t *opts, ah_session_t *s) {
 	s->ap = agent_init(argc,argv,ah_version_string,opts,&ah_driver,s,0,ah_props,0);
 	if (!s->ap) return 1;
 
+	dprintf(dlevel,"air_in_ch: %d\n", s->air_in_ch);
+	dprintf(dlevel,"air_out_ch: %d\n", s->air_out_ch);
+	dprintf(dlevel,"water_in_ch: %d\n", s->water_in_ch);
+	dprintf(dlevel,"water_out_ch: %d\n", s->water_out_ch);
+//exit(1);
+
 #if 0
 	if (!strlen(s->location)) {
 		json_value_t *v;
@@ -84,6 +90,25 @@ int ah_agent_init(int argc, char **argv, opt_proctab_t *opts, ah_session_t *s) {
 
 //	agent_set_callback(s->ap, ah_cb, s);
 	return 0;
+}
+
+json_value_t *ah_get_info(ah_session_t *s) {
+	json_object_t *o;
+
+	dprintf(dlevel,"creating info...\n");
+
+	o = json_create_object();
+	if (!o) return 0;
+	json_object_set_string(o,"agent_name",ah_driver.name);
+	json_object_set_string(o,"agent_role",SOLARD_ROLE_UTILITY);
+        json_object_set_string(o,"agent_description","+DESC+");
+	json_object_set_string(o,"agent_version",ah_version_string);
+	json_object_set_string(o,"agent_author","Stephen P. Shoecraft");
+
+	config_add_info(s->ap->cp, o);
+
+	dprintf(dlevel,"returning: %p\n", json_object_value(o));
+	return json_object_value(o);
 }
 
 int ah_config(void *h, int req, ...) {
