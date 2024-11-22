@@ -13,7 +13,7 @@ LICENSE file in the root directory of this source tree.
 #include "ah.h"
 
 #define TESTING 0
-#define TESTLVL 7
+#define TESTLVL 2
 
 char *ah_version_string = "1.0-" STRINGIFY(__SD_BUILD);
 
