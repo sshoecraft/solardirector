@@ -1,6 +1,7 @@
 #!/bin/bash -x
 
-TO="email addr"
+#TO=sshoecraft@earthlink.net
+TO=spshoecraft@gmail.com
 
 tmp=/tmp/solar_report.tmp
 rep=/tmp/rep.txt
@@ -29,7 +30,7 @@ echo "Content-Type: multipart/mixed; boundary=${boundary}" >> $tmp
 echo "MIME-Version: 1.0" >> $tmp
 echo "From: Solar System <solar@home.net>" >> $tmp
 #echo "To: (people who need to know)" >> $tmp
-#echo "Reply-to: Solar System <solar@home.net>" >> $tmp
+#echo "Reply-to: Solar Steve <sshoecraft@earthlink.net>" >> $tmp
 # Usage needs to match output of rep
 v=`cat /tmp/rep.txt 2>/dev/null | grep ^Usage: | awk '{ print $2 }'`
 if test -n "$v"; then

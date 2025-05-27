@@ -21,6 +21,7 @@ if test -n "${1}"; then
 else
 	today=$(date "+%Y-%m-%d")
 fi
+this_year=$(date -d "$today" "+%Y")
 report_date=$(date -d "${today} -1 day" "+%Y-%m-%d")
 report_year=$(date -d "${report_date}" "+%Y")
 report_month=$(date -d "${report_date}" "+%m")
@@ -95,42 +96,23 @@ get_usage() {
 	fi
 }
 
-old_collect() {
-	# Get the first year of data
-	data=$(influx_query $influx_host $influx_db "select first(input_power) from inverter")
-	if test -n "$data"; then
-		tv=$(echo "$data" | jq .results[0].series[0].values[0][0] | sed 's:T: :')
-		dt=$(echo "$tv 1000000000 / p" | dc)
-	else
-		dt=$(date "+s")
-	fi
-	first_year=$(date -d "@${dt}" "+%Y")
-
-	# Get usage for every day of every year of the cycle
-	rm -f $repdata; touch $repdata
-	year=$first_year
-	while test $year -le $end_year
+get_feed() {
+	local total=0
+	local count=0
+	dt=${1}
+	ed=${2}
+	test -z "${ed}" && ed=$(date -d "$dt +1 day" "+%Y-%m-%d")
+	while test "${dt}" != "${ed}"
 	do
-		total=0
-		dt="${year}-${start_mon}-${bill_day}"
-		if test $start_mon -eq 12; then
-			next_year=`expr $year + 1`
-		else
-			next_year=$year
-		fi
-		ed="${next_year}-${end_mon}-${bill_day}"
-		count=0
-		while test "$dt" != "$ed"
-		do
-#			echo "dt: $dt, ed: $ed"
-			usage=$(influx_singleval "select sum(input_power)*-0.0000027778 from inverter where input_power < 0 and time > '${dt} 00:00:00' and time < '${dt} 23:59:59'")
-			echo "${dt},${usage}" >> $repdata
-			dt=$(date -d "$dt +1 day" "+%Y-%m-%d")
+		feed=$(influx_singleval "select sum(input_power)*0.0000027778 from inverter where input_power > 0 and time > '${dt} 00:00:00' and time < '${dt} 23:59:59'")
+		if test -n "$feed" -a "$feed" != "NULL"; then
+			total=$(echo "3k $feed $total + p" | dc 2>&1)
+			test $(echo "$total" | grep -c "stack empty") -gt 0 && exit 1
 			((count++))
-		done
-		cycle_days=$count
-		((year++))
+		fi
+		dt=$(date -d "$dt +1 day" "+%Y-%m-%d")
 	done
+	printf "%f,%d" "$total" "$count"
 }
 
 collect() {
@@ -138,7 +120,11 @@ collect() {
 	if test -n "$data"; then
 		first_year=$(echo "$data" | jq .results[0].series[0].values[0][0] | xargs | awk '{ print substr($0,1,4) }')
 	else
-		first_year=$(date "+%Y")
+		first_year=$this_year
+	fi
+	m5=$(echo "$this_year 5 - p" | dc)
+	if test $(echo "$first_year < $m5" | bc) -eq 1; then
+		first_year=$m5
 	fi
 
 	rm -f $repdata; touch $repdata
@@ -166,7 +152,7 @@ collect() {
 skipcoll() {
 	first_year=$(cat $repdata | head -1 | awk -F, '{ print $1 }' | awk -F- '{ print $1 }')
 	dt="${year}-${start_mon}-${bill_day}"
-	ed="${end_year}-${end_mon}-${end_day}"
+	ed="${end_year}-${end_mon}-${bill_day}"
 	dt=$start_date
 	count=0
 	while test "$dt" != "$end_date"
@@ -250,25 +236,9 @@ disp_usage() {
 	printf "$FORMAT" "Usage vs Average:" "${diff}% ${text}"
 }
 
-# CYCLE
-old_disp_cycle() {
-	count=0
-	total=0
-	dt=$start_date
-	while test "$dt" != "$end_date"
-	do
-		data=$(get_usage "${dt}")
-		if test "$data" != "NULL"; then
-			total=$(echo "3k $data $total + p" | dc)
-			((count++))
-		fi
-	        dt=$(date -d "$dt +1 day" "+%Y-%m-%d")
-		test "$dt" = "$today" && break
-	done
-}
-
 disp_cycle() {
-	usage=$(get_usage "${start_date}" "${end_date}")
+#	usage=$(get_usage "${start_date}" "${end_date}")
+	usage=$(get_usage "${start_date}" "${today}")
 	total=$(echo $usage | awk -F, '{ print $1 }')
 	count=$(echo $usage | awk -F, '{ print $2 }')
 	test $count -eq 0 && count=1
@@ -284,30 +254,6 @@ disp_cycle() {
 	printf "$KFORMAT" "Daily average:" "${avg}"
 	printf "$KFORMAT" "Projected total:" "${pro}"
 	printf "$DFORMAT" "Projected cost:" "${cost}"
-}
-
-old_disp_lastcycle() {
-	dt=$(date -d "${start_date} -1 year" "+%Y-%m-%d")
-	if test $start_mon -eq 12; then
-		dy=$year
-	else
-		dy=`expr $start_year - 1`
-	fi
-	ed="${dy}-${end_mon}-${bill_day}"
-	total=0
-	count=0
-	while test "$dt" != "$ed"
-	do
-#		echo "dt: $dt, ed: $ed"
-#		data=$(cat $repdata | grep "^${dt}" | awk -F, '{ print $2 }')
-#		test -z "$data" && data="NULL"
-		data=$(get_usage "${dt}")
-		if test "$data" != "NULL"; then
-			total=$(echo "3k $data $total + p" | dc)
-			((count++))
-		fi
-		dt=$(date -d "$dt +1 day" "+%Y-%m-%d")
-	done
 }
 
 disp_lastcycle() {
@@ -354,33 +300,6 @@ disp_lastcycle() {
 			printf "$DFORMAT" "Savings vs last year:" "${save}"
 		fi
 	fi
-}
-
-old_disp_cycleavg() {
-	total=0
-	count=0
-	year=$first_year
-	dy=$(date -d "${end_date} -1 year" "+%Y")
-	while test $year -le $dy
-	do
-		dt="${year}-${start_mon}-${bill_day}"
-		if test $start_mon -eq 12; then
-			next_year=`expr $year + 1`
-		else
-			next_year=$year
-		fi
-		ed="${next_year}-${end_mon}-${bill_day}"
-		while test "$dt" != "$ed"
-		do
-#			echo "dt: $dt, ed: $ed"
-			data=$(cat $repdata | grep "^${dt}" | awk -F, '{ print $2 }')
-			test -z "$data" && data="NULL"
-			test "$data" != "NULL" && total=$(echo "3k $data $total + p" | dc)
-			dt=$(date -d "$dt +1 day" "+%Y-%m-%d")
-		done
-		((count++))
-		((year++))
-	done
 }
 
 disp_cycleavg() {
@@ -439,17 +358,18 @@ disp_cycleavg() {
 }
 
 disp_feed() {
-	feed_kwh=$(influx_singleval "select sum(input_power)*0.0000027778 from inverter where input_power > 0 and time > '${start_date} 00:00:00' and time < '${end_date} 23:59:59'")
-	test -z "$feed_kwh" && feed_kwh=0
-	test "$feed_kwh" = "NULL" && feed_kwh=0
-	favg=$(echo "3k $feed_kwh $cycle_days / p" | dc)
+	feed_info=$(get_feed "${start_date}" "${end_date}")
+	total=$(echo $feed_info | awk -F, '{ print $1 }')
+	count=$(echo $feed_info | awk -F, '{ print $2 }')
+	test $count -eq 0 && count=1
+	favg=$(echo "3k $total $count / p" | dc)
 	fpro=$(echo "3k $favg $cycle_days * p" | dc)
-	test $(echo "$fpro < $feed_kwh" | bc) -eq 1 && fpro=$feed_kwh
+	test $(echo "$fpro < $total" | bc) -eq 1 && fpro=$total
 	fret=$(echo "3k $fpro $feed_rate * p" | dc)
 	test -n "$cost" && tcost=$(echo "3k $cost $fret - p" | dc)
 
 	echo ""
-	printf "$KFORMAT" "Total power fed back to grid:" "${feed_kwh}"
+	printf "$KFORMAT" "Total power fed back to grid:" "${total}"
 	printf "$KFORMAT" "Daily average of total:" "${favg}"
 	printf "$KFORMAT" "Projected monthly total:" "${fpro}"
 	printf "$DFORMAT" "Projected monthly return:" "${fret}"
@@ -524,6 +444,7 @@ disp_hist() {
 
 	echo ""
 	echo "Historical Usage:"
+	echo ""
 
 	# Display header
 	cmd="printf \"\${hformat}\" \"date\""
@@ -563,9 +484,16 @@ disp_hist() {
 		ed=$(date -d "$dt +1 month" "+%Y-%m-%d")
 		while test $dt != $ed
 		do
+			usage=$(get_usage "$dt")
+			if test $hist_end_year -eq $this_year; then
+				if test "$dt" = "$today"; then
+					usage="NULL"
+				fi
+			fi
 			arr="a$(echo "$dt" | awk -F- '{ print $2$3 }')"
-			eval $arr[$year]=$(get_usage "$dt")
-			eval val="\${$arr[$year]}"
+#			eval $arr[$year]=$(get_usage "$dt")
+			eval $arr[$year]=$usage
+#			eval val="\${$arr[$year]}"
 			dt=$(date -d "$dt +1 day" "+%Y-%m-%d")
 		done
 		((year++))
