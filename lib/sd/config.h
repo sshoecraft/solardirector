@@ -34,6 +34,7 @@ enum CONFIG_FILE_FORMAT {
 #define CONFIG_FLAG_NOWARN	0x1000	/* Don't warn dup props */
 #define CONFIG_FLAG_NOTRIG	0x2000	/* Don't Call trigger func during addprop */
 #define CONFIG_FLAG_VALUE	0x4000	/* Value has been set */
+#define CONFIG_FLAG_IN_TRIG	0x8000	/* property is in a trigger */
 #define CONFIG_FLAG_PRIVATE	(CONFIG_FLAG_NOSAVE | CONFIG_FLAG_NOPUB | CONFIG_FLAG_NOINFO)
 
 struct config_property;
@@ -106,14 +107,6 @@ typedef struct config_section config_section_t;
 struct config;
 typedef int (config_rw_t)(void *ctx);
 
-#ifdef JS
-struct config_rootinfo {
-	JSContext *cx;
-	void *vp;
-	char *name;
-};
-#endif
-
 #define CONFIG_FILENAME_SIZE 256
 struct config {
 	int id;
@@ -125,7 +118,7 @@ struct config {
 	void *reader_ctx;
 	config_rw_t *writer;
 	void *writer_ctx;
-	char errmsg[256];
+	char errmsg[128];
 	config_property_t **map;		/* ID map */
 	int map_maxid;
 	union {
@@ -137,8 +130,8 @@ struct config {
 	config_trigger_func_t *trigger;	/* Function to call when config is updated */
 	void *trigger_ctx;		/* Context to pass function */
 #ifdef JS
-	list roots;
-	list fctx;
+//	list roots;
+//	list fctx;
 #endif
 };
 typedef struct config config_t;
@@ -218,18 +211,27 @@ int js_config_calltrigger(void *ctx, config_property_t *p);
 #ifdef JS
 #include "jsapi.h"
 #include "jsengine.h"
+#define CONFIG_CTX_NAME_SIZE 64
+struct _js_config_func_ctx {
+        char name[CONFIG_CTX_NAME_SIZE];
+        JSContext *cx;
+        jsval func;
+	jsval arg;
+};
+typedef struct _js_config_func_ctx js_config_func_ctx_t;
+JSBool js_config_property_set_value(config_property_t *p, JSContext *cx, jsval val,bool trig);
 JSObject * js_InitConfigClass(JSContext *cx, JSObject *global_object);
 JSPropertySpec *js_config_to_props(config_t *cp, JSContext *cx, char *name, JSPropertySpec *add);
 JSBool js_config_callfunc(config_t *cp, JSContext *cx, uintN argc, jsval *vp);
 typedef JSBool (js_config_callfunc_t)(JSContext *cx, uintN argc, jsval *vp);
 JSFunctionSpec *js_config_to_funcs(config_t *cp, JSContext *cx, js_config_callfunc_t *func, JSFunctionSpec *add);
-JSBool js_config_common_getprop(JSContext *cx, JSObject *obj, jsval id, jsval *rval, config_t *, JSPropertySpec *);
-JSBool js_config_common_setprop(JSContext *cx, JSObject *obj, jsval id, jsval *rval, config_t *, JSPropertySpec *);
+JSBool js_config_common_getprop(JSContext *cx, JSObject *obj, jsval id, jsval *rval, config_t *, char *);
+JSBool js_config_common_setprop(JSContext *cx, JSObject *obj, jsval id, jsval *rval, config_t *, char *);
 JSObject *js_config_new(JSContext *cx, JSObject *parent, config_t *cp);
-config_property_t *js_config_obj2props(JSContext *cx, JSObject *obj, JSObject *addto);
+config_property_t *js_config_obj2props(JSContext *cx, JSObject *obj);
 config_function_t *js_config_obj2funcs(JSContext *cx, JSObject *obj);
-JSBool js_config_add_props(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rval);
-JSBool js_config_add_funcs(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rval);
+//int js_config_add_props(config_t *cp, JSContext *cx, JSObject *parent, JSObject *arr, char *sname);
+//int js_config_add_funcs(config_t *cp, JSContext *cx, JSObject *arr, char *sname);
 int config_jsinit(JSEngine *e);
 #endif
 

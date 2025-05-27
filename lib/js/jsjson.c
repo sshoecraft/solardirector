@@ -38,6 +38,9 @@
  *
  * ***** END LICENSE BLOCK ***** */
 
+#define dlevel 4
+#include "debug.h"
+
 #include "jsconfig.h"
 #if JS_HAS_JSON_OBJECT
 #include <string.h>     /* memset */
@@ -62,6 +65,169 @@
 #include "jsxml.h"
 
 #include "jsjson.h"
+
+
+/* my json stringify impl for C */
+struct _bufinfo {
+	JSContext *cx;
+        char *ptr;
+        int size;
+	int idx;
+};
+typedef struct _bufinfo bufinfo_t;
+#define BUF_CHUNKSIZE 256
+
+static void out(bufinfo_t *b, char ch) {
+	dprintf(dlevel,"idx: %ld, size: %ld\n", b->idx, b->size);
+	if (b->idx >= b->size) {
+		char *newbuf;
+		int newsize;
+
+		newsize = b->size + BUF_CHUNKSIZE;
+		dprintf(dlevel,"newsize: %d\n", newsize);
+		newbuf = JS_realloc(b->cx, b->ptr, newsize);
+		if (!newbuf) {
+			log_syserror("out: realloc(buffer,%d)",newsize);
+			return;
+		}
+		b->ptr = newbuf;
+		b->size = newsize;
+	}
+	b->ptr[b->idx++] = ch;
+}
+
+static int _getbuf(bufinfo_t *b, JSContext *cx) {
+	b->cx = cx;
+	b->size = BUF_CHUNKSIZE;
+	b->ptr = JS_malloc(b->cx,b->size);
+	if (!b->ptr) {
+		log_syserr("_getbuf: malloc(%d): %s\n", b->size);
+		return 1;
+	}
+	b->idx = 0;
+	return 0;
+}
+
+// recurse
+static int _jsvaltojson(bufinfo_t *b, int level, jsval val) {
+	char *str, *p;
+	JSObject *obj;
+	int type,i;
+	jsval ele;
+
+	int ldlevel = dlevel;
+
+//	int before = mem_used(); for(i = 0; i < level; i++) printf("  "); dprintf(-1,"mem_used before: %d\n", before);
+	type = JS_TypeOfValue(b->cx,val);
+//	for(i = 0; i < level; i++) printf("  ");
+	dprintf(ldlevel,"type: %s\n", jstypestr(b->cx,val));
+	switch(type) {
+	case JSTYPE_STRING:
+		out(b,'\"');
+		p = str = (char *)JS_EncodeString(b->cx, JSVAL_TO_STRING(val));
+//		outs(b,str);
+		while(*p) out(b,*p++);
+		out(b,'\"');
+		JS_free(b->cx, str);
+		break;
+        case JSTYPE_NUMBER:
+	case JSTYPE_BOOLEAN:
+		{
+			if (JSVAL_IS_INT(val)) {
+				char temp[20];
+				snprintf(temp,sizeof(temp),"%d",JSVAL_TO_INT(val));
+				p = temp; while(*p) out(b,*p++);
+			} else if (JSVAL_IS_DOUBLE(val)) {
+				char temp[40];
+				snprintf(temp,sizeof(temp),"%lf",*JSVAL_TO_DOUBLE(val));
+				p = temp; while(*p) out(b,*p++);
+			} else if (JSVAL_IS_BOOLEAN(val)) {
+				JSBool v = JSVAL_TO_BOOLEAN(val);
+				char *p = v ? "true" : "false";
+				while(*p) out(b,*p++);
+			}
+		}
+		break;
+	case JSTYPE_OBJECT:
+		if (OBJ_IS_ARRAY(cx,JSVAL_TO_OBJECT(val))) {
+			unsigned int count;
+
+			out(b,' ');
+			out(b,'[');
+			obj = JSVAL_TO_OBJECT(val);
+			if (!js_GetLengthProperty(b->cx, obj, &count)) count = 0;
+			for(i = 0; i < count; i++) {
+				if (i) out(b,',');
+				JS_GetElement(b->cx, obj, i, &ele);
+				_jsvaltojson(b, level+1, ele);
+			}
+			out(b,']');
+		} else {
+			JSIdArray *ida;
+			jsval *ids;
+			char *key;
+
+			out(b,'{');
+			obj = JSVAL_TO_OBJECT(val);
+ 			ida = JS_Enumerate(b->cx, obj);
+			if (!ida) {
+				log_error("unable to enumerate");
+				return 1;
+			}
+			ids = &ida->vector[0];
+			for(i=0; i< ida->length; i++) {
+//				dprintf(ldlevel,"ids[%d]: %s\n", i, jstypestr(b->cx,ids[i]));
+				if (JS_TypeOfValue(b->cx,ids[1]) != JSTYPE_STRING) continue;
+				key = (char *)JS_EncodeString(b->cx, JSVAL_TO_STRING(ids[i]));
+//				dprintf(ldlevel,"key: %p\n", key);
+				if (!key) continue;
+//				dprintf(ldlevel,"key: %s\n", key);
+				ele = JSVAL_VOID;
+				if (!JS_GetProperty(b->cx,obj,key,&ele)) {
+					JS_free(b->cx,key);
+					continue;
+				}
+				if (i) out(b,',');
+				out(b,'\"');
+				for(p = key; *p; p++) out(b,*p);
+				out(b,'\"');
+				out(b,':');
+				_jsvaltojson(b, level+1, ele);
+				JS_free(b->cx,key);
+			}
+			JS_DestroyIdArray(b->cx, ida);
+			out(b,'}');
+		}
+		break;
+	default:
+		{
+			JSString *jstr = JS_ValueToString(b->cx, val);
+			if (jstr) {
+				p = str = JS_EncodeString(b->cx, jstr);
+				out(b,'\"');
+				while(*p) out(b,*p++);
+				out(b,'\"');
+				JS_free(b->cx, str);
+			}
+		}
+		break;
+	}
+
+//	for(i = 0; i < level; i++) printf("  "); dprintf(-1,"mem_used after: %d\n", mem_used()); 
+//	for(i = 0; i < level; i++) printf("  "); dprintf(-1,"diff: %d\n", mem_used()-before);
+	return 0;
+}
+
+char *jsvaltojson(JSContext *cx, jsval val) {
+	bufinfo_t buf;
+
+        if (_getbuf(&buf,cx)) return 0;
+	_jsvaltojson(&buf,0,val);
+	out(&buf,0);
+	dprintf(dlevel,"buf size: %d\n", buf.size);
+	return buf.ptr;
+}
+
 
 #define bool int
 #define JSMSG_JSON_BAD_PARSE JSMSG_BAD_XML_MARKUP

@@ -746,6 +746,32 @@ str_substring(JSContext *cx, uintN argc, jsval *vp)
 }
 
 #if 0
+static JSBool
+str_trim(JSContext *cx, uintN argc, jsval *vp)
+{
+    JSString *str;
+    size_t i, n;
+    jschar *s, *news;
+
+    NORMALIZE_THIS(cx, vp, str);
+    JSSTRING_CHARS_AND_LENGTH(str, s, n);
+    news = (jschar *) JS_malloc(cx, (n + 1) * sizeof(jschar));
+    if (!news)
+        return JS_FALSE;
+    for (i = 0; i < n; i++)
+        news[i] = JS_TOLOWER(s[i]);
+    news[n] = 0;
+    str = js_NewString(cx, news, n);
+    if (!str) {
+        JS_free(cx, news);
+        return JS_FALSE;
+    }
+    *vp = STRING_TO_JSVAL(str);
+    return JS_TRUE;
+}
+#endif
+
+#if 0
 /* ES6 draft rc4 21.1.3.7. */
 static JSBool str_includes(JSContext* cx, unsigned argc, jsval *vp)
 {
@@ -2279,6 +2305,7 @@ static JSFunctionSpec string_methods[] = {
     JS_FN("substring",         str_substring,         0,2,GENERIC_PRIMITIVE),
     JS_FN("toLowerCase",       str_toLowerCase,       0,0,GENERIC_PRIMITIVE),
     JS_FN("toUpperCase",       str_toUpperCase,       0,0,GENERIC_PRIMITIVE),
+//    JS_FN("trim", 	       str_trim,	      0,0,GENERIC_PRIMITIVE),
     JS_FN("charAt",            str_charAt,            1,1,GENERIC_PRIMITIVE),
     JS_FN("charCodeAt",        str_charCodeAt,        1,1,GENERIC_PRIMITIVE),
     JS_FN("indexOf",           str_indexOf,           1,1,GENERIC_PRIMITIVE),
@@ -2931,6 +2958,7 @@ js_InflateString(JSContext *cx, const char *bytes, size_t *lengthp)
 #endif
 
     nbytes = *lengthp;
+//	dprintf(dlevel,"js_CStringsAreUTF8: %d\n", js_CStringsAreUTF8);
     if (js_CStringsAreUTF8) {
         if (!js_InflateStringToBuffer(cx, bytes, nbytes, NULL, &nchars))
             goto bad;
@@ -2975,6 +3003,7 @@ js_DeflateString(JSContext *cx, const jschar *chars, size_t nchars)
     JSBool ok;
 #endif
 
+//	dprintf(-1,"===> cx: %p, js_CStringsAreUTF8: %d\n", cx, js_CStringsAreUTF8);
     if (js_CStringsAreUTF8) {
         nbytes = js_GetDeflatedStringLength(cx, chars, nchars);
         if (nbytes == (size_t) -1)

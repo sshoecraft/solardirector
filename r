@@ -1,5 +1,6 @@
 killall jk
 killall jbd
+exit 0
 sleep 1
 for i in $(seq 1 14)
 do

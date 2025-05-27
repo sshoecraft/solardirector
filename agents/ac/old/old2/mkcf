@@ -1,0 +1,28 @@
+doit() {
+	info=$(sdconfig $1 $2 $3 2>/dev/null)
+	if test $? -ne 0; then
+		>&2 echo "error $1 $2"
+		return
+	fi
+	echo $info
+}
+
+get() {
+info=$(doit $1 get_${2} all)
+test -z "$info" && exit 1
+devs=$(echo "$info" | awk -F"all=" '{print $2}' | sed 's:,: :g')
+for dev in $devs
+do
+	info=$(doit $1 get_${2} $dev)
+	test -z "$info" && exit 1
+	opts=$(echo "$info" | awk -F"${dev}=" '{print $2}')
+	echo "sdconfig $1 add_${2} $dev \"$opts\""
+done
+}
+
+agent=$1
+test -z "$agent" && agent=ac
+
+get $agent pump
+get $agent fan
+get $agent unit

@@ -26,6 +26,7 @@ typedef int (js_outputfunc_t)(const char *format, ...);
 struct JSEngine {
 	JSRuntime *rt;
 	JSContext *cx;
+	JSObject *obj;				/* base object (defaults to global) */
 	pthread_mutex_t lockcx;
 	int rtsize;
 	int stacksize;
@@ -33,6 +34,7 @@ struct JSEngine {
 	js_outputfunc_t *output;
 	list scripts;
 //	char errmsg[1024];
+	list roots;
 	void *private;
 };
 typedef struct JSEngine JSEngine;
@@ -54,5 +56,6 @@ int JS_EngineAddObject(JSEngine *e, jsobjinit_t *func, void *priv);
 void JS_EngineCleanup(JSEngine *e);
 JSContext *JS_EngineGetCX(JSEngine *e);
 void JS_GlobalShutdown(JSContext *cx);
+int JS_EngineAddRoot(JSContext *cx, char *name, void *rp);
 
 #endif

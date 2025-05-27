@@ -1,0 +1,2804 @@
+common.c(285) solard_common_init: verb_flag: 0, err_flag: 0, append_flag: 0, log_opts: 3d
+common.c(298) solard_common_init: logfile: 
+common.c(313) solard_common_init: file: (null)
+common.c(334) solard_common_init: configfile: /etc/sd.conf
+cfg.c(415) cfg_read: filename: /etc/sd.conf
+cfg.c(435) cfg_read: line: prefix=/opt/sd
+cfg.c(121) cfg_section_get_item: looking for keyword: PREFIX
+cfg.c(130) cfg_section_get_item: not found
+cfg.c(506) cfg_read: keyword: PREFIX, value: /opt/sd
+cfg.c(435) cfg_read: line: 
+common.c(149) solard_get_dirs: cfg: 0x561293f276a0, section_name: , home: /root
+common.c(104) _getpath: cfg: 0x561293f276a0, home: /root, what: bin, ow: 1
+common.c(77) _getcfg: cfg: 0x561293f276a0, section_name: , dest: , what: bin, ow: 1
+common.c(79) _getcfg: name: bindir
+cfg.c(156) cfg_get_item: section name: , keyword: bindir
+cfg.c(530) cfg_get_section: looking for section: 
+cfg.c(533) cfg_get_section: name: 
+cfg.c(535) cfg_get_section: found section.
+cfg.c(121) cfg_section_get_item: looking for keyword: BINDIR
+cfg.c(124) cfg_section_get_item: item->keyword: PREFIX
+cfg.c(130) cfg_section_get_item: not found
+common.c(83) _getcfg: bindir p: (nil)
+cfg.c(156) cfg_get_item: section name: , keyword: prefix
+cfg.c(530) cfg_get_section: looking for section: 
+cfg.c(533) cfg_get_section: name: 
+cfg.c(535) cfg_get_section: found section.
+cfg.c(121) cfg_section_get_item: looking for keyword: PREFIX
+cfg.c(124) cfg_section_get_item: item->keyword: PREFIX
+cfg.c(126) cfg_section_get_item: found
+common.c(86) _getcfg: prefix p: 0x561293f27890
+common.c(89) _getcfg: prefix: /opt/sd
+common.c(95) _getcfg: dest: /opt/sd/bin
+common.c(98) _getcfg: returning: 0
+common.c(104) _getpath: cfg: 0x561293f276a0, home: /root, what: etc, ow: 1
+common.c(77) _getcfg: cfg: 0x561293f276a0, section_name: , dest: , what: etc, ow: 1
+common.c(79) _getcfg: name: etcdir
+cfg.c(156) cfg_get_item: section name: , keyword: etcdir
+cfg.c(530) cfg_get_section: looking for section: 
+cfg.c(533) cfg_get_section: name: 
+cfg.c(535) cfg_get_section: found section.
+cfg.c(121) cfg_section_get_item: looking for keyword: ETCDIR
+cfg.c(124) cfg_section_get_item: item->keyword: PREFIX
+cfg.c(130) cfg_section_get_item: not found
+common.c(83) _getcfg: etcdir p: (nil)
+cfg.c(156) cfg_get_item: section name: , keyword: prefix
+cfg.c(530) cfg_get_section: looking for section: 
+cfg.c(533) cfg_get_section: name: 
+cfg.c(535) cfg_get_section: found section.
+cfg.c(121) cfg_section_get_item: looking for keyword: PREFIX
+cfg.c(124) cfg_section_get_item: item->keyword: PREFIX
+cfg.c(126) cfg_section_get_item: found
+common.c(86) _getcfg: prefix p: 0x561293f27890
+common.c(89) _getcfg: prefix: /opt/sd
+common.c(95) _getcfg: dest: /opt/sd/etc
+common.c(98) _getcfg: returning: 0
+common.c(104) _getpath: cfg: 0x561293f276a0, home: /root, what: lib, ow: 1
+common.c(77) _getcfg: cfg: 0x561293f276a0, section_name: , dest: , what: lib, ow: 1
+common.c(79) _getcfg: name: libdir
+cfg.c(156) cfg_get_item: section name: , keyword: libdir
+cfg.c(530) cfg_get_section: looking for section: 
+cfg.c(533) cfg_get_section: name: 
+cfg.c(535) cfg_get_section: found section.
+cfg.c(121) cfg_section_get_item: looking for keyword: LIBDIR
+cfg.c(124) cfg_section_get_item: item->keyword: PREFIX
+cfg.c(130) cfg_section_get_item: not found
+common.c(83) _getcfg: libdir p: (nil)
+cfg.c(156) cfg_get_item: section name: , keyword: prefix
+cfg.c(530) cfg_get_section: looking for section: 
+cfg.c(533) cfg_get_section: name: 
+cfg.c(535) cfg_get_section: found section.
+cfg.c(121) cfg_section_get_item: looking for keyword: PREFIX
+cfg.c(124) cfg_section_get_item: item->keyword: PREFIX
+cfg.c(126) cfg_section_get_item: found
+common.c(86) _getcfg: prefix p: 0x561293f27890
+common.c(89) _getcfg: prefix: /opt/sd
+common.c(95) _getcfg: dest: /opt/sd/lib
+common.c(98) _getcfg: returning: 0
+common.c(104) _getpath: cfg: 0x561293f276a0, home: /root, what: log, ow: 1
+common.c(77) _getcfg: cfg: 0x561293f276a0, section_name: , dest: , what: log, ow: 1
+common.c(79) _getcfg: name: logdir
+cfg.c(156) cfg_get_item: section name: , keyword: logdir
+cfg.c(530) cfg_get_section: looking for section: 
+cfg.c(533) cfg_get_section: name: 
+cfg.c(535) cfg_get_section: found section.
+cfg.c(121) cfg_section_get_item: looking for keyword: LOGDIR
+cfg.c(124) cfg_section_get_item: item->keyword: PREFIX
+cfg.c(130) cfg_section_get_item: not found
+common.c(83) _getcfg: logdir p: (nil)
+cfg.c(156) cfg_get_item: section name: , keyword: prefix
+cfg.c(530) cfg_get_section: looking for section: 
+cfg.c(533) cfg_get_section: name: 
+cfg.c(535) cfg_get_section: found section.
+cfg.c(121) cfg_section_get_item: looking for keyword: PREFIX
+cfg.c(124) cfg_section_get_item: item->keyword: PREFIX
+cfg.c(126) cfg_section_get_item: found
+common.c(86) _getcfg: prefix p: 0x561293f27890
+common.c(89) _getcfg: prefix: /opt/sd
+common.c(95) _getcfg: dest: /opt/sd/log
+common.c(98) _getcfg: returning: 0
+common.c(171) solard_get_dirs: BINDIR: /opt/sd/bin, ETCDIR: /opt/sd/etc, LIBDIR: /opt/sd/lib, LOGDIR: /opt/sd/log, TEMPDIR: /tmp
+common.c(345) solard_common_init: cfg: 0x561293f276a0
+cfg.c(103) cfg_destroy: item->keyword: PREFIX
+common.c(348) solard_common_init: done!
+config.c(697) config_add_props: cp: 0x561293f246f0, props: 0x7ffcac944b70, flags: 0
+config.c(621) config_get_section: looking for section: sdjs
+config.c(631) config_get_section: NOT found!
+config.c(701) config_add_props: section: (nil)
+config.c(658) config_create_section: name: sdjs, flags: 00
+config.c(703) config_add_props: section: 0x561293f27a30
+config.c(531) config_section_add_property: cp: 0x561293f246f0, s: 0x561293f27a30, p: 0x7ffcac944b70
+config.c(534) config_section_add_property: cp->triggers: 1, NOTRIG: 0
+config.c(538) config_section_add_property: p->name: load, flags: 0, trig: 1
+config.c(152) config_section_get_property: section: sdjs, name: load
+config.c(166) config_section_get_property: NOT found
+config.c(543) config_section_add_property: p: 0x7ffcac944b70, pp: (nil)
+config.c(564) config_section_add_property: load: dest: 0x7ffcac945fa0, def: (null), flags: 0
+config.c(531) config_section_add_property: cp: 0x561293f246f0, s: 0x561293f27a30, p: 0x7ffcac944c08
+config.c(534) config_section_add_property: cp->triggers: 1, NOTRIG: 0
+config.c(538) config_section_add_property: p->name: rtsize, flags: 0, trig: 1
+config.c(152) config_section_get_property: section: sdjs, name: rtsize
+config.c(166) config_section_get_property: NOT found
+config.c(543) config_section_add_property: p: 0x7ffcac944c08, pp: (nil)
+config.c(564) config_section_add_property: rtsize: dest: 0x7ffcac944f9c, def: 256K, flags: 1
+config.c(276) config_property_set_value: ***************************************
+config.c(277) config_property_set_value: p->name: rtsize, trigger: 1
+config.c(250) _destdup: type: DATA_TYPE_S32
+config.c(253) _destdup: size: 0
+config.c(256) _destdup: NEW size: 4
+config.c(265) _destdup: dest: 0x561293f25e50
+conv.c(2389) conv_type: dt: 14(DATA_TYPE_S32)
+conv.c(2424) conv_type: returning: 4
+config.c(295) config_property_set_value: p->dest: 0x7ffcac944f9c, p->flags: 1
+config.c(303) config_property_set_value: p->dest: 0x7ffcac944f9c, type: DATA_TYPE_S32, ISNUMBER: 1
+config.c(329) config_property_set_value: p->dest: 0x7ffcac944f9c, p->dsize: 0
+conv.c(117) _str2int: s: 256K
+conv.c(123) _str2int: i: 256
+conv.c(89) _getmult: s: 256K(4)
+conv.c(92) _getmult: c(4b): K
+conv.c(109) _getmult: m: 1024
+conv.c(125) _str2int: returning: 262144
+conv.c(2389) conv_type: dt: 14(DATA_TYPE_S32)
+conv.c(2424) conv_type: returning: 4
+config.c(335) config_property_set_value: ==> trigger: 1, p->dest: 0x7ffcac944f9c, p->trigger: (nil)
+config.c(341) config_property_set_value: old_dest: 0x561293f25e50
+config.c(343) config_property_set_value: destroying old_dest...
+config.c(531) config_section_add_property: cp: 0x561293f246f0, s: 0x561293f27a30, p: 0x7ffcac944ca0
+config.c(534) config_section_add_property: cp->triggers: 1, NOTRIG: 0
+config.c(538) config_section_add_property: p->name: stacksize, flags: 0, trig: 1
+config.c(152) config_section_get_property: section: sdjs, name: stacksize
+config.c(166) config_section_get_property: NOT found
+config.c(543) config_section_add_property: p: 0x7ffcac944ca0, pp: (nil)
+config.c(564) config_section_add_property: stacksize: dest: 0x7ffcac944f98, def: 8K, flags: 1
+config.c(276) config_property_set_value: ***************************************
+config.c(277) config_property_set_value: p->name: stacksize, trigger: 1
+config.c(250) _destdup: type: DATA_TYPE_S32
+config.c(253) _destdup: size: 0
+config.c(256) _destdup: NEW size: 4
+config.c(265) _destdup: dest: 0x561293f25e50
+conv.c(2389) conv_type: dt: 14(DATA_TYPE_S32)
+conv.c(2424) conv_type: returning: 4
+config.c(295) config_property_set_value: p->dest: 0x7ffcac944f98, p->flags: 1
+config.c(303) config_property_set_value: p->dest: 0x7ffcac944f98, type: DATA_TYPE_S32, ISNUMBER: 1
+config.c(329) config_property_set_value: p->dest: 0x7ffcac944f98, p->dsize: 0
+conv.c(117) _str2int: s: 8K
+conv.c(123) _str2int: i: 8
+conv.c(89) _getmult: s: 8K(2)
+conv.c(92) _getmult: c(4b): K
+conv.c(109) _getmult: m: 1024
+conv.c(125) _str2int: returning: 8192
+conv.c(2389) conv_type: dt: 14(DATA_TYPE_S32)
+conv.c(2424) conv_type: returning: 4
+config.c(335) config_property_set_value: ==> trigger: 1, p->dest: 0x7ffcac944f98, p->trigger: (nil)
+config.c(341) config_property_set_value: old_dest: 0x561293f25e50
+config.c(343) config_property_set_value: destroying old_dest...
+config.c(697) config_add_props: cp: 0x561293f246f0, props: 0x7ffcac944710, flags: 0
+config.c(621) config_get_section: looking for section: sdjs
+config.c(624) config_get_section: name: sdjs
+config.c(626) config_get_section: found
+config.c(701) config_add_props: section: 0x561293f27a30
+config.c(703) config_add_props: section: 0x561293f27a30
+config.c(531) config_section_add_property: cp: 0x561293f246f0, s: 0x561293f27a30, p: 0x7ffcac944710
+config.c(534) config_section_add_property: cp->triggers: 1, NOTRIG: 0
+config.c(538) config_section_add_property: p->name: BINDIR, flags: 0, trig: 1
+config.c(152) config_section_get_property: section: sdjs, name: BINDIR
+config.c(166) config_section_get_property: NOT found
+config.c(543) config_section_add_property: p: 0x7ffcac944710, pp: (nil)
+config.c(564) config_section_add_property: BINDIR: dest: 0x56126eea4d00, def: (null), flags: 0
+config.c(531) config_section_add_property: cp: 0x561293f246f0, s: 0x561293f27a30, p: 0x7ffcac9447a8
+config.c(534) config_section_add_property: cp->triggers: 1, NOTRIG: 0
+config.c(538) config_section_add_property: p->name: ETCDIR, flags: 0, trig: 1
+config.c(152) config_section_get_property: section: sdjs, name: ETCDIR
+config.c(166) config_section_get_property: NOT found
+config.c(543) config_section_add_property: p: 0x7ffcac9447a8, pp: (nil)
+config.c(564) config_section_add_property: ETCDIR: dest: 0x56126eea4e00, def: (null), flags: 0
+config.c(531) config_section_add_property: cp: 0x561293f246f0, s: 0x561293f27a30, p: 0x7ffcac944840
+config.c(534) config_section_add_property: cp->triggers: 1, NOTRIG: 0
+config.c(538) config_section_add_property: p->name: LIBDIR, flags: 0, trig: 1
+config.c(152) config_section_get_property: section: sdjs, name: LIBDIR
+config.c(166) config_section_get_property: NOT found
+config.c(543) config_section_add_property: p: 0x7ffcac944840, pp: (nil)
+config.c(564) config_section_add_property: LIBDIR: dest: 0x56126eea4f00, def: (null), flags: 0
+config.c(531) config_section_add_property: cp: 0x561293f246f0, s: 0x561293f27a30, p: 0x7ffcac9448d8
+config.c(534) config_section_add_property: cp->triggers: 1, NOTRIG: 0
+config.c(538) config_section_add_property: p->name: LOGDIR, flags: 0, trig: 1
+config.c(152) config_section_get_property: section: sdjs, name: LOGDIR
+config.c(166) config_section_get_property: NOT found
+config.c(543) config_section_add_property: p: 0x7ffcac9448d8, pp: (nil)
+config.c(564) config_section_add_property: LOGDIR: dest: 0x56126eea5000, def: (null), flags: 0
+config.c(531) config_section_add_property: cp: 0x561293f246f0, s: 0x561293f27a30, p: 0x7ffcac944970
+config.c(534) config_section_add_property: cp->triggers: 1, NOTRIG: 0
+config.c(538) config_section_add_property: p->name: TEMPDIR, flags: 0, trig: 1
+config.c(152) config_section_get_property: section: sdjs, name: TEMPDIR
+config.c(166) config_section_get_property: NOT found
+config.c(543) config_section_add_property: p: 0x7ffcac944970, pp: (nil)
+config.c(564) config_section_add_property: TEMPDIR: dest: 0x56126eea5100, def: (null), flags: 0
+config.c(531) config_section_add_property: cp: 0x561293f246f0, s: 0x561293f27a30, p: 0x7ffcac944a08
+config.c(534) config_section_add_property: cp->triggers: 1, NOTRIG: 0
+config.c(538) config_section_add_property: p->name: debug, flags: 0, trig: 1
+config.c(152) config_section_get_property: section: sdjs, name: debug
+config.c(166) config_section_get_property: NOT found
+config.c(543) config_section_add_property: p: 0x7ffcac944a08, pp: (nil)
+config.c(564) config_section_add_property: debug: dest: 0x56126eea48ec, def: (null), flags: 242
+common.c(358) common_read_config: conf: /opt/sd/etc/common.conf
+common.c(360) common_read_config: fp1: 0x561293f21400
+common.c(367) common_read_config: tempfile: /tmp/_sdctmp46621.conf
+common.c(369) common_read_config: fp2: 0x561293f24000
+config.c(1375) config_set_filename: cp: 0x561293f246f0, filename: /tmp/_sdctmp46621.conf, format: 0
+config.c(1319) _set_rw: format: 0
+config.c(1319) _set_rw: format: 1
+config.c(1297) config_set_reader: cp: 0x561293f246f0
+config.c(1300) config_set_reader: func: 0x56126ed001df, ctx: 0x561293f246f0
+config.c(1308) config_set_writer: cp: 0x561293f246f0
+config.c(1311) config_set_writer: func: 0x56126ed014d3, ctx: 0x561293f246f0
+config.c(1354) config_read: cp: 0x561293f246f0
+config.c(1357) config_read: reader: 0x56126ed001df
+config.c(886) config_read_ini: cp: 0x561293f246f0
+config.c(889) config_read_ini: filename: /tmp/_sdctmp46621.conf
+cfg.c(415) cfg_read: filename: /tmp/_sdctmp46621.conf
+cfg.c(435) cfg_read: line: [sdjs]
+cfg.c(530) cfg_get_section: looking for section: SDJS
+cfg.c(533) cfg_get_section: name: 
+cfg.c(435) cfg_read: line: mqtt_uri=tcp://localhost:1883
+cfg.c(121) cfg_section_get_item: looking for keyword: MQTT_URI
+cfg.c(130) cfg_section_get_item: not found
+cfg.c(506) cfg_read: keyword: MQTT_URI, value: tcp://localhost:1883
+cfg.c(435) cfg_read: line: influx_endpoint=localhost:8086
+cfg.c(121) cfg_section_get_item: looking for keyword: INFLUX_ENDPOINT
+cfg.c(124) cfg_section_get_item: item->keyword: MQTT_URI
+cfg.c(130) cfg_section_get_item: not found
+cfg.c(506) cfg_read: keyword: INFLUX_ENDPOINT, value: localhost:8086
+cfg.c(435) cfg_read: line: 
+config.c(891) config_read_ini: cfg: 0x561293f258a0
+config.c(898) config_read_ini: cfgsec->name: 
+config.c(621) config_get_section: looking for section: 
+config.c(624) config_get_section: name: sdjs
+config.c(631) config_get_section: NOT found!
+config.c(658) config_create_section: name: , flags: 10
+config.c(898) config_read_ini: cfgsec->name: SDJS
+config.c(621) config_get_section: looking for section: SDJS
+config.c(624) config_get_section: name: sdjs
+config.c(626) config_get_section: found
+config.c(903) config_read_ini: item->keyword: MQTT_URI
+config.c(152) config_section_get_property: section: sdjs, name: MQTT_URI
+config.c(166) config_section_get_property: NOT found
+config.c(905) config_read_ini: p: (nil)
+config.c(472) config_new_property: cp: 0x561293f246f0, name: MQTT_URI, type: 4, dest: 0x561293f27890, dsize: 21, len: 20, def: (null), flags: 58, scope: (null), values: (null), labels: (null), units: (null), scale: 0.000000, precision: 0
+config.c(476) config_new_property: newp: 0x561293f27b40
+config.c(487) config_new_property: type: DATA_TYPE_STRING, dest: 0x561293f27890, size: 21
+conv.c(147) conv_type: src: tcp://localhost:1883
+conv.c(2389) conv_type: dt: 4(DATA_TYPE_STRING)
+conv.c(2392) conv_type: string: tcp://localhost:1883
+conv.c(2424) conv_type: returning: 20
+config.c(489) config_new_property: MQTT_URI value: tcp://localhost:1883
+config.c(276) config_property_set_value: ***************************************
+config.c(277) config_property_set_value: p->name: MQTT_URI, trigger: 1
+config.c(295) config_property_set_value: p->dest: (nil), p->flags: 20
+config.c(303) config_property_set_value: p->dest: (nil), type: DATA_TYPE_STRING, ISNUMBER: 0
+config.c(306) config_property_set_value: allocating dest...
+config.c(307) config_property_set_value: p->type: DATA_TYPE_STRING, type: DATA_TYPE_STRING
+config.c(313) config_property_set_value: p->dsize: 22, size: 22
+config.c(325) config_property_set_value: p->dest: 0x561293f27c00
+config.c(329) config_property_set_value: p->dest: 0x561293f27c00, p->dsize: 22
+conv.c(147) conv_type: src: tcp://localhost:1883
+conv.c(2389) conv_type: dt: 4(DATA_TYPE_STRING)
+conv.c(2392) conv_type: string: tcp://localhost:1883
+conv.c(2424) conv_type: returning: 20
+config.c(335) config_property_set_value: ==> trigger: 1, p->dest: 0x561293f27c00, p->trigger: (nil)
+config.c(341) config_property_set_value: old_dest: (nil)
+config.c(531) config_section_add_property: cp: 0x561293f246f0, s: 0x561293f27a30, p: 0x561293f27b40
+config.c(534) config_section_add_property: cp->triggers: 1, NOTRIG: 0
+config.c(538) config_section_add_property: p->name: MQTT_URI, flags: 0, trig: 1
+config.c(152) config_section_get_property: section: sdjs, name: MQTT_URI
+config.c(166) config_section_get_property: NOT found
+config.c(543) config_section_add_property: p: 0x561293f27b40, pp: (nil)
+config.c(564) config_section_add_property: MQTT_URI: dest: 0x561293f27c00, def: (null), flags: 4178
+config.c(903) config_read_ini: item->keyword: INFLUX_ENDPOINT
+config.c(152) config_section_get_property: section: sdjs, name: INFLUX_ENDPOINT
+config.c(166) config_section_get_property: NOT found
+config.c(905) config_read_ini: p: (nil)
+config.c(472) config_new_property: cp: 0x561293f246f0, name: INFLUX_ENDPOINT, type: 4, dest: 0x561293f25ef0, dsize: 15, len: 14, def: (null), flags: 58, scope: (null), values: (null), labels: (null), units: (null), scale: 0.000000, precision: 0
+config.c(476) config_new_property: newp: 0x561293f27d20
+config.c(487) config_new_property: type: DATA_TYPE_STRING, dest: 0x561293f25ef0, size: 15
+conv.c(147) conv_type: src: localhost:8086
+conv.c(2389) conv_type: dt: 4(DATA_TYPE_STRING)
+conv.c(2392) conv_type: string: localhost:8086
+conv.c(2424) conv_type: returning: 14
+config.c(489) config_new_property: INFLUX_ENDPOINT value: localhost:8086
+config.c(276) config_property_set_value: ***************************************
+config.c(277) config_property_set_value: p->name: INFLUX_ENDPOINT, trigger: 1
+config.c(295) config_property_set_value: p->dest: (nil), p->flags: 20
+config.c(303) config_property_set_value: p->dest: (nil), type: DATA_TYPE_STRING, ISNUMBER: 0
+config.c(306) config_property_set_value: allocating dest...
+config.c(307) config_property_set_value: p->type: DATA_TYPE_STRING, type: DATA_TYPE_STRING
+config.c(313) config_property_set_value: p->dsize: 16, size: 16
+config.c(325) config_property_set_value: p->dest: 0x561293f27de0
+config.c(329) config_property_set_value: p->dest: 0x561293f27de0, p->dsize: 16
+conv.c(147) conv_type: src: localhost:8086
+conv.c(2389) conv_type: dt: 4(DATA_TYPE_STRING)
+conv.c(2392) conv_type: string: localhost:8086
+conv.c(2424) conv_type: returning: 14
+config.c(335) config_property_set_value: ==> trigger: 1, p->dest: 0x561293f27de0, p->trigger: (nil)
+config.c(341) config_property_set_value: old_dest: (nil)
+config.c(531) config_section_add_property: cp: 0x561293f246f0, s: 0x561293f27a30, p: 0x561293f27d20
+config.c(534) config_section_add_property: cp->triggers: 1, NOTRIG: 0
+config.c(538) config_section_add_property: p->name: INFLUX_ENDPOINT, flags: 0, trig: 1
+config.c(152) config_section_get_property: section: sdjs, name: INFLUX_ENDPOINT
+config.c(166) config_section_get_property: NOT found
+config.c(543) config_section_add_property: p: 0x561293f27d20, pp: (nil)
+config.c(564) config_section_add_property: INFLUX_ENDPOINT: dest: 0x561293f27de0, def: (null), flags: 4178
+config.c(917) config_read_ini: building map...
+config.c(587) config_build_propmap: cp->map: (nil)
+config.c(590) config_build_propmap: cp->id: 12, size: 96
+config.c(592) config_build_propmap: cp->map: 0x561293f24680
+config.c(610) config_build_propmap: map count: 12
+cfg.c(103) cfg_destroy: item->keyword: MQTT_URI
+cfg.c(103) cfg_destroy: item->keyword: INFLUX_ENDPOINT
+main.c(164) find_configfile: name: sdjs.conf
+main.c(170) find_configfile: cwd: /usr/src/sd/utils/sdjs
+main.c(172) find_configfile: path: /usr/src/sd/utils/sdjs/sdjs.conf
+main.c(179) find_configfile: home: /root
+main.c(181) find_configfile: path: /root/sdjs.conf
+main.c(187) find_configfile: path: /root/etc/sdjs.conf
+main.c(193) find_configfile: ETCDIR: /opt/sd/etc
+main.c(195) find_configfile: path: /opt/sd/etc/sdjs.conf
+config.c(1375) config_set_filename: cp: 0x561293f246f0, filename: /opt/sd/etc/sdjs.conf, format: 0
+config.c(1319) _set_rw: format: 0
+config.c(1319) _set_rw: format: 1
+config.c(1297) config_set_reader: cp: 0x561293f246f0
+config.c(1300) config_set_reader: func: 0x56126ed001df, ctx: 0x561293f246f0
+config.c(1308) config_set_writer: cp: 0x561293f246f0
+config.c(1311) config_set_writer: func: 0x56126ed014d3, ctx: 0x561293f246f0
+config.c(1354) config_read: cp: 0x561293f246f0
+config.c(1357) config_read: reader: 0x56126ed001df
+config.c(886) config_read_ini: cp: 0x561293f246f0
+config.c(889) config_read_ini: filename: /opt/sd/etc/sdjs.conf
+cfg.c(415) cfg_read: filename: /opt/sd/etc/sdjs.conf
+cfg.c(435) cfg_read: line: [SDJS]
+cfg.c(530) cfg_get_section: looking for section: SDJS
+cfg.c(533) cfg_get_section: name: 
+cfg.c(435) cfg_read: line: LOAD=/opt/sd/lib/sd/utils.js
+cfg.c(121) cfg_section_get_item: looking for keyword: LOAD
+cfg.c(130) cfg_section_get_item: not found
+cfg.c(506) cfg_read: keyword: LOAD, value: /opt/sd/lib/sd/utils.js
+cfg.c(435) cfg_read: line: 
+cfg.c(435) cfg_read: line: 
+config.c(891) config_read_ini: cfg: 0x561293f27e30
+config.c(898) config_read_ini: cfgsec->name: 
+config.c(621) config_get_section: looking for section: 
+config.c(624) config_get_section: name: sdjs
+config.c(624) config_get_section: name: 
+config.c(626) config_get_section: found
+config.c(898) config_read_ini: cfgsec->name: SDJS
+config.c(621) config_get_section: looking for section: SDJS
+config.c(624) config_get_section: name: sdjs
+config.c(626) config_get_section: found
+config.c(903) config_read_ini: item->keyword: LOAD
+config.c(152) config_section_get_property: section: sdjs, name: LOAD
+config.c(160) config_section_get_property: found: 0x561293f27c80
+config.c(905) config_read_ini: p: 0x561293f27c80
+config.c(907) config_read_ini: value: /opt/sd/lib/sd/utils.js
+conv.c(147) conv_type: src: /opt/sd/lib/sd/utils.js
+conv.c(2389) conv_type: dt: 4(DATA_TYPE_STRING)
+conv.c(2392) conv_type: string: /opt/sd/lib/sd/utils.js
+conv.c(2424) conv_type: returning: 23
+config.c(917) config_read_ini: building map...
+config.c(587) config_build_propmap: cp->map: 0x561293f24680
+config.c(590) config_build_propmap: cp->id: 12, size: 96
+config.c(592) config_build_propmap: cp->map: 0x561293f24680
+config.c(610) config_build_propmap: map count: 12
+cfg.c(103) cfg_destroy: item->keyword: LOAD
+main.c(265) main: rtsize_flag: DEADBEEF, stacksize_flag: DEADBEEF
+main.c(268) main: rtsize: 262144, stacksize: 8192
+common.c(776) common_jsinit: calling JS_EngineInit...
+common.c(778) common_jsinit: e: 0x561293f268d0
+common.c(807) common_jsinit: returning: 0x561293f268d0
+main.c(272) main: e: 0x561293f268d0
+main.c(276) main: jsexec: 
+jsglobal.c(924) JS_CreateGlobalObject: Creating global object...
+jsglobal.c(930) JS_CreateGlobalObject: Global object: 0x7f2092ac0000
+jsglobal.c(934) JS_CreateGlobalObject: Defining global props...
+jsglobal.c(941) JS_CreateGlobalObject: Defining global funcs...
+jsglobal.c(947) JS_CreateGlobalObject: Defining global constants...
+jsglobal.c(953) JS_CreateGlobalObject: Defining global aliases...
+jsglobal.c(959) JS_CreateGlobalObject: Setting global private...
+jsglobal.c(817) newgobj: navigator newobj: 0x7f2092ac0080
+jsglobal.c(817) newgobj: document newobj: 0x7f2092ac00c0
+jsglobal.c(846) js_define_window: Defining window props...
+jsglobal.c(849) js_define_window: Defining window funcs...
+jsglobal.c(852) js_define_window: Defining window property...
+jsglobal.c(967) JS_CreateGlobalObject: Adding standard classes...
+jsfile.c(613) js_canonicalPath: oldpath: 0x56126ee68618
+jsfile.c(613) js_canonicalPath: oldpath: 0x561293f39140
+jsfile.c(613) js_canonicalPath: oldpath: 0x56126ee67f4e
+jsfile.c(352) PR_GetFileInfo: PR_GetFileInfo: Fn: /usr/src/sd/utils/sdjs
+jsfile.c(613) js_canonicalPath: oldpath: 0x56126ee67f89
+jsfile.c(352) PR_GetFileInfo: PR_GetFileInfo: Fn: /usr/src/sd/utils/sdjs
+jsfile.c(613) js_canonicalPath: oldpath: 0x56126ee67fa0
+jsfile.c(352) PR_GetFileInfo: PR_GetFileInfo: Fn: /usr/src/sd/utils/sdjs
+jsclass.c(181) js_InitClassClass: Defining Class object
+jsclass.c(187) js_InitClassClass: done!
+jsglobal.c(973) JS_CreateGlobalObject: done!
+common.c(755) js_common_init: Defining common properties...
+common.c(760) js_common_init: Defining common functions...
+config.c(3924) js_InitConfigClass: defining Config class
+config.c(3937) js_InitConfigClass: done!
+config.c(2906) js_InitConfigSectionClass: defining ConfigProperty object
+config.c(2912) js_InitConfigSectionClass: done!
+config.c(2681) js_InitConfigPropertyClass: defining ConfigProperty object
+config.c(2687) js_InitConfigPropertyClass: done!
+json.c(752) js_InitmyJSONClass: Creating myJSON object...
+driver.c(438) js_InitDriverClass: Creating Driver class
+agent.c(1698) js_InitAgentClass: creating Agent class
+agent.c(1704) js_InitAgentClass: newobj: 0x7f2092ac0c00
+client.c(833) js_InitClientClass: creating Client class
+mqtt.c(1208) js_InitMQTTClass: Creating MQTT class...
+message.c(283) js_InitMessageClass: creating Message class
+message.c(289) js_InitMessageClass: done!
+influx.c(1892) js_InitInfluxClass: Creating Influx class...
+influx.c(1502) js_InitInfluxResponseClass: creating InfluxResponse class...
+influx.c(1508) js_InitInfluxResponseClass: done!
+influx.c(1395) js_InitInfluxResultClass: creating InfluxResult class...
+influx.c(1401) js_InitInfluxResultClass: done!
+influx.c(1283) js_InitInfluxSeriesClass: creating InfluxSeries class...
+influx.c(1289) js_InitInfluxSeriesClass: done!
+event.c(269) js_InitEventClass: creating Event class
+event.c(275) js_InitEventClass: newobj: 0x7f2092ac0e00
+battery.c(461) js_InitBatteryClass: defining battery class
+battery.c(467) js_InitBatteryClass: done!
+main.c(285) main: cx: 0x561293f28d10
+main.c(288) main: script: testagent.js, func: 
+main.c(301) main: argc: 4, optind: 4, argv: 0x7ffcac947358
+main.c(304) main: argc: 4, optind: 4, count: 0
+main.c(314) main: func: 
+main.c(320) main: executing script: testagent.js
+common.c(586) common_getprop: is_int: 1
+common.c(589) common_getprop: prop_id: 3
+jsconv.c(31) type_to_jsval: type: 4(DATA_TYPE_STRING), src: 0x56126eea4f00, len: 11
+jsconv.c(64) type_to_jsval: newstr: 0x7f209178e0d0
+jsconv.c(161) type_to_jsval: returning type: string
+jsfile.c(2402) file_constructor: argc: 1
+jsfile.c(613) js_canonicalPath: oldpath: 0x561293f51990
+jsfile.c(352) PR_GetFileInfo: PR_GetFileInfo: Fn: /usr/src/sd/utils/sdjs
+jsfile.c(2402) file_constructor: argc: 1
+jsfile.c(613) js_canonicalPath: oldpath: 0x561293f51a80
+jsfile.c(352) PR_GetFileInfo: PR_GetFileInfo: Fn: /usr/src/sd/utils/sdjs
+jsfile.c(2402) file_constructor: argc: 1
+jsfile.c(613) js_canonicalPath: oldpath: 0x561293f51aa0
+jsfile.c(352) PR_GetFileInfo: PR_GetFileInfo: Fn: /usr/src/sd/utils/sdjs
+jsglobal.c(686) global_getprop: prop_id: 1
+jsglobal.c(686) global_getprop: prop_id: 1
+jsglobal.c(686) global_getprop: prop_id: 1
+jsglobal.c(686) global_getprop: prop_id: 1
+driver.c(381) driver_ctor: name: test
+driver.c(457) js_driver_new: creating Driver object
+driver.c(461) js_driver_new: Setting private to: 0x561293f656e0
+driver.c(331) driver_setprop: p: 0x561293f656e0
+driver.c(336) driver_setprop: p->cp: (nil)
+driver.c(343) driver_setprop: value type: function
+config.c(193) config_get_property: sname: test, name: init
+config.c(196) config_get_property: s: (nil)
+driver.c(346) driver_setprop: prop: (nil)
+config.c(2313) js_config_common_setprop: cp: (nil)
+driver.c(331) driver_setprop: p: 0x561293f656e0
+driver.c(336) driver_setprop: p->cp: (nil)
+driver.c(343) driver_setprop: value type: function
+config.c(193) config_get_property: sname: test, name: get_info
+config.c(196) config_get_property: s: (nil)
+driver.c(346) driver_setprop: prop: (nil)
+config.c(2313) js_config_common_setprop: cp: (nil)
+driver.c(331) driver_setprop: p: 0x561293f656e0
+driver.c(336) driver_setprop: p->cp: (nil)
+driver.c(343) driver_setprop: value type: function
+config.c(193) config_get_property: sname: test, name: read
+config.c(196) config_get_property: s: (nil)
+driver.c(346) driver_setprop: prop: (nil)
+config.c(2313) js_config_common_setprop: cp: (nil)
+driver.c(331) driver_setprop: p: 0x561293f656e0
+driver.c(336) driver_setprop: p->cp: (nil)
+driver.c(343) driver_setprop: value type: function
+config.c(193) config_get_property: sname: test, name: write
+config.c(196) config_get_property: s: (nil)
+driver.c(346) driver_setprop: prop: (nil)
+config.c(2313) js_config_common_setprop: cp: (nil)
+driver.c(331) driver_setprop: p: 0x561293f656e0
+driver.c(336) driver_setprop: p->cp: (nil)
+driver.c(343) driver_setprop: value type: function
+config.c(193) config_get_property: sname: test, name: run
+config.c(196) config_get_property: s: (nil)
+driver.c(346) driver_setprop: prop: (nil)
+config.c(2313) js_config_common_setprop: cp: (nil)
+agent.c(1502) js_agent_ctor: cx: 0x561293f28d10, obj: 0x7f2091785340, argc: 6
+agent.c(1507) js_agent_ctor: aobj: 0x7f2092ac0e80, dobj: 0x7f2091785140, vers: 1.0, oobj: 0x7f2091785380, pobj: 0x7f20917852c0, fobj: 0x7f20917853c0
+agent.c(1525) js_agent_ctor: driver name: test
+agent.c(1532) js_agent_ctor: count: 0
+opts.c(708) js_opt_arr2opts: count: 0
+opts.c(710) js_opt_arr2opts: sz: 64
+opts.c(712) js_opt_arr2opts: opts: 0x561293f69ad0
+agent.c(1560) js_agent_ctor: opts: 0x561293f69ad0
+config.c(3282) js_config_obj2props: count: 1
+config.c(3284) js_config_obj2props: sz: 304
+config.c(3289) js_config_obj2props: arr[0] type: object
+config.c(3117) _js_config_get_prop: cp: (nil)
+config.c(3131) _js_config_get_prop: count: 4
+config.c(3096) _getele: name: name, ele: 0
+jsconv.c(181) jsval_to_type: strp: 0x561293f69c60, value: interval
+config.c(3096) _getele: name: type, ele: 1
+jsconv.c(186) jsval_to_type: cx: 0x561293f28d10, val: 29
+jsconv.c(188) jsval_to_type: jstype: 4(number), dtype: 14(DATA_TYPE_S32), dest: 0x7ffcac94397c, dlen: 0
+jsconv.c(263) jsval_to_type: IS_INT: 1, IS_DOUBLE: 0
+jsconv.c(266) jsval_to_type: i: 14
+jsconv.c(299) jsval_to_type: dtype: DATA_TYPE_S32, stype: DATA_TYPE_S32, src: 0x7ffcac94385c, slen: 4
+conv.c(2389) conv_type: dt: 14(DATA_TYPE_S32)
+conv.c(2424) conv_type: returning: 4
+config.c(3096) _getele: name: def, ele: 2
+jsconv.c(181) jsval_to_type: strp: 0x561293f69c80, value: 7
+config.c(3096) _getele: name: flags, ele: 3
+jsconv.c(186) jsval_to_type: cx: 0x561293f28d10, val: 8193
+jsconv.c(188) jsval_to_type: jstype: 4(number), dtype: 14(DATA_TYPE_S32), dest: 0x7ffcac943978, dlen: 0
+jsconv.c(263) jsval_to_type: IS_INT: 1, IS_DOUBLE: 0
+jsconv.c(266) jsval_to_type: i: 4096
+jsconv.c(299) jsval_to_type: dtype: DATA_TYPE_S32, stype: DATA_TYPE_S32, src: 0x7ffcac94385c, slen: 4
+conv.c(2389) conv_type: dt: 14(DATA_TYPE_S32)
+conv.c(2424) conv_type: returning: 4
+config.c(3150) _js_config_get_prop: prop: name: interval, type: DATA_TYPE_S32, def: 7, flags: 1000, func: 80000001, arg: 80000001
+config.c(472) config_new_property: cp: (nil), name: interval, type: 14, dest: (nil), dsize: 0, len: 0, def: 7, flags: 1000, scope: (null), values: (null), labels: (null), units: (null), scale: 1.000000, precision: 0
+config.c(476) config_new_property: newp: 0x561293f69ca0
+config.c(495) config_new_property: newp->def: 0x561293f69d60
+config.c(3154) _js_config_get_prop: func: 80000001, void: 80000001
+config.c(3155) _js_config_get_prop: isfunc: 0
+config.c(3295) js_config_obj2props: newprop: 0x561293f69ca0
+config.c(35) config_dump_property: p: 0x561293f69ca0
+name                : interval
+type                : DATA_TYPE_S32
+dest                : (nil)
+value               : 
+dsize               : 0
+def                 : 7
+flags               : 0x1020(ALLOC,NOWARN)
+scope               : (null)
+values              : (null)
+labels              : (null)
+units               : (null)
+scale               : 1.000000
+precision           : 0
+len                 : 0
+id                  : 0
+dirty               : 0
+
+config.c(3301) js_config_obj2props: returning: 0x561293f69b20
+config.c(3558) js_config_obj2funcs: count: 0
+config.c(3560) js_config_obj2funcs: sz: 40
+config.c(3576) js_config_obj2funcs: returning: 0x561293f6bf50
+opts.c(181) opt_combine_opts: std_opts: 0x7ffcac941ff0, add_opts: 0x561293f69ad0
+opts.c(167) opt_addopt: newopt->type: 4
+opts.c(169) opt_addopt: adding
+opts.c(139) opt_addopt: kw1: -M, kw2: -m::
+opts.c(167) opt_addopt: newopt->type: 8
+opts.c(169) opt_addopt: adding
+opts.c(139) opt_addopt: kw1: -T, kw2: -m::
+opts.c(139) opt_addopt: kw1: -T, kw2: -M
+opts.c(167) opt_addopt: newopt->type: 4
+opts.c(169) opt_addopt: adding
+opts.c(139) opt_addopt: kw1: -c:%, kw2: -m::
+opts.c(139) opt_addopt: kw1: -c:%, kw2: -M
+opts.c(139) opt_addopt: kw1: -c:%, kw2: -T
+opts.c(167) opt_addopt: newopt->type: 4
+opts.c(169) opt_addopt: adding
+opts.c(139) opt_addopt: kw1: -s::, kw2: -m::
+opts.c(139) opt_addopt: kw1: -s::, kw2: -M
+opts.c(139) opt_addopt: kw1: -s::, kw2: -T
+opts.c(139) opt_addopt: kw1: -s::, kw2: -c:%
+opts.c(167) opt_addopt: newopt->type: 4
+opts.c(169) opt_addopt: adding
+opts.c(139) opt_addopt: kw1: -n::, kw2: -m::
+opts.c(139) opt_addopt: kw1: -n::, kw2: -M
+opts.c(139) opt_addopt: kw1: -n::, kw2: -T
+opts.c(139) opt_addopt: kw1: -n::, kw2: -c:%
+opts.c(139) opt_addopt: kw1: -n::, kw2: -s::
+opts.c(167) opt_addopt: newopt->type: 4
+opts.c(169) opt_addopt: adding
+opts.c(139) opt_addopt: kw1: -i::, kw2: -m::
+opts.c(139) opt_addopt: kw1: -i::, kw2: -M
+opts.c(139) opt_addopt: kw1: -i::, kw2: -T
+opts.c(139) opt_addopt: kw1: -i::, kw2: -c:%
+opts.c(139) opt_addopt: kw1: -i::, kw2: -s::
+opts.c(139) opt_addopt: kw1: -i::, kw2: -n::
+opts.c(167) opt_addopt: newopt->type: 4
+opts.c(169) opt_addopt: adding
+opts.c(139) opt_addopt: kw1: -e:%, kw2: -m::
+opts.c(139) opt_addopt: kw1: -e:%, kw2: -M
+opts.c(139) opt_addopt: kw1: -e:%, kw2: -T
+opts.c(139) opt_addopt: kw1: -e:%, kw2: -c:%
+opts.c(139) opt_addopt: kw1: -e:%, kw2: -s::
+opts.c(139) opt_addopt: kw1: -e:%, kw2: -n::
+opts.c(139) opt_addopt: kw1: -e:%, kw2: -i::
+opts.c(167) opt_addopt: newopt->type: 4
+opts.c(169) opt_addopt: adding
+opts.c(139) opt_addopt: kw1: -U:#, kw2: -m::
+opts.c(139) opt_addopt: kw1: -U:#, kw2: -M
+opts.c(139) opt_addopt: kw1: -U:#, kw2: -T
+opts.c(139) opt_addopt: kw1: -U:#, kw2: -c:%
+opts.c(139) opt_addopt: kw1: -U:#, kw2: -s::
+opts.c(139) opt_addopt: kw1: -U:#, kw2: -n::
+opts.c(139) opt_addopt: kw1: -U:#, kw2: -i::
+opts.c(139) opt_addopt: kw1: -U:#, kw2: -e:%
+opts.c(167) opt_addopt: newopt->type: 14
+opts.c(169) opt_addopt: adding
+opts.c(139) opt_addopt: kw1: -K:#, kw2: -m::
+opts.c(139) opt_addopt: kw1: -K:#, kw2: -M
+opts.c(139) opt_addopt: kw1: -K:#, kw2: -T
+opts.c(139) opt_addopt: kw1: -K:#, kw2: -c:%
+opts.c(139) opt_addopt: kw1: -K:#, kw2: -s::
+opts.c(139) opt_addopt: kw1: -K:#, kw2: -n::
+opts.c(139) opt_addopt: kw1: -K:#, kw2: -i::
+opts.c(139) opt_addopt: kw1: -K:#, kw2: -e:%
+opts.c(139) opt_addopt: kw1: -K:#, kw2: -U:#
+opts.c(167) opt_addopt: newopt->type: 14
+opts.c(169) opt_addopt: adding
+opts.c(139) opt_addopt: kw1: -D::, kw2: -m::
+opts.c(139) opt_addopt: kw1: -D::, kw2: -M
+opts.c(139) opt_addopt: kw1: -D::, kw2: -T
+opts.c(139) opt_addopt: kw1: -D::, kw2: -c:%
+opts.c(139) opt_addopt: kw1: -D::, kw2: -s::
+opts.c(139) opt_addopt: kw1: -D::, kw2: -n::
+opts.c(139) opt_addopt: kw1: -D::, kw2: -i::
+opts.c(139) opt_addopt: kw1: -D::, kw2: -e:%
+opts.c(139) opt_addopt: kw1: -D::, kw2: -U:#
+opts.c(139) opt_addopt: kw1: -D::, kw2: -K:#
+opts.c(167) opt_addopt: newopt->type: 4
+opts.c(169) opt_addopt: adding
+opts.c(139) opt_addopt: kw1: -X::, kw2: -m::
+opts.c(139) opt_addopt: kw1: -X::, kw2: -M
+opts.c(139) opt_addopt: kw1: -X::, kw2: -T
+opts.c(139) opt_addopt: kw1: -X::, kw2: -c:%
+opts.c(139) opt_addopt: kw1: -X::, kw2: -s::
+opts.c(139) opt_addopt: kw1: -X::, kw2: -n::
+opts.c(139) opt_addopt: kw1: -X::, kw2: -i::
+opts.c(139) opt_addopt: kw1: -X::, kw2: -e:%
+opts.c(139) opt_addopt: kw1: -X::, kw2: -U:#
+opts.c(139) opt_addopt: kw1: -X::, kw2: -K:#
+opts.c(139) opt_addopt: kw1: -X::, kw2: -D::
+opts.c(167) opt_addopt: newopt->type: 4
+opts.c(169) opt_addopt: adding
+opts.c(139) opt_addopt: kw1: -N, kw2: -m::
+opts.c(139) opt_addopt: kw1: -N, kw2: -M
+opts.c(139) opt_addopt: kw1: -N, kw2: -T
+opts.c(139) opt_addopt: kw1: -N, kw2: -c:%
+opts.c(139) opt_addopt: kw1: -N, kw2: -s::
+opts.c(139) opt_addopt: kw1: -N, kw2: -n::
+opts.c(139) opt_addopt: kw1: -N, kw2: -i::
+opts.c(139) opt_addopt: kw1: -N, kw2: -e:%
+opts.c(139) opt_addopt: kw1: -N, kw2: -U:#
+opts.c(139) opt_addopt: kw1: -N, kw2: -K:#
+opts.c(139) opt_addopt: kw1: -N, kw2: -D::
+opts.c(139) opt_addopt: kw1: -N, kw2: -X::
+opts.c(167) opt_addopt: newopt->type: 8
+opts.c(169) opt_addopt: adding
+opts.c(139) opt_addopt: kw1: -Z, kw2: -m::
+opts.c(139) opt_addopt: kw1: -Z, kw2: -M
+opts.c(139) opt_addopt: kw1: -Z, kw2: -T
+opts.c(139) opt_addopt: kw1: -Z, kw2: -c:%
+opts.c(139) opt_addopt: kw1: -Z, kw2: -s::
+opts.c(139) opt_addopt: kw1: -Z, kw2: -n::
+opts.c(139) opt_addopt: kw1: -Z, kw2: -i::
+opts.c(139) opt_addopt: kw1: -Z, kw2: -e:%
+opts.c(139) opt_addopt: kw1: -Z, kw2: -U:#
+opts.c(139) opt_addopt: kw1: -Z, kw2: -K:#
+opts.c(139) opt_addopt: kw1: -Z, kw2: -D::
+opts.c(139) opt_addopt: kw1: -Z, kw2: -X::
+opts.c(139) opt_addopt: kw1: -Z, kw2: -N
+opts.c(167) opt_addopt: newopt->type: 8
+opts.c(169) opt_addopt: adding
+opts.c(139) opt_addopt: kw1: -I, kw2: -m::
+opts.c(139) opt_addopt: kw1: -I, kw2: -M
+opts.c(139) opt_addopt: kw1: -I, kw2: -T
+opts.c(139) opt_addopt: kw1: -I, kw2: -c:%
+opts.c(139) opt_addopt: kw1: -I, kw2: -s::
+opts.c(139) opt_addopt: kw1: -I, kw2: -n::
+opts.c(139) opt_addopt: kw1: -I, kw2: -i::
+opts.c(139) opt_addopt: kw1: -I, kw2: -e:%
+opts.c(139) opt_addopt: kw1: -I, kw2: -U:#
+opts.c(139) opt_addopt: kw1: -I, kw2: -K:#
+opts.c(139) opt_addopt: kw1: -I, kw2: -D::
+opts.c(139) opt_addopt: kw1: -I, kw2: -X::
+opts.c(139) opt_addopt: kw1: -I, kw2: -N
+opts.c(139) opt_addopt: kw1: -I, kw2: -Z
+opts.c(167) opt_addopt: newopt->type: 8
+opts.c(169) opt_addopt: adding
+opts.c(197) opt_combine_opts: end list:
+opts.c(201) opt_combine_opts: opt: keyword: -m::|mqtt host,clientid[,user[,pass]]
+opts.c(201) opt_combine_opts: opt: keyword: -M|get config from mqtt
+opts.c(201) opt_combine_opts: opt: keyword: -T|override mqtt topic
+opts.c(201) opt_combine_opts: opt: keyword: -c:%|config file
+opts.c(201) opt_combine_opts: opt: keyword: -s::|config section name
+opts.c(201) opt_combine_opts: opt: keyword: -n::|agent name
+opts.c(201) opt_combine_opts: opt: keyword: -i::|influx host[,user[,pass]]
+opts.c(201) opt_combine_opts: opt: keyword: -e:%|exectute javascript
+opts.c(201) opt_combine_opts: opt: keyword: -U:#|javascript runtime size
+opts.c(201) opt_combine_opts: opt: keyword: -K:#|javascript stack size
+opts.c(201) opt_combine_opts: opt: keyword: -D::|set JS script dir
+opts.c(201) opt_combine_opts: opt: keyword: -X::|execute JS script and exit
+opts.c(201) opt_combine_opts: opt: keyword: -N|dont exec any scripts
+opts.c(201) opt_combine_opts: opt: keyword: -Z|do not init js engine
+opts.c(201) opt_combine_opts: opt: keyword: -I|display agent info and exit
+opts.c(206) opt_combine_opts: returning: 0x561293f82d80
+agent.c(803) agent_init: opts: 0x561293f82d80
+opts.c(181) opt_combine_opts: std_opts: 0x56126ee9b580, add_opts: 0x561293f82d80
+opts.c(167) opt_addopt: newopt->type: 8
+opts.c(169) opt_addopt: adding
+opts.c(139) opt_addopt: kw1: -d:#, kw2: -b
+opts.c(167) opt_addopt: newopt->type: 14
+opts.c(169) opt_addopt: adding
+opts.c(139) opt_addopt: kw1: -Z, kw2: -b
+opts.c(139) opt_addopt: kw1: -Z, kw2: -d:#
+opts.c(167) opt_addopt: newopt->type: 8
+opts.c(169) opt_addopt: adding
+opts.c(139) opt_addopt: kw1: -h, kw2: -b
+opts.c(139) opt_addopt: kw1: -h, kw2: -d:#
+opts.c(139) opt_addopt: kw1: -h, kw2: -Z
+opts.c(167) opt_addopt: newopt->type: 8
+opts.c(169) opt_addopt: adding
+opts.c(139) opt_addopt: kw1: -l:%, kw2: -b
+opts.c(139) opt_addopt: kw1: -l:%, kw2: -d:#
+opts.c(139) opt_addopt: kw1: -l:%, kw2: -Z
+opts.c(139) opt_addopt: kw1: -l:%, kw2: -h
+opts.c(167) opt_addopt: newopt->type: 4
+opts.c(169) opt_addopt: adding
+opts.c(139) opt_addopt: kw1: -a, kw2: -b
+opts.c(139) opt_addopt: kw1: -a, kw2: -d:#
+opts.c(139) opt_addopt: kw1: -a, kw2: -Z
+opts.c(139) opt_addopt: kw1: -a, kw2: -h
+opts.c(139) opt_addopt: kw1: -a, kw2: -l:%
+opts.c(167) opt_addopt: newopt->type: 8
+opts.c(169) opt_addopt: adding
+opts.c(139) opt_addopt: kw1: -v, kw2: -b
+opts.c(139) opt_addopt: kw1: -v, kw2: -d:#
+opts.c(139) opt_addopt: kw1: -v, kw2: -Z
+opts.c(139) opt_addopt: kw1: -v, kw2: -h
+opts.c(139) opt_addopt: kw1: -v, kw2: -l:%
+opts.c(139) opt_addopt: kw1: -v, kw2: -a
+opts.c(167) opt_addopt: newopt->type: 8
+opts.c(169) opt_addopt: adding
+opts.c(139) opt_addopt: kw1: -V, kw2: -b
+opts.c(139) opt_addopt: kw1: -V, kw2: -d:#
+opts.c(139) opt_addopt: kw1: -V, kw2: -Z
+opts.c(139) opt_addopt: kw1: -V, kw2: -h
+opts.c(139) opt_addopt: kw1: -V, kw2: -l:%
+opts.c(139) opt_addopt: kw1: -V, kw2: -a
+opts.c(139) opt_addopt: kw1: -V, kw2: -v
+opts.c(167) opt_addopt: newopt->type: 8
+opts.c(169) opt_addopt: adding
+opts.c(139) opt_addopt: kw1: -m::, kw2: -b
+opts.c(139) opt_addopt: kw1: -m::, kw2: -d:#
+opts.c(139) opt_addopt: kw1: -m::, kw2: -Z
+opts.c(139) opt_addopt: kw1: -m::, kw2: -h
+opts.c(139) opt_addopt: kw1: -m::, kw2: -l:%
+opts.c(139) opt_addopt: kw1: -m::, kw2: -a
+opts.c(139) opt_addopt: kw1: -m::, kw2: -v
+opts.c(139) opt_addopt: kw1: -m::, kw2: -V
+opts.c(167) opt_addopt: newopt->type: 4
+opts.c(169) opt_addopt: adding
+opts.c(139) opt_addopt: kw1: -M, kw2: -b
+opts.c(139) opt_addopt: kw1: -M, kw2: -d:#
+opts.c(139) opt_addopt: kw1: -M, kw2: -Z
+opts.c(139) opt_addopt: kw1: -M, kw2: -h
+opts.c(139) opt_addopt: kw1: -M, kw2: -l:%
+opts.c(139) opt_addopt: kw1: -M, kw2: -a
+opts.c(139) opt_addopt: kw1: -M, kw2: -v
+opts.c(139) opt_addopt: kw1: -M, kw2: -V
+opts.c(139) opt_addopt: kw1: -M, kw2: -m::
+opts.c(167) opt_addopt: newopt->type: 8
+opts.c(169) opt_addopt: adding
+opts.c(139) opt_addopt: kw1: -T, kw2: -b
+opts.c(139) opt_addopt: kw1: -T, kw2: -d:#
+opts.c(139) opt_addopt: kw1: -T, kw2: -Z
+opts.c(139) opt_addopt: kw1: -T, kw2: -h
+opts.c(139) opt_addopt: kw1: -T, kw2: -l:%
+opts.c(139) opt_addopt: kw1: -T, kw2: -a
+opts.c(139) opt_addopt: kw1: -T, kw2: -v
+opts.c(139) opt_addopt: kw1: -T, kw2: -V
+opts.c(139) opt_addopt: kw1: -T, kw2: -m::
+opts.c(139) opt_addopt: kw1: -T, kw2: -M
+opts.c(167) opt_addopt: newopt->type: 4
+opts.c(169) opt_addopt: adding
+opts.c(139) opt_addopt: kw1: -c:%, kw2: -b
+opts.c(139) opt_addopt: kw1: -c:%, kw2: -d:#
+opts.c(139) opt_addopt: kw1: -c:%, kw2: -Z
+opts.c(139) opt_addopt: kw1: -c:%, kw2: -h
+opts.c(139) opt_addopt: kw1: -c:%, kw2: -l:%
+opts.c(139) opt_addopt: kw1: -c:%, kw2: -a
+opts.c(139) opt_addopt: kw1: -c:%, kw2: -v
+opts.c(139) opt_addopt: kw1: -c:%, kw2: -V
+opts.c(139) opt_addopt: kw1: -c:%, kw2: -m::
+opts.c(139) opt_addopt: kw1: -c:%, kw2: -M
+opts.c(139) opt_addopt: kw1: -c:%, kw2: -T
+opts.c(167) opt_addopt: newopt->type: 4
+opts.c(169) opt_addopt: adding
+opts.c(139) opt_addopt: kw1: -s::, kw2: -b
+opts.c(139) opt_addopt: kw1: -s::, kw2: -d:#
+opts.c(139) opt_addopt: kw1: -s::, kw2: -Z
+opts.c(139) opt_addopt: kw1: -s::, kw2: -h
+opts.c(139) opt_addopt: kw1: -s::, kw2: -l:%
+opts.c(139) opt_addopt: kw1: -s::, kw2: -a
+opts.c(139) opt_addopt: kw1: -s::, kw2: -v
+opts.c(139) opt_addopt: kw1: -s::, kw2: -V
+opts.c(139) opt_addopt: kw1: -s::, kw2: -m::
+opts.c(139) opt_addopt: kw1: -s::, kw2: -M
+opts.c(139) opt_addopt: kw1: -s::, kw2: -T
+opts.c(139) opt_addopt: kw1: -s::, kw2: -c:%
+opts.c(167) opt_addopt: newopt->type: 4
+opts.c(169) opt_addopt: adding
+opts.c(139) opt_addopt: kw1: -n::, kw2: -b
+opts.c(139) opt_addopt: kw1: -n::, kw2: -d:#
+opts.c(139) opt_addopt: kw1: -n::, kw2: -Z
+opts.c(139) opt_addopt: kw1: -n::, kw2: -h
+opts.c(139) opt_addopt: kw1: -n::, kw2: -l:%
+opts.c(139) opt_addopt: kw1: -n::, kw2: -a
+opts.c(139) opt_addopt: kw1: -n::, kw2: -v
+opts.c(139) opt_addopt: kw1: -n::, kw2: -V
+opts.c(139) opt_addopt: kw1: -n::, kw2: -m::
+opts.c(139) opt_addopt: kw1: -n::, kw2: -M
+opts.c(139) opt_addopt: kw1: -n::, kw2: -T
+opts.c(139) opt_addopt: kw1: -n::, kw2: -c:%
+opts.c(139) opt_addopt: kw1: -n::, kw2: -s::
+opts.c(167) opt_addopt: newopt->type: 4
+opts.c(169) opt_addopt: adding
+opts.c(139) opt_addopt: kw1: -i::, kw2: -b
+opts.c(139) opt_addopt: kw1: -i::, kw2: -d:#
+opts.c(139) opt_addopt: kw1: -i::, kw2: -Z
+opts.c(139) opt_addopt: kw1: -i::, kw2: -h
+opts.c(139) opt_addopt: kw1: -i::, kw2: -l:%
+opts.c(139) opt_addopt: kw1: -i::, kw2: -a
+opts.c(139) opt_addopt: kw1: -i::, kw2: -v
+opts.c(139) opt_addopt: kw1: -i::, kw2: -V
+opts.c(139) opt_addopt: kw1: -i::, kw2: -m::
+opts.c(139) opt_addopt: kw1: -i::, kw2: -M
+opts.c(139) opt_addopt: kw1: -i::, kw2: -T
+opts.c(139) opt_addopt: kw1: -i::, kw2: -c:%
+opts.c(139) opt_addopt: kw1: -i::, kw2: -s::
+opts.c(139) opt_addopt: kw1: -i::, kw2: -n::
+opts.c(167) opt_addopt: newopt->type: 4
+opts.c(169) opt_addopt: adding
+opts.c(139) opt_addopt: kw1: -e:%, kw2: -b
+opts.c(139) opt_addopt: kw1: -e:%, kw2: -d:#
+opts.c(139) opt_addopt: kw1: -e:%, kw2: -Z
+opts.c(139) opt_addopt: kw1: -e:%, kw2: -h
+opts.c(139) opt_addopt: kw1: -e:%, kw2: -l:%
+opts.c(139) opt_addopt: kw1: -e:%, kw2: -a
+opts.c(139) opt_addopt: kw1: -e:%, kw2: -v
+opts.c(139) opt_addopt: kw1: -e:%, kw2: -V
+opts.c(139) opt_addopt: kw1: -e:%, kw2: -m::
+opts.c(139) opt_addopt: kw1: -e:%, kw2: -M
+opts.c(139) opt_addopt: kw1: -e:%, kw2: -T
+opts.c(139) opt_addopt: kw1: -e:%, kw2: -c:%
+opts.c(139) opt_addopt: kw1: -e:%, kw2: -s::
+opts.c(139) opt_addopt: kw1: -e:%, kw2: -n::
+opts.c(139) opt_addopt: kw1: -e:%, kw2: -i::
+opts.c(167) opt_addopt: newopt->type: 4
+opts.c(169) opt_addopt: adding
+opts.c(139) opt_addopt: kw1: -U:#, kw2: -b
+opts.c(139) opt_addopt: kw1: -U:#, kw2: -d:#
+opts.c(139) opt_addopt: kw1: -U:#, kw2: -Z
+opts.c(139) opt_addopt: kw1: -U:#, kw2: -h
+opts.c(139) opt_addopt: kw1: -U:#, kw2: -l:%
+opts.c(139) opt_addopt: kw1: -U:#, kw2: -a
+opts.c(139) opt_addopt: kw1: -U:#, kw2: -v
+opts.c(139) opt_addopt: kw1: -U:#, kw2: -V
+opts.c(139) opt_addopt: kw1: -U:#, kw2: -m::
+opts.c(139) opt_addopt: kw1: -U:#, kw2: -M
+opts.c(139) opt_addopt: kw1: -U:#, kw2: -T
+opts.c(139) opt_addopt: kw1: -U:#, kw2: -c:%
+opts.c(139) opt_addopt: kw1: -U:#, kw2: -s::
+opts.c(139) opt_addopt: kw1: -U:#, kw2: -n::
+opts.c(139) opt_addopt: kw1: -U:#, kw2: -i::
+opts.c(139) opt_addopt: kw1: -U:#, kw2: -e:%
+opts.c(167) opt_addopt: newopt->type: 14
+opts.c(169) opt_addopt: adding
+opts.c(139) opt_addopt: kw1: -K:#, kw2: -b
+opts.c(139) opt_addopt: kw1: -K:#, kw2: -d:#
+opts.c(139) opt_addopt: kw1: -K:#, kw2: -Z
+opts.c(139) opt_addopt: kw1: -K:#, kw2: -h
+opts.c(139) opt_addopt: kw1: -K:#, kw2: -l:%
+opts.c(139) opt_addopt: kw1: -K:#, kw2: -a
+opts.c(139) opt_addopt: kw1: -K:#, kw2: -v
+opts.c(139) opt_addopt: kw1: -K:#, kw2: -V
+opts.c(139) opt_addopt: kw1: -K:#, kw2: -m::
+opts.c(139) opt_addopt: kw1: -K:#, kw2: -M
+opts.c(139) opt_addopt: kw1: -K:#, kw2: -T
+opts.c(139) opt_addopt: kw1: -K:#, kw2: -c:%
+opts.c(139) opt_addopt: kw1: -K:#, kw2: -s::
+opts.c(139) opt_addopt: kw1: -K:#, kw2: -n::
+opts.c(139) opt_addopt: kw1: -K:#, kw2: -i::
+opts.c(139) opt_addopt: kw1: -K:#, kw2: -e:%
+opts.c(139) opt_addopt: kw1: -K:#, kw2: -U:#
+opts.c(167) opt_addopt: newopt->type: 14
+opts.c(169) opt_addopt: adding
+opts.c(139) opt_addopt: kw1: -D::, kw2: -b
+opts.c(139) opt_addopt: kw1: -D::, kw2: -d:#
+opts.c(139) opt_addopt: kw1: -D::, kw2: -Z
+opts.c(139) opt_addopt: kw1: -D::, kw2: -h
+opts.c(139) opt_addopt: kw1: -D::, kw2: -l:%
+opts.c(139) opt_addopt: kw1: -D::, kw2: -a
+opts.c(139) opt_addopt: kw1: -D::, kw2: -v
+opts.c(139) opt_addopt: kw1: -D::, kw2: -V
+opts.c(139) opt_addopt: kw1: -D::, kw2: -m::
+opts.c(139) opt_addopt: kw1: -D::, kw2: -M
+opts.c(139) opt_addopt: kw1: -D::, kw2: -T
+opts.c(139) opt_addopt: kw1: -D::, kw2: -c:%
+opts.c(139) opt_addopt: kw1: -D::, kw2: -s::
+opts.c(139) opt_addopt: kw1: -D::, kw2: -n::
+opts.c(139) opt_addopt: kw1: -D::, kw2: -i::
+opts.c(139) opt_addopt: kw1: -D::, kw2: -e:%
+opts.c(139) opt_addopt: kw1: -D::, kw2: -U:#
+opts.c(139) opt_addopt: kw1: -D::, kw2: -K:#
+opts.c(167) opt_addopt: newopt->type: 4
+opts.c(169) opt_addopt: adding
+opts.c(139) opt_addopt: kw1: -X::, kw2: -b
+opts.c(139) opt_addopt: kw1: -X::, kw2: -d:#
+opts.c(139) opt_addopt: kw1: -X::, kw2: -Z
+opts.c(139) opt_addopt: kw1: -X::, kw2: -h
+opts.c(139) opt_addopt: kw1: -X::, kw2: -l:%
+opts.c(139) opt_addopt: kw1: -X::, kw2: -a
+opts.c(139) opt_addopt: kw1: -X::, kw2: -v
+opts.c(139) opt_addopt: kw1: -X::, kw2: -V
+opts.c(139) opt_addopt: kw1: -X::, kw2: -m::
+opts.c(139) opt_addopt: kw1: -X::, kw2: -M
+opts.c(139) opt_addopt: kw1: -X::, kw2: -T
+opts.c(139) opt_addopt: kw1: -X::, kw2: -c:%
+opts.c(139) opt_addopt: kw1: -X::, kw2: -s::
+opts.c(139) opt_addopt: kw1: -X::, kw2: -n::
+opts.c(139) opt_addopt: kw1: -X::, kw2: -i::
+opts.c(139) opt_addopt: kw1: -X::, kw2: -e:%
+opts.c(139) opt_addopt: kw1: -X::, kw2: -U:#
+opts.c(139) opt_addopt: kw1: -X::, kw2: -K:#
+opts.c(139) opt_addopt: kw1: -X::, kw2: -D::
+opts.c(167) opt_addopt: newopt->type: 4
+opts.c(169) opt_addopt: adding
+opts.c(139) opt_addopt: kw1: -N, kw2: -b
+opts.c(139) opt_addopt: kw1: -N, kw2: -d:#
+opts.c(139) opt_addopt: kw1: -N, kw2: -Z
+opts.c(139) opt_addopt: kw1: -N, kw2: -h
+opts.c(139) opt_addopt: kw1: -N, kw2: -l:%
+opts.c(139) opt_addopt: kw1: -N, kw2: -a
+opts.c(139) opt_addopt: kw1: -N, kw2: -v
+opts.c(139) opt_addopt: kw1: -N, kw2: -V
+opts.c(139) opt_addopt: kw1: -N, kw2: -m::
+opts.c(139) opt_addopt: kw1: -N, kw2: -M
+opts.c(139) opt_addopt: kw1: -N, kw2: -T
+opts.c(139) opt_addopt: kw1: -N, kw2: -c:%
+opts.c(139) opt_addopt: kw1: -N, kw2: -s::
+opts.c(139) opt_addopt: kw1: -N, kw2: -n::
+opts.c(139) opt_addopt: kw1: -N, kw2: -i::
+opts.c(139) opt_addopt: kw1: -N, kw2: -e:%
+opts.c(139) opt_addopt: kw1: -N, kw2: -U:#
+opts.c(139) opt_addopt: kw1: -N, kw2: -K:#
+opts.c(139) opt_addopt: kw1: -N, kw2: -D::
+opts.c(139) opt_addopt: kw1: -N, kw2: -X::
+opts.c(167) opt_addopt: newopt->type: 8
+opts.c(169) opt_addopt: adding
+opts.c(139) opt_addopt: kw1: -Z, kw2: -b
+opts.c(139) opt_addopt: kw1: -Z, kw2: -d:#
+opts.c(139) opt_addopt: kw1: -Z, kw2: -Z
+opts.c(141) opt_addopt: found!
+opts.c(139) opt_addopt: kw1: -Z, kw2: -h
+opts.c(139) opt_addopt: kw1: -Z, kw2: -l:%
+opts.c(139) opt_addopt: kw1: -Z, kw2: -a
+opts.c(139) opt_addopt: kw1: -Z, kw2: -v
+opts.c(139) opt_addopt: kw1: -Z, kw2: -V
+opts.c(139) opt_addopt: kw1: -Z, kw2: -m::
+opts.c(139) opt_addopt: kw1: -Z, kw2: -M
+opts.c(139) opt_addopt: kw1: -Z, kw2: -T
+opts.c(139) opt_addopt: kw1: -Z, kw2: -c:%
+opts.c(139) opt_addopt: kw1: -Z, kw2: -s::
+opts.c(139) opt_addopt: kw1: -Z, kw2: -n::
+opts.c(139) opt_addopt: kw1: -Z, kw2: -i::
+opts.c(139) opt_addopt: kw1: -Z, kw2: -e:%
+opts.c(139) opt_addopt: kw1: -Z, kw2: -U:#
+opts.c(139) opt_addopt: kw1: -Z, kw2: -K:#
+opts.c(139) opt_addopt: kw1: -Z, kw2: -D::
+opts.c(139) opt_addopt: kw1: -Z, kw2: -X::
+opts.c(139) opt_addopt: kw1: -Z, kw2: -N
+opts.c(167) opt_addopt: newopt->type: 8
+opts.c(169) opt_addopt: adding
+opts.c(139) opt_addopt: kw1: -I, kw2: -b
+opts.c(139) opt_addopt: kw1: -I, kw2: -d:#
+opts.c(139) opt_addopt: kw1: -I, kw2: -h
+opts.c(139) opt_addopt: kw1: -I, kw2: -l:%
+opts.c(139) opt_addopt: kw1: -I, kw2: -a
+opts.c(139) opt_addopt: kw1: -I, kw2: -v
+opts.c(139) opt_addopt: kw1: -I, kw2: -V
+opts.c(139) opt_addopt: kw1: -I, kw2: -m::
+opts.c(139) opt_addopt: kw1: -I, kw2: -M
+opts.c(139) opt_addopt: kw1: -I, kw2: -T
+opts.c(139) opt_addopt: kw1: -I, kw2: -c:%
+opts.c(139) opt_addopt: kw1: -I, kw2: -s::
+opts.c(139) opt_addopt: kw1: -I, kw2: -n::
+opts.c(139) opt_addopt: kw1: -I, kw2: -i::
+opts.c(139) opt_addopt: kw1: -I, kw2: -e:%
+opts.c(139) opt_addopt: kw1: -I, kw2: -U:#
+opts.c(139) opt_addopt: kw1: -I, kw2: -K:#
+opts.c(139) opt_addopt: kw1: -I, kw2: -D::
+opts.c(139) opt_addopt: kw1: -I, kw2: -X::
+opts.c(139) opt_addopt: kw1: -I, kw2: -N
+opts.c(139) opt_addopt: kw1: -I, kw2: -Z
+opts.c(167) opt_addopt: newopt->type: 8
+opts.c(169) opt_addopt: adding
+opts.c(197) opt_combine_opts: end list:
+opts.c(201) opt_combine_opts: opt: keyword: -b|run in background
+opts.c(201) opt_combine_opts: opt: keyword: -d:#|set debugging level
+opts.c(201) opt_combine_opts: opt: keyword: -h|display program options
+opts.c(201) opt_combine_opts: opt: keyword: -l:%|redirect output to logfile
+opts.c(201) opt_combine_opts: opt: keyword: -a|append to logfile
+opts.c(201) opt_combine_opts: opt: keyword: -v|enable verbose output 
+opts.c(201) opt_combine_opts: opt: keyword: -V|program version 
+opts.c(201) opt_combine_opts: opt: keyword: -m::|mqtt host,clientid[,user[,pass]]
+opts.c(201) opt_combine_opts: opt: keyword: -M|get config from mqtt
+opts.c(201) opt_combine_opts: opt: keyword: -T|override mqtt topic
+opts.c(201) opt_combine_opts: opt: keyword: -c:%|config file
+opts.c(201) opt_combine_opts: opt: keyword: -s::|config section name
+opts.c(201) opt_combine_opts: opt: keyword: -n::|agent name
+opts.c(201) opt_combine_opts: opt: keyword: -i::|influx host[,user[,pass]]
+opts.c(201) opt_combine_opts: opt: keyword: -e:%|exectute javascript
+opts.c(201) opt_combine_opts: opt: keyword: -U:#|javascript runtime size
+opts.c(201) opt_combine_opts: opt: keyword: -K:#|javascript stack size
+opts.c(201) opt_combine_opts: opt: keyword: -D::|set JS script dir
+opts.c(201) opt_combine_opts: opt: keyword: -X::|execute JS script and exit
+opts.c(201) opt_combine_opts: opt: keyword: -N|dont exec any scripts
+opts.c(201) opt_combine_opts: opt: keyword: -Z|do not init js engine
+opts.c(201) opt_combine_opts: opt: keyword: -I|display agent info and exit
+opts.c(206) opt_combine_opts: returning: 0x561293f80480
+opts.c(322) opt_init: initializing options table...
+opts.c(324) opt_init: opt: key: -b|run in background, type: 8(DATA_TYPE_BOOL), len: 0, req: 0
+opts.c(338) opt_init: value: 0x56126ee4f245
+conv.c(2389) conv_type: dt: 8(DATA_TYPE_BOOL)
+conv.c(2424) conv_type: returning: 4
+opts.c(324) opt_init: opt: key: -d:#|set debugging level, type: 14(DATA_TYPE_S32), len: 0, req: 0
+opts.c(338) opt_init: value: 0x56126ee4f261
+conv.c(117) _str2int: s: 0xDEADBEEF
+conv.c(123) _str2int: i: -559038737
+conv.c(89) _getmult: s: 0xDEADBEEF(10)
+conv.c(92) _getmult: c(46): F
+conv.c(109) _getmult: m: 1
+conv.c(125) _str2int: returning: -559038737
+conv.c(2389) conv_type: dt: 14(DATA_TYPE_S32)
+conv.c(2424) conv_type: returning: 4
+opts.c(324) opt_init: opt: key: -h|display program options, type: 8(DATA_TYPE_BOOL), len: 0, req: 0
+opts.c(338) opt_init: value: 0x56126ee4f289
+conv.c(2389) conv_type: dt: 8(DATA_TYPE_BOOL)
+conv.c(2424) conv_type: returning: 4
+opts.c(324) opt_init: opt: key: -l:%|redirect output to logfile, type: 4(DATA_TYPE_STRING), len: 255, req: 0
+opts.c(338) opt_init: value: 0x56126ee4e9f7
+conv.c(147) conv_type: src: 
+conv.c(2389) conv_type: dt: 4(DATA_TYPE_STRING)
+conv.c(2392) conv_type: string: 
+conv.c(2424) conv_type: returning: 0
+opts.c(324) opt_init: opt: key: -a|append to logfile, type: 8(DATA_TYPE_BOOL), len: 0, req: 0
+opts.c(338) opt_init: value: 0x56126ee4f289
+conv.c(2389) conv_type: dt: 8(DATA_TYPE_BOOL)
+conv.c(2424) conv_type: returning: 4
+opts.c(324) opt_init: opt: key: -v|enable verbose output , type: 8(DATA_TYPE_BOOL), len: 0, req: 0
+opts.c(338) opt_init: value: 0x56126ee4f289
+conv.c(2389) conv_type: dt: 8(DATA_TYPE_BOOL)
+conv.c(2424) conv_type: returning: 4
+opts.c(324) opt_init: opt: key: -V|program version , type: 8(DATA_TYPE_BOOL), len: 0, req: 0
+opts.c(338) opt_init: value: 0x56126ee4f289
+conv.c(2389) conv_type: dt: 8(DATA_TYPE_BOOL)
+conv.c(2424) conv_type: returning: 4
+opts.c(324) opt_init: opt: key: -m::|mqtt host,clientid[,user[,pass]], type: 4(DATA_TYPE_STRING), len: 199, req: 0
+opts.c(338) opt_init: value: 0x56126ee5728c
+conv.c(147) conv_type: src: 
+conv.c(2389) conv_type: dt: 4(DATA_TYPE_STRING)
+conv.c(2392) conv_type: string: 
+conv.c(2424) conv_type: returning: 0
+opts.c(324) opt_init: opt: key: -M|get config from mqtt, type: 8(DATA_TYPE_BOOL), len: 0, req: 0
+opts.c(338) opt_init: value: 0x56126ee576a6
+conv.c(2389) conv_type: dt: 8(DATA_TYPE_BOOL)
+conv.c(2424) conv_type: returning: 4
+opts.c(324) opt_init: opt: key: -T|override mqtt topic, type: 4(DATA_TYPE_STRING), len: 255, req: 0
+opts.c(338) opt_init: value: 0x56126ee5728c
+conv.c(147) conv_type: src: 
+conv.c(2389) conv_type: dt: 4(DATA_TYPE_STRING)
+conv.c(2392) conv_type: string: 
+conv.c(2424) conv_type: returning: 0
+opts.c(324) opt_init: opt: key: -c:%|config file, type: 4(DATA_TYPE_STRING), len: 255, req: 0
+opts.c(338) opt_init: value: 0x56126ee5728c
+conv.c(147) conv_type: src: 
+conv.c(2389) conv_type: dt: 4(DATA_TYPE_STRING)
+conv.c(2392) conv_type: string: 
+conv.c(2424) conv_type: returning: 0
+opts.c(324) opt_init: opt: key: -s::|config section name, type: 4(DATA_TYPE_STRING), len: 63, req: 0
+opts.c(338) opt_init: value: 0x56126ee5728c
+conv.c(147) conv_type: src: 
+conv.c(2389) conv_type: dt: 4(DATA_TYPE_STRING)
+conv.c(2392) conv_type: string: 
+conv.c(2424) conv_type: returning: 0
+opts.c(324) opt_init: opt: key: -n::|agent name, type: 4(DATA_TYPE_STRING), len: 31, req: 0
+opts.c(338) opt_init: value: 0x56126ee5728c
+conv.c(147) conv_type: src: 
+conv.c(2389) conv_type: dt: 4(DATA_TYPE_STRING)
+conv.c(2392) conv_type: string: 
+conv.c(2424) conv_type: returning: 0
+opts.c(324) opt_init: opt: key: -i::|influx host[,user[,pass]], type: 4(DATA_TYPE_STRING), len: 199, req: 0
+opts.c(338) opt_init: value: 0x56126ee5728c
+conv.c(147) conv_type: src: 
+conv.c(2389) conv_type: dt: 4(DATA_TYPE_STRING)
+conv.c(2392) conv_type: string: 
+conv.c(2424) conv_type: returning: 0
+opts.c(324) opt_init: opt: key: -e:%|exectute javascript, type: 4(DATA_TYPE_STRING), len: 4095, req: 0
+opts.c(338) opt_init: value: 0x56126ee5728c
+conv.c(147) conv_type: src: 
+conv.c(2389) conv_type: dt: 4(DATA_TYPE_STRING)
+conv.c(2392) conv_type: string: 
+conv.c(2424) conv_type: returning: 0
+opts.c(324) opt_init: opt: key: -U:#|javascript runtime size, type: 14(DATA_TYPE_S32), len: 0, req: 0
+opts.c(338) opt_init: value: 0x56126ee57755
+conv.c(117) _str2int: s: 256K
+conv.c(123) _str2int: i: 256
+conv.c(89) _getmult: s: 256K(4)
+conv.c(92) _getmult: c(4b): K
+conv.c(109) _getmult: m: 1024
+conv.c(125) _str2int: returning: 262144
+conv.c(2389) conv_type: dt: 14(DATA_TYPE_S32)
+conv.c(2424) conv_type: returning: 4
+opts.c(324) opt_init: opt: key: -K:#|javascript stack size, type: 14(DATA_TYPE_S32), len: 0, req: 0
+opts.c(338) opt_init: value: 0x56126ee57775
+conv.c(117) _str2int: s: 8K
+conv.c(123) _str2int: i: 8
+conv.c(89) _getmult: s: 8K(2)
+conv.c(92) _getmult: c(4b): K
+conv.c(109) _getmult: m: 1024
+conv.c(125) _str2int: returning: 8192
+conv.c(2389) conv_type: dt: 14(DATA_TYPE_S32)
+conv.c(2424) conv_type: returning: 4
+opts.c(324) opt_init: opt: key: -D::|set JS script dir, type: 4(DATA_TYPE_STRING), len: 255, req: 0
+opts.c(338) opt_init: value: 0x56126ee5728c
+conv.c(147) conv_type: src: 
+conv.c(2389) conv_type: dt: 4(DATA_TYPE_STRING)
+conv.c(2392) conv_type: string: 
+conv.c(2424) conv_type: returning: 0
+opts.c(324) opt_init: opt: key: -X::|execute JS script and exit, type: 4(DATA_TYPE_STRING), len: 255, req: 0
+opts.c(338) opt_init: value: 0x56126ee5728c
+conv.c(147) conv_type: src: 
+conv.c(2389) conv_type: dt: 4(DATA_TYPE_STRING)
+conv.c(2392) conv_type: string: 
+conv.c(2424) conv_type: returning: 0
+opts.c(324) opt_init: opt: key: -N|dont exec any scripts, type: 8(DATA_TYPE_BOOL), len: 0, req: 0
+opts.c(338) opt_init: value: 0x56126ee577c9
+conv.c(2389) conv_type: dt: 8(DATA_TYPE_BOOL)
+conv.c(2424) conv_type: returning: 4
+opts.c(324) opt_init: opt: key: -Z|do not init js engine, type: 8(DATA_TYPE_BOOL), len: 0, req: 0
+opts.c(338) opt_init: value: 0x56126ee577c9
+conv.c(2389) conv_type: dt: 8(DATA_TYPE_BOOL)
+conv.c(2424) conv_type: returning: 4
+opts.c(324) opt_init: opt: key: -I|display agent info and exit, type: 8(DATA_TYPE_BOOL), len: 0, req: 0
+opts.c(338) opt_init: value: 0x56126ee57807
+conv.c(2389) conv_type: dt: 8(DATA_TYPE_BOOL)
+conv.c(2424) conv_type: returning: 4
+opts.c(342) opt_init: done!
+opts.c(352) opt_process: argc: 0, argv: (nil)
+opts.c(355) opt_process: name: 
+opts.c(358) opt_process: opt_process: creating getopt string...
+opts.c(377) opt_process: argc: 0, argv: (nil), getoptstr: :bd:hl:avVm:MTc:s:n:i:e:U:K:D:X:NZI
+opts.c(399) opt_process: opt_process: getting other arguments...
+opts.c(418) opt_process: opt_process: checking for reqd args...
+opts.c(428) opt_process: opt_process: done!
+common.c(285) solard_common_init: verb_flag: 0, err_flag: 0, append_flag: 0, log_opts: 3d
+common.c(298) solard_common_init: logfile: 
+common.c(313) solard_common_init: file: (null)
+common.c(334) solard_common_init: configfile: /etc/sd.conf
+cfg.c(415) cfg_read: filename: /etc/sd.conf
+cfg.c(435) cfg_read: line: prefix=/opt/sd
+cfg.c(121) cfg_section_get_item: looking for keyword: PREFIX
+cfg.c(130) cfg_section_get_item: not found
+cfg.c(506) cfg_read: keyword: PREFIX, value: /opt/sd
+cfg.c(435) cfg_read: line: 
+common.c(149) solard_get_dirs: cfg: 0x561293f68960, section_name: , home: /root
+common.c(104) _getpath: cfg: 0x561293f68960, home: /root, what: bin, ow: 1
+common.c(77) _getcfg: cfg: 0x561293f68960, section_name: , dest: , what: bin, ow: 1
+common.c(79) _getcfg: name: bindir
+cfg.c(156) cfg_get_item: section name: , keyword: bindir
+cfg.c(530) cfg_get_section: looking for section: 
+cfg.c(533) cfg_get_section: name: 
+cfg.c(535) cfg_get_section: found section.
+cfg.c(121) cfg_section_get_item: looking for keyword: BINDIR
+cfg.c(124) cfg_section_get_item: item->keyword: PREFIX
+cfg.c(130) cfg_section_get_item: not found
+common.c(83) _getcfg: bindir p: (nil)
+cfg.c(156) cfg_get_item: section name: , keyword: prefix
+cfg.c(530) cfg_get_section: looking for section: 
+cfg.c(533) cfg_get_section: name: 
+cfg.c(535) cfg_get_section: found section.
+cfg.c(121) cfg_section_get_item: looking for keyword: PREFIX
+cfg.c(124) cfg_section_get_item: item->keyword: PREFIX
+cfg.c(126) cfg_section_get_item: found
+common.c(86) _getcfg: prefix p: 0x561293f69c80
+common.c(89) _getcfg: prefix: /opt/sd
+common.c(95) _getcfg: dest: /opt/sd/bin
+common.c(98) _getcfg: returning: 0
+common.c(104) _getpath: cfg: 0x561293f68960, home: /root, what: etc, ow: 1
+common.c(77) _getcfg: cfg: 0x561293f68960, section_name: , dest: , what: etc, ow: 1
+common.c(79) _getcfg: name: etcdir
+cfg.c(156) cfg_get_item: section name: , keyword: etcdir
+cfg.c(530) cfg_get_section: looking for section: 
+cfg.c(533) cfg_get_section: name: 
+cfg.c(535) cfg_get_section: found section.
+cfg.c(121) cfg_section_get_item: looking for keyword: ETCDIR
+cfg.c(124) cfg_section_get_item: item->keyword: PREFIX
+cfg.c(130) cfg_section_get_item: not found
+common.c(83) _getcfg: etcdir p: (nil)
+cfg.c(156) cfg_get_item: section name: , keyword: prefix
+cfg.c(530) cfg_get_section: looking for section: 
+cfg.c(533) cfg_get_section: name: 
+cfg.c(535) cfg_get_section: found section.
+cfg.c(121) cfg_section_get_item: looking for keyword: PREFIX
+cfg.c(124) cfg_section_get_item: item->keyword: PREFIX
+cfg.c(126) cfg_section_get_item: found
+common.c(86) _getcfg: prefix p: 0x561293f69c80
+common.c(89) _getcfg: prefix: /opt/sd
+common.c(95) _getcfg: dest: /opt/sd/etc
+common.c(98) _getcfg: returning: 0
+common.c(104) _getpath: cfg: 0x561293f68960, home: /root, what: lib, ow: 1
+common.c(77) _getcfg: cfg: 0x561293f68960, section_name: , dest: , what: lib, ow: 1
+common.c(79) _getcfg: name: libdir
+cfg.c(156) cfg_get_item: section name: , keyword: libdir
+cfg.c(530) cfg_get_section: looking for section: 
+cfg.c(533) cfg_get_section: name: 
+cfg.c(535) cfg_get_section: found section.
+cfg.c(121) cfg_section_get_item: looking for keyword: LIBDIR
+cfg.c(124) cfg_section_get_item: item->keyword: PREFIX
+cfg.c(130) cfg_section_get_item: not found
+common.c(83) _getcfg: libdir p: (nil)
+cfg.c(156) cfg_get_item: section name: , keyword: prefix
+cfg.c(530) cfg_get_section: looking for section: 
+cfg.c(533) cfg_get_section: name: 
+cfg.c(535) cfg_get_section: found section.
+cfg.c(121) cfg_section_get_item: looking for keyword: PREFIX
+cfg.c(124) cfg_section_get_item: item->keyword: PREFIX
+cfg.c(126) cfg_section_get_item: found
+common.c(86) _getcfg: prefix p: 0x561293f69c80
+common.c(89) _getcfg: prefix: /opt/sd
+common.c(95) _getcfg: dest: /opt/sd/lib
+common.c(98) _getcfg: returning: 0
+common.c(104) _getpath: cfg: 0x561293f68960, home: /root, what: log, ow: 1
+common.c(77) _getcfg: cfg: 0x561293f68960, section_name: , dest: , what: log, ow: 1
+common.c(79) _getcfg: name: logdir
+cfg.c(156) cfg_get_item: section name: , keyword: logdir
+cfg.c(530) cfg_get_section: looking for section: 
+cfg.c(533) cfg_get_section: name: 
+cfg.c(535) cfg_get_section: found section.
+cfg.c(121) cfg_section_get_item: looking for keyword: LOGDIR
+cfg.c(124) cfg_section_get_item: item->keyword: PREFIX
+cfg.c(130) cfg_section_get_item: not found
+common.c(83) _getcfg: logdir p: (nil)
+cfg.c(156) cfg_get_item: section name: , keyword: prefix
+cfg.c(530) cfg_get_section: looking for section: 
+cfg.c(533) cfg_get_section: name: 
+cfg.c(535) cfg_get_section: found section.
+cfg.c(121) cfg_section_get_item: looking for keyword: PREFIX
+cfg.c(124) cfg_section_get_item: item->keyword: PREFIX
+cfg.c(126) cfg_section_get_item: found
+common.c(86) _getcfg: prefix p: 0x561293f69c80
+common.c(89) _getcfg: prefix: /opt/sd
+common.c(95) _getcfg: dest: /opt/sd/log
+common.c(98) _getcfg: returning: 0
+common.c(171) solard_get_dirs: BINDIR: /opt/sd/bin, ETCDIR: /opt/sd/etc, LIBDIR: /opt/sd/lib, LOGDIR: /opt/sd/log, TEMPDIR: /tmp
+common.c(345) solard_common_init: cfg: 0x561293f68960
+cfg.c(103) cfg_destroy: item->keyword: PREFIX
+common.c(348) solard_common_init: done!
+agent.c(827) agent_init: configfile: 
+agent.c(830) agent_init: ap: 0x561293f83480
+agent.c(859) agent_init: instance_name: test
+agent.c(864) agent_init: section_name: test
+config.c(400) config_combine_props: count: 20,  size: 3192
+agent.c(595) agent_startup: agent_props: 0x561293f73a70
+agent.c(597) agent_startup: driver_props: 0x561293f69b20
+config.c(400) config_combine_props: count: 20,  size: 3192
+config.c(424) config_combine_props: p1: name: interval, dest: 0x561293f837b8(0), allocdest: 0
+config.c(425) config_combine_props: p2: name: interval, dest: (nil)(0), allocdest: 0
+config.c(437) config_combine_props: NEW pp2->dest: 0x561293f837b8(0)
+agent.c(601) agent_startup: props: 0x561293f77f40
+config.c(743) config_combine_funcs: count: 7,  size: 320
+agent.c(604) agent_startup: funcs: 0x561293f668d0
+agent.c(52) agent_mktopic: name: test, func: Status
+common.c(408) solard_common_startup: Starting up...
+common.c(411) solard_common_startup: m: 0x561293f83688
+common.c(421) solard_common_startup: m: 0x561293f80480
+common.c(422) solard_common_startup: mqtt_info: 
+common.c(428) solard_common_startup: i: 0x561293f837a8
+common.c(436) solard_common_startup: i: 0x561293f65eb0
+common.c(437) solard_common_startup: influx_info: 
+common.c(443) solard_common_startup: e: 0x561293f837b0
+common.c(447) solard_common_startup: sname: test
+config.c(697) config_add_props: cp: 0x561293f57590, props: 0x561293f77f40, flags: 0
+config.c(621) config_get_section: looking for section: test
+config.c(631) config_get_section: NOT found!
+config.c(701) config_add_props: section: (nil)
+config.c(658) config_create_section: name: test, flags: 00
+config.c(703) config_add_props: section: 0x561293f57850
+config.c(531) config_section_add_property: cp: 0x561293f57590, s: 0x561293f57850, p: 0x561293f77f40
+config.c(534) config_section_add_property: cp->triggers: 1, NOTRIG: 0
+config.c(538) config_section_add_property: p->name: interval, flags: 0, trig: 1
+config.c(152) config_section_get_property: section: test, name: interval
+config.c(166) config_section_get_property: NOT found
+config.c(543) config_section_add_property: p: 0x561293f77f40, pp: (nil)
+config.c(564) config_section_add_property: interval: dest: (nil), def: 7, flags: 1020
+config.c(276) config_property_set_value: ***************************************
+config.c(277) config_property_set_value: p->name: interval, trigger: 1
+config.c(295) config_property_set_value: p->dest: (nil), p->flags: 1020
+config.c(303) config_property_set_value: p->dest: (nil), type: DATA_TYPE_S32, ISNUMBER: 1
+config.c(306) config_property_set_value: allocating dest...
+config.c(307) config_property_set_value: p->type: DATA_TYPE_S32, type: DATA_TYPE_STRING
+config.c(313) config_property_set_value: p->dsize: 0, size: 1
+config.c(316) config_property_set_value: p->dsize: 4
+config.c(325) config_property_set_value: p->dest: 0x561293f578c0
+config.c(329) config_property_set_value: p->dest: 0x561293f578c0, p->dsize: 4
+conv.c(117) _str2int: s: 7
+conv.c(123) _str2int: i: 7
+conv.c(89) _getmult: s: 7(1)
+conv.c(92) _getmult: c(37): 7
+conv.c(109) _getmult: m: 1
+conv.c(125) _str2int: returning: 7
+conv.c(2389) conv_type: dt: 14(DATA_TYPE_S32)
+conv.c(2424) conv_type: returning: 4
+config.c(335) config_property_set_value: ==> trigger: 1, p->dest: 0x561293f578c0, p->trigger: (nil)
+config.c(341) config_property_set_value: old_dest: (nil)
+config.c(531) config_section_add_property: cp: 0x561293f57590, s: 0x561293f57850, p: 0x561293f77fd8
+config.c(534) config_section_add_property: cp->triggers: 1, NOTRIG: 0
+config.c(538) config_section_add_property: p->name: driver_name, flags: 0, trig: 1
+config.c(152) config_section_get_property: section: test, name: driver_name
+config.c(166) config_section_get_property: NOT found
+config.c(543) config_section_add_property: p: 0x561293f77fd8, pp: (nil)
+config.c(564) config_section_add_property: driver_name: dest: 0x561293f83484, def: (null), flags: 242
+config.c(531) config_section_add_property: cp: 0x561293f57590, s: 0x561293f57850, p: 0x561293f78070
+config.c(534) config_section_add_property: cp->triggers: 1, NOTRIG: 0
+config.c(538) config_section_add_property: p->name: name, flags: 0, trig: 1
+config.c(152) config_section_get_property: section: test, name: name
+config.c(166) config_section_get_property: NOT found
+config.c(543) config_section_add_property: p: 0x561293f78070, pp: (nil)
+config.c(564) config_section_add_property: name: dest: 0x561293f837d0, def: (null), flags: 0
+config.c(531) config_section_add_property: cp: 0x561293f57590, s: 0x561293f57850, p: 0x561293f78108
+config.c(534) config_section_add_property: cp->triggers: 1, NOTRIG: 0
+config.c(538) config_section_add_property: p->name: configfile, flags: 0, trig: 1
+config.c(152) config_section_get_property: section: test, name: configfile
+config.c(166) config_section_get_property: NOT found
+config.c(543) config_section_add_property: p: 0x561293f78108, pp: (nil)
+config.c(564) config_section_add_property: configfile: dest: 0x561293f834a4, def: (null), flags: 2
+config.c(531) config_section_add_property: cp: 0x561293f57590, s: 0x561293f57850, p: 0x561293f781a0
+config.c(534) config_section_add_property: cp->triggers: 1, NOTRIG: 0
+config.c(538) config_section_add_property: p->name: agent_libdir, flags: 0, trig: 1
+config.c(152) config_section_get_property: section: test, name: agent_libdir
+config.c(166) config_section_get_property: NOT found
+config.c(543) config_section_add_property: p: 0x561293f781a0, pp: (nil)
+config.c(564) config_section_add_property: agent_libdir: dest: 0x561293f837f0, def: (null), flags: 0
+config.c(531) config_section_add_property: cp: 0x561293f57590, s: 0x561293f57850, p: 0x561293f78238
+config.c(534) config_section_add_property: cp->triggers: 1, NOTRIG: 0
+config.c(538) config_section_add_property: p->name: run_count, flags: 0, trig: 1
+config.c(152) config_section_get_property: section: test, name: run_count
+config.c(166) config_section_get_property: NOT found
+config.c(543) config_section_add_property: p: 0x561293f78238, pp: (nil)
+config.c(564) config_section_add_property: run_count: dest: 0x561293f837bc, def: (null), flags: 1
+config.c(531) config_section_add_property: cp: 0x561293f57590, s: 0x561293f57850, p: 0x561293f782d0
+config.c(534) config_section_add_property: cp->triggers: 1, NOTRIG: 0
+config.c(538) config_section_add_property: p->name: read_count, flags: 0, trig: 1
+config.c(152) config_section_get_property: section: test, name: read_count
+config.c(166) config_section_get_property: NOT found
+config.c(543) config_section_add_property: p: 0x561293f782d0, pp: (nil)
+config.c(564) config_section_add_property: read_count: dest: 0x561293f837c0, def: (null), flags: 1
+config.c(531) config_section_add_property: cp: 0x561293f57590, s: 0x561293f57850, p: 0x561293f78368
+config.c(534) config_section_add_property: cp->triggers: 1, NOTRIG: 0
+config.c(538) config_section_add_property: p->name: write_count, flags: 0, trig: 1
+config.c(152) config_section_get_property: section: test, name: write_count
+config.c(166) config_section_get_property: NOT found
+config.c(543) config_section_add_property: p: 0x561293f78368, pp: (nil)
+config.c(564) config_section_add_property: write_count: dest: 0x561293f837c4, def: (null), flags: 1
+config.c(531) config_section_add_property: cp: 0x561293f57590, s: 0x561293f57850, p: 0x561293f78400
+config.c(534) config_section_add_property: cp->triggers: 1, NOTRIG: 0
+config.c(538) config_section_add_property: p->name: purge, flags: 0, trig: 1
+config.c(152) config_section_get_property: section: test, name: purge
+config.c(166) config_section_get_property: NOT found
+config.c(543) config_section_add_property: p: 0x561293f78400, pp: (nil)
+config.c(564) config_section_add_property: purge: dest: 0x561293f837a0, def: true, flags: 0
+config.c(276) config_property_set_value: ***************************************
+config.c(277) config_property_set_value: p->name: purge, trigger: 1
+config.c(250) _destdup: type: DATA_TYPE_BOOL
+config.c(253) _destdup: size: 0
+config.c(256) _destdup: NEW size: 4
+config.c(265) _destdup: dest: 0x561293f80c40
+conv.c(2389) conv_type: dt: 8(DATA_TYPE_BOOL)
+conv.c(2424) conv_type: returning: 4
+config.c(295) config_property_set_value: p->dest: 0x561293f837a0, p->flags: 0
+config.c(303) config_property_set_value: p->dest: 0x561293f837a0, type: DATA_TYPE_BOOL, ISNUMBER: 1
+config.c(329) config_property_set_value: p->dest: 0x561293f837a0, p->dsize: 0
+conv.c(2389) conv_type: dt: 8(DATA_TYPE_BOOL)
+conv.c(2424) conv_type: returning: 4
+config.c(335) config_property_set_value: ==> trigger: 1, p->dest: 0x561293f837a0, p->trigger: (nil)
+config.c(341) config_property_set_value: old_dest: 0x561293f80c40
+config.c(343) config_property_set_value: destroying old_dest...
+config.c(531) config_section_add_property: cp: 0x561293f57590, s: 0x561293f57850, p: 0x561293f78498
+config.c(534) config_section_add_property: cp->triggers: 1, NOTRIG: 0
+config.c(538) config_section_add_property: p->name: rtsize, flags: 0, trig: 1
+config.c(152) config_section_get_property: section: test, name: rtsize
+config.c(166) config_section_get_property: NOT found
+config.c(543) config_section_add_property: p: 0x561293f78498, pp: (nil)
+config.c(564) config_section_add_property: rtsize: dest: 0x561293f838f8, def: (null), flags: 1
+config.c(531) config_section_add_property: cp: 0x561293f57590, s: 0x561293f57850, p: 0x561293f78530
+config.c(534) config_section_add_property: cp->triggers: 1, NOTRIG: 0
+config.c(538) config_section_add_property: p->name: stacksize, flags: 0, trig: 1
+config.c(152) config_section_get_property: section: test, name: stacksize
+config.c(166) config_section_get_property: NOT found
+config.c(543) config_section_add_property: p: 0x561293f78530, pp: (nil)
+config.c(564) config_section_add_property: stacksize: dest: 0x561293f838fc, def: (null), flags: 1
+config.c(531) config_section_add_property: cp: 0x561293f57590, s: 0x561293f57850, p: 0x561293f785c8
+config.c(534) config_section_add_property: cp->triggers: 1, NOTRIG: 0
+config.c(538) config_section_add_property: p->name: run_scripts, flags: 0, trig: 1
+config.c(152) config_section_get_property: section: test, name: run_scripts
+config.c(166) config_section_get_property: NOT found
+config.c(543) config_section_add_property: p: 0x561293f785c8, pp: (nil)
+config.c(564) config_section_add_property: run_scripts: dest: 0x561293f83900, def: (null), flags: 2
+config.c(531) config_section_add_property: cp: 0x561293f57590, s: 0x561293f57850, p: 0x561293f78660
+config.c(534) config_section_add_property: cp->triggers: 1, NOTRIG: 0
+config.c(538) config_section_add_property: p->name: script_dir, flags: 0, trig: 1
+config.c(152) config_section_get_property: section: test, name: script_dir
+config.c(166) config_section_get_property: NOT found
+config.c(543) config_section_add_property: p: 0x561293f78660, pp: (nil)
+config.c(564) config_section_add_property: script_dir: dest: 0x561293f83948, def: (null), flags: 0
+config.c(531) config_section_add_property: cp: 0x561293f57590, s: 0x561293f57850, p: 0x561293f786f8
+config.c(534) config_section_add_property: cp->triggers: 1, NOTRIG: 0
+config.c(538) config_section_add_property: p->name: init_script, flags: 0, trig: 1
+config.c(152) config_section_get_property: section: test, name: init_script
+config.c(166) config_section_get_property: NOT found
+config.c(543) config_section_add_property: p: 0x561293f786f8, pp: (nil)
+config.c(564) config_section_add_property: init_script: dest: 0x561293f83a48, def: init.js, flags: 0
+config.c(276) config_property_set_value: ***************************************
+config.c(277) config_property_set_value: p->name: init_script, trigger: 1
+config.c(250) _destdup: type: DATA_TYPE_STRING
+config.c(265) _destdup: dest: 0x561293f80c40
+conv.c(147) conv_type: src: 
+conv.c(2389) conv_type: dt: 4(DATA_TYPE_STRING)
+conv.c(2392) conv_type: string: 
+conv.c(2424) conv_type: returning: 0
+config.c(295) config_property_set_value: p->dest: 0x561293f83a48, p->flags: 0
+config.c(303) config_property_set_value: p->dest: 0x561293f83a48, type: DATA_TYPE_STRING, ISNUMBER: 0
+config.c(329) config_property_set_value: p->dest: 0x561293f83a48, p->dsize: 255
+conv.c(147) conv_type: src: init.js
+conv.c(2389) conv_type: dt: 4(DATA_TYPE_STRING)
+conv.c(2392) conv_type: string: init.js
+conv.c(2424) conv_type: returning: 7
+config.c(335) config_property_set_value: ==> trigger: 1, p->dest: 0x561293f83a48, p->trigger: (nil)
+config.c(341) config_property_set_value: old_dest: 0x561293f80c40
+config.c(343) config_property_set_value: destroying old_dest...
+config.c(531) config_section_add_property: cp: 0x561293f57590, s: 0x561293f57850, p: 0x561293f78790
+config.c(534) config_section_add_property: cp->triggers: 1, NOTRIG: 0
+config.c(538) config_section_add_property: p->name: start_script, flags: 0, trig: 1
+config.c(152) config_section_get_property: section: test, name: start_script
+config.c(166) config_section_get_property: NOT found
+config.c(543) config_section_add_property: p: 0x561293f78790, pp: (nil)
+config.c(564) config_section_add_property: start_script: dest: 0x561293f83b4c, def: start.js, flags: 0
+config.c(276) config_property_set_value: ***************************************
+config.c(277) config_property_set_value: p->name: start_script, trigger: 1
+config.c(250) _destdup: type: DATA_TYPE_STRING
+config.c(265) _destdup: dest: 0x561293f80c40
+conv.c(147) conv_type: src: 
+conv.c(2389) conv_type: dt: 4(DATA_TYPE_STRING)
+conv.c(2392) conv_type: string: 
+conv.c(2424) conv_type: returning: 0
+config.c(295) config_property_set_value: p->dest: 0x561293f83b4c, p->flags: 0
+config.c(303) config_property_set_value: p->dest: 0x561293f83b4c, type: DATA_TYPE_STRING, ISNUMBER: 0
+config.c(329) config_property_set_value: p->dest: 0x561293f83b4c, p->dsize: 255
+conv.c(147) conv_type: src: start.js
+conv.c(2389) conv_type: dt: 4(DATA_TYPE_STRING)
+conv.c(2392) conv_type: string: start.js
+conv.c(2424) conv_type: returning: 8
+config.c(335) config_property_set_value: ==> trigger: 1, p->dest: 0x561293f83b4c, p->trigger: (nil)
+config.c(341) config_property_set_value: old_dest: 0x561293f80c40
+config.c(343) config_property_set_value: destroying old_dest...
+config.c(531) config_section_add_property: cp: 0x561293f57590, s: 0x561293f57850, p: 0x561293f78828
+config.c(534) config_section_add_property: cp->triggers: 1, NOTRIG: 0
+config.c(538) config_section_add_property: p->name: read_script, flags: 0, trig: 1
+config.c(152) config_section_get_property: section: test, name: read_script
+config.c(166) config_section_get_property: NOT found
+config.c(543) config_section_add_property: p: 0x561293f78828, pp: (nil)
+config.c(564) config_section_add_property: read_script: dest: 0x561293f83d50, def: read.js, flags: 0
+config.c(276) config_property_set_value: ***************************************
+config.c(277) config_property_set_value: p->name: read_script, trigger: 1
+config.c(250) _destdup: type: DATA_TYPE_STRING
+config.c(265) _destdup: dest: 0x561293f80c40
+conv.c(147) conv_type: src: 
+conv.c(2389) conv_type: dt: 4(DATA_TYPE_STRING)
+conv.c(2392) conv_type: string: 
+conv.c(2424) conv_type: returning: 0
+config.c(295) config_property_set_value: p->dest: 0x561293f83d50, p->flags: 0
+config.c(303) config_property_set_value: p->dest: 0x561293f83d50, type: DATA_TYPE_STRING, ISNUMBER: 0
+config.c(329) config_property_set_value: p->dest: 0x561293f83d50, p->dsize: 255
+conv.c(147) conv_type: src: read.js
+conv.c(2389) conv_type: dt: 4(DATA_TYPE_STRING)
+conv.c(2392) conv_type: string: read.js
+conv.c(2424) conv_type: returning: 7
+config.c(335) config_property_set_value: ==> trigger: 1, p->dest: 0x561293f83d50, p->trigger: (nil)
+config.c(341) config_property_set_value: old_dest: 0x561293f80c40
+config.c(343) config_property_set_value: destroying old_dest...
+config.c(531) config_section_add_property: cp: 0x561293f57590, s: 0x561293f57850, p: 0x561293f788c0
+config.c(534) config_section_add_property: cp->triggers: 1, NOTRIG: 0
+config.c(538) config_section_add_property: p->name: write_script, flags: 0, trig: 1
+config.c(152) config_section_get_property: section: test, name: write_script
+config.c(166) config_section_get_property: NOT found
+config.c(543) config_section_add_property: p: 0x561293f788c0, pp: (nil)
+config.c(564) config_section_add_property: write_script: dest: 0x561293f83e50, def: write.js, flags: 0
+config.c(276) config_property_set_value: ***************************************
+config.c(277) config_property_set_value: p->name: write_script, trigger: 1
+config.c(250) _destdup: type: DATA_TYPE_STRING
+config.c(265) _destdup: dest: 0x561293f80c40
+conv.c(147) conv_type: src: 
+conv.c(2389) conv_type: dt: 4(DATA_TYPE_STRING)
+conv.c(2392) conv_type: string: 
+conv.c(2424) conv_type: returning: 0
+config.c(295) config_property_set_value: p->dest: 0x561293f83e50, p->flags: 0
+config.c(303) config_property_set_value: p->dest: 0x561293f83e50, type: DATA_TYPE_STRING, ISNUMBER: 0
+config.c(329) config_property_set_value: p->dest: 0x561293f83e50, p->dsize: 255
+conv.c(147) conv_type: src: write.js
+conv.c(2389) conv_type: dt: 4(DATA_TYPE_STRING)
+conv.c(2392) conv_type: string: write.js
+conv.c(2424) conv_type: returning: 8
+config.c(335) config_property_set_value: ==> trigger: 1, p->dest: 0x561293f83e50, p->trigger: (nil)
+config.c(341) config_property_set_value: old_dest: 0x561293f80c40
+config.c(343) config_property_set_value: destroying old_dest...
+config.c(531) config_section_add_property: cp: 0x561293f57590, s: 0x561293f57850, p: 0x561293f78958
+config.c(534) config_section_add_property: cp->triggers: 1, NOTRIG: 0
+config.c(538) config_section_add_property: p->name: run_script, flags: 0, trig: 1
+config.c(152) config_section_get_property: section: test, name: run_script
+config.c(166) config_section_get_property: NOT found
+config.c(543) config_section_add_property: p: 0x561293f78958, pp: (nil)
+config.c(564) config_section_add_property: run_script: dest: 0x561293f83f50, def: run.js, flags: 0
+config.c(276) config_property_set_value: ***************************************
+config.c(277) config_property_set_value: p->name: run_script, trigger: 1
+config.c(250) _destdup: type: DATA_TYPE_STRING
+config.c(265) _destdup: dest: 0x561293f80c40
+conv.c(147) conv_type: src: 
+conv.c(2389) conv_type: dt: 4(DATA_TYPE_STRING)
+conv.c(2392) conv_type: string: 
+conv.c(2424) conv_type: returning: 0
+config.c(295) config_property_set_value: p->dest: 0x561293f83f50, p->flags: 0
+config.c(303) config_property_set_value: p->dest: 0x561293f83f50, type: DATA_TYPE_STRING, ISNUMBER: 0
+config.c(329) config_property_set_value: p->dest: 0x561293f83f50, p->dsize: 255
+conv.c(147) conv_type: src: run.js
+conv.c(2389) conv_type: dt: 4(DATA_TYPE_STRING)
+conv.c(2392) conv_type: string: run.js
+conv.c(2424) conv_type: returning: 6
+config.c(335) config_property_set_value: ==> trigger: 1, p->dest: 0x561293f83f50, p->trigger: (nil)
+config.c(341) config_property_set_value: old_dest: 0x561293f80c40
+config.c(343) config_property_set_value: destroying old_dest...
+config.c(531) config_section_add_property: cp: 0x561293f57590, s: 0x561293f57850, p: 0x561293f789f0
+config.c(534) config_section_add_property: cp->triggers: 1, NOTRIG: 0
+config.c(538) config_section_add_property: p->name: stop_script, flags: 0, trig: 1
+config.c(152) config_section_get_property: section: test, name: stop_script
+config.c(166) config_section_get_property: NOT found
+config.c(543) config_section_add_property: p: 0x561293f789f0, pp: (nil)
+config.c(564) config_section_add_property: stop_script: dest: 0x561293f83c50, def: stop.js, flags: 0
+config.c(276) config_property_set_value: ***************************************
+config.c(277) config_property_set_value: p->name: stop_script, trigger: 1
+config.c(250) _destdup: type: DATA_TYPE_STRING
+config.c(265) _destdup: dest: 0x561293f80c40
+conv.c(147) conv_type: src: 
+conv.c(2389) conv_type: dt: 4(DATA_TYPE_STRING)
+conv.c(2392) conv_type: string: 
+conv.c(2424) conv_type: returning: 0
+config.c(295) config_property_set_value: p->dest: 0x561293f83c50, p->flags: 0
+config.c(303) config_property_set_value: p->dest: 0x561293f83c50, type: DATA_TYPE_STRING, ISNUMBER: 0
+config.c(329) config_property_set_value: p->dest: 0x561293f83c50, p->dsize: 255
+conv.c(147) conv_type: src: stop.js
+conv.c(2389) conv_type: dt: 4(DATA_TYPE_STRING)
+conv.c(2392) conv_type: string: stop.js
+conv.c(2424) conv_type: returning: 7
+config.c(335) config_property_set_value: ==> trigger: 1, p->dest: 0x561293f83c50, p->trigger: (nil)
+config.c(341) config_property_set_value: old_dest: 0x561293f80c40
+config.c(343) config_property_set_value: destroying old_dest...
+config.c(531) config_section_add_property: cp: 0x561293f57590, s: 0x561293f57850, p: 0x561293f78a88
+config.c(534) config_section_add_property: cp->triggers: 1, NOTRIG: 0
+config.c(538) config_section_add_property: p->name: gc_interval, flags: 0, trig: 1
+config.c(152) config_section_get_property: section: test, name: gc_interval
+config.c(166) config_section_get_property: NOT found
+config.c(543) config_section_add_property: p: 0x561293f78a88, pp: (nil)
+config.c(564) config_section_add_property: gc_interval: dest: 0x561293f83940, def: 60, flags: 0
+config.c(276) config_property_set_value: ***************************************
+config.c(277) config_property_set_value: p->name: gc_interval, trigger: 1
+config.c(250) _destdup: type: DATA_TYPE_S32
+config.c(253) _destdup: size: 0
+config.c(256) _destdup: NEW size: 4
+config.c(265) _destdup: dest: 0x561293f61d40
+conv.c(2389) conv_type: dt: 14(DATA_TYPE_S32)
+conv.c(2424) conv_type: returning: 4
+config.c(295) config_property_set_value: p->dest: 0x561293f83940, p->flags: 0
+config.c(303) config_property_set_value: p->dest: 0x561293f83940, type: DATA_TYPE_S32, ISNUMBER: 1
+config.c(329) config_property_set_value: p->dest: 0x561293f83940, p->dsize: 0
+conv.c(117) _str2int: s: 60
+conv.c(123) _str2int: i: 60
+conv.c(89) _getmult: s: 60(2)
+conv.c(92) _getmult: c(30): 0
+conv.c(109) _getmult: m: 1
+conv.c(125) _str2int: returning: 60
+conv.c(2389) conv_type: dt: 14(DATA_TYPE_S32)
+conv.c(2424) conv_type: returning: 4
+config.c(335) config_property_set_value: ==> trigger: 1, p->dest: 0x561293f83940, p->trigger: (nil)
+config.c(341) config_property_set_value: old_dest: 0x561293f61d40
+config.c(343) config_property_set_value: destroying old_dest...
+common.c(449) solard_common_startup: cp: 0x561293f835a8
+config.c(697) config_add_props: cp: 0x561293f57590, props: 0x7ffcac9413e0, flags: 0
+config.c(621) config_get_section: looking for section: test
+config.c(624) config_get_section: name: test
+config.c(626) config_get_section: found
+config.c(701) config_add_props: section: 0x561293f57850
+config.c(703) config_add_props: section: 0x561293f57850
+config.c(531) config_section_add_property: cp: 0x561293f57590, s: 0x561293f57850, p: 0x7ffcac9413e0
+config.c(534) config_section_add_property: cp->triggers: 1, NOTRIG: 0
+config.c(538) config_section_add_property: p->name: BINDIR, flags: 0, trig: 1
+config.c(152) config_section_get_property: section: test, name: BINDIR
+config.c(166) config_section_get_property: NOT found
+config.c(543) config_section_add_property: p: 0x7ffcac9413e0, pp: (nil)
+config.c(564) config_section_add_property: BINDIR: dest: 0x56126eea4d00, def: (null), flags: 0
+config.c(531) config_section_add_property: cp: 0x561293f57590, s: 0x561293f57850, p: 0x7ffcac941478
+config.c(534) config_section_add_property: cp->triggers: 1, NOTRIG: 0
+config.c(538) config_section_add_property: p->name: ETCDIR, flags: 0, trig: 1
+config.c(152) config_section_get_property: section: test, name: ETCDIR
+config.c(166) config_section_get_property: NOT found
+config.c(543) config_section_add_property: p: 0x7ffcac941478, pp: (nil)
+config.c(564) config_section_add_property: ETCDIR: dest: 0x56126eea4e00, def: (null), flags: 0
+config.c(531) config_section_add_property: cp: 0x561293f57590, s: 0x561293f57850, p: 0x7ffcac941510
+config.c(534) config_section_add_property: cp->triggers: 1, NOTRIG: 0
+config.c(538) config_section_add_property: p->name: LIBDIR, flags: 0, trig: 1
+config.c(152) config_section_get_property: section: test, name: LIBDIR
+config.c(166) config_section_get_property: NOT found
+config.c(543) config_section_add_property: p: 0x7ffcac941510, pp: (nil)
+config.c(564) config_section_add_property: LIBDIR: dest: 0x56126eea4f00, def: (null), flags: 0
+config.c(531) config_section_add_property: cp: 0x561293f57590, s: 0x561293f57850, p: 0x7ffcac9415a8
+config.c(534) config_section_add_property: cp->triggers: 1, NOTRIG: 0
+config.c(538) config_section_add_property: p->name: LOGDIR, flags: 0, trig: 1
+config.c(152) config_section_get_property: section: test, name: LOGDIR
+config.c(166) config_section_get_property: NOT found
+config.c(543) config_section_add_property: p: 0x7ffcac9415a8, pp: (nil)
+config.c(564) config_section_add_property: LOGDIR: dest: 0x56126eea5000, def: (null), flags: 0
+config.c(531) config_section_add_property: cp: 0x561293f57590, s: 0x561293f57850, p: 0x7ffcac941640
+config.c(534) config_section_add_property: cp->triggers: 1, NOTRIG: 0
+config.c(538) config_section_add_property: p->name: TEMPDIR, flags: 0, trig: 1
+config.c(152) config_section_get_property: section: test, name: TEMPDIR
+config.c(166) config_section_get_property: NOT found
+config.c(543) config_section_add_property: p: 0x7ffcac941640, pp: (nil)
+config.c(564) config_section_add_property: TEMPDIR: dest: 0x56126eea5100, def: (null), flags: 0
+config.c(531) config_section_add_property: cp: 0x561293f57590, s: 0x561293f57850, p: 0x7ffcac9416d8
+config.c(534) config_section_add_property: cp->triggers: 1, NOTRIG: 0
+config.c(538) config_section_add_property: p->name: debug, flags: 0, trig: 1
+config.c(152) config_section_get_property: section: test, name: debug
+config.c(166) config_section_get_property: NOT found
+config.c(543) config_section_add_property: p: 0x7ffcac9416d8, pp: (nil)
+config.c(564) config_section_add_property: debug: dest: 0x56126eea48ec, def: (null), flags: 242
+mqtt.c(734) mqtt_add_props: adding props...
+config.c(697) config_add_props: cp: 0x561293f57590, props: 0x7ffcac941480, flags: 0
+config.c(621) config_get_section: looking for section: test
+config.c(624) config_get_section: name: test
+config.c(626) config_get_section: found
+config.c(701) config_add_props: section: 0x561293f57850
+config.c(703) config_add_props: section: 0x561293f57850
+config.c(531) config_section_add_property: cp: 0x561293f57590, s: 0x561293f57850, p: 0x7ffcac941480
+config.c(534) config_section_add_property: cp->triggers: 1, NOTRIG: 0
+config.c(538) config_section_add_property: p->name: mqtt_enabled, flags: 0, trig: 1
+config.c(152) config_section_get_property: section: test, name: mqtt_enabled
+config.c(166) config_section_get_property: NOT found
+config.c(543) config_section_add_property: p: 0x7ffcac941480, pp: (nil)
+config.c(564) config_section_add_property: mqtt_enabled: dest: 0x561293f80484, def: yes, flags: 0
+config.c(276) config_property_set_value: ***************************************
+config.c(277) config_property_set_value: p->name: mqtt_enabled, trigger: 1
+config.c(250) _destdup: type: DATA_TYPE_BOOL
+config.c(253) _destdup: size: 0
+config.c(256) _destdup: NEW size: 4
+config.c(265) _destdup: dest: 0x561293f80c40
+conv.c(2389) conv_type: dt: 8(DATA_TYPE_BOOL)
+conv.c(2424) conv_type: returning: 4
+config.c(295) config_property_set_value: p->dest: 0x561293f80484, p->flags: 0
+config.c(303) config_property_set_value: p->dest: 0x561293f80484, type: DATA_TYPE_BOOL, ISNUMBER: 1
+config.c(329) config_property_set_value: p->dest: 0x561293f80484, p->dsize: 3
+conv.c(2389) conv_type: dt: 8(DATA_TYPE_BOOL)
+conv.c(2424) conv_type: returning: 4
+config.c(335) config_property_set_value: ==> trigger: 1, p->dest: 0x561293f80484, p->trigger: (nil)
+config.c(341) config_property_set_value: old_dest: 0x561293f80c40
+config.c(343) config_property_set_value: destroying old_dest...
+config.c(531) config_section_add_property: cp: 0x561293f57590, s: 0x561293f57850, p: 0x7ffcac941518
+config.c(534) config_section_add_property: cp->triggers: 1, NOTRIG: 0
+config.c(538) config_section_add_property: p->name: mqtt_uri, flags: 0, trig: 1
+config.c(152) config_section_get_property: section: test, name: mqtt_uri
+config.c(166) config_section_get_property: NOT found
+config.c(543) config_section_add_property: p: 0x7ffcac941518, pp: (nil)
+config.c(564) config_section_add_property: mqtt_uri: dest: 0x561293f80488, def: tcp://localhost:1883, flags: 0
+config.c(276) config_property_set_value: ***************************************
+config.c(277) config_property_set_value: p->name: mqtt_uri, trigger: 1
+config.c(250) _destdup: type: DATA_TYPE_STRING
+config.c(265) _destdup: dest: 0x561293f80c40
+conv.c(147) conv_type: src: 
+conv.c(2389) conv_type: dt: 4(DATA_TYPE_STRING)
+conv.c(2392) conv_type: string: 
+conv.c(2424) conv_type: returning: 0
+config.c(295) config_property_set_value: p->dest: 0x561293f80488, p->flags: 0
+config.c(303) config_property_set_value: p->dest: 0x561293f80488, type: DATA_TYPE_STRING, ISNUMBER: 0
+config.c(329) config_property_set_value: p->dest: 0x561293f80488, p->dsize: 127
+conv.c(147) conv_type: src: tcp://localhost:1883
+conv.c(2389) conv_type: dt: 4(DATA_TYPE_STRING)
+conv.c(2392) conv_type: string: tcp://localhost:1883
+conv.c(2424) conv_type: returning: 20
+config.c(335) config_property_set_value: ==> trigger: 1, p->dest: 0x561293f80488, p->trigger: 0x56126ed102c5
+config.c(337) config_property_set_value: calling trigger!
+mqtt.c(677) mqtt_set_uri: set_uri: new: tcp://localhost:1883, old: 
+mqtt.c(680) mqtt_set_uri: ptr: 0x561293f8048b
+mqtt.c(692) mqtt_set_uri: connected: 0
+config.c(341) config_property_set_value: old_dest: 0x561293f80c40
+config.c(343) config_property_set_value: destroying old_dest...
+config.c(531) config_section_add_property: cp: 0x561293f57590, s: 0x561293f57850, p: 0x7ffcac9415b0
+config.c(534) config_section_add_property: cp->triggers: 1, NOTRIG: 0
+config.c(538) config_section_add_property: p->name: mqtt_clientid, flags: 0, trig: 1
+config.c(152) config_section_get_property: section: test, name: mqtt_clientid
+config.c(166) config_section_get_property: NOT found
+config.c(543) config_section_add_property: p: 0x7ffcac9415b0, pp: (nil)
+config.c(564) config_section_add_property: mqtt_clientid: dest: 0x561293f80508, def: , flags: 0
+config.c(276) config_property_set_value: ***************************************
+config.c(277) config_property_set_value: p->name: mqtt_clientid, trigger: 1
+config.c(250) _destdup: type: DATA_TYPE_STRING
+config.c(265) _destdup: dest: 0x561293f80c40
+conv.c(147) conv_type: src: 
+conv.c(2389) conv_type: dt: 4(DATA_TYPE_STRING)
+conv.c(2392) conv_type: string: 
+conv.c(2424) conv_type: returning: 0
+config.c(295) config_property_set_value: p->dest: 0x561293f80508, p->flags: 0
+config.c(303) config_property_set_value: p->dest: 0x561293f80508, type: DATA_TYPE_STRING, ISNUMBER: 0
+config.c(329) config_property_set_value: p->dest: 0x561293f80508, p->dsize: 63
+conv.c(147) conv_type: src: 
+conv.c(2389) conv_type: dt: 4(DATA_TYPE_STRING)
+conv.c(2392) conv_type: string: 
+conv.c(2424) conv_type: returning: 0
+config.c(335) config_property_set_value: ==> trigger: 1, p->dest: 0x561293f80508, p->trigger: (nil)
+config.c(341) config_property_set_value: old_dest: 0x561293f80c40
+config.c(343) config_property_set_value: destroying old_dest...
+config.c(531) config_section_add_property: cp: 0x561293f57590, s: 0x561293f57850, p: 0x7ffcac941648
+config.c(534) config_section_add_property: cp->triggers: 1, NOTRIG: 0
+config.c(538) config_section_add_property: p->name: mqtt_username, flags: 0, trig: 1
+config.c(152) config_section_get_property: section: test, name: mqtt_username
+config.c(166) config_section_get_property: NOT found
+config.c(543) config_section_add_property: p: 0x7ffcac941648, pp: (nil)
+config.c(564) config_section_add_property: mqtt_username: dest: 0x561293f80548, def: , flags: 0
+config.c(276) config_property_set_value: ***************************************
+config.c(277) config_property_set_value: p->name: mqtt_username, trigger: 1
+config.c(250) _destdup: type: DATA_TYPE_STRING
+config.c(265) _destdup: dest: 0x561293f80c40
+conv.c(147) conv_type: src: 
+conv.c(2389) conv_type: dt: 4(DATA_TYPE_STRING)
+conv.c(2392) conv_type: string: 
+conv.c(2424) conv_type: returning: 0
+config.c(295) config_property_set_value: p->dest: 0x561293f80548, p->flags: 0
+config.c(303) config_property_set_value: p->dest: 0x561293f80548, type: DATA_TYPE_STRING, ISNUMBER: 0
+config.c(329) config_property_set_value: p->dest: 0x561293f80548, p->dsize: 511
+conv.c(147) conv_type: src: 
+conv.c(2389) conv_type: dt: 4(DATA_TYPE_STRING)
+conv.c(2392) conv_type: string: 
+conv.c(2424) conv_type: returning: 0
+config.c(335) config_property_set_value: ==> trigger: 1, p->dest: 0x561293f80548, p->trigger: (nil)
+config.c(341) config_property_set_value: old_dest: 0x561293f80c40
+config.c(343) config_property_set_value: destroying old_dest...
+config.c(531) config_section_add_property: cp: 0x561293f57590, s: 0x561293f57850, p: 0x7ffcac9416e0
+config.c(534) config_section_add_property: cp->triggers: 1, NOTRIG: 0
+config.c(538) config_section_add_property: p->name: mqtt_password, flags: 0, trig: 1
+config.c(152) config_section_get_property: section: test, name: mqtt_password
+config.c(166) config_section_get_property: NOT found
+config.c(543) config_section_add_property: p: 0x7ffcac9416e0, pp: (nil)
+config.c(564) config_section_add_property: mqtt_password: dest: 0x561293f80748, def: , flags: 0
+config.c(276) config_property_set_value: ***************************************
+config.c(277) config_property_set_value: p->name: mqtt_password, trigger: 1
+config.c(250) _destdup: type: DATA_TYPE_STRING
+config.c(265) _destdup: dest: 0x561293f80c40
+conv.c(147) conv_type: src: 
+conv.c(2389) conv_type: dt: 4(DATA_TYPE_STRING)
+conv.c(2392) conv_type: string: 
+conv.c(2424) conv_type: returning: 0
+config.c(295) config_property_set_value: p->dest: 0x561293f80748, p->flags: 0
+config.c(303) config_property_set_value: p->dest: 0x561293f80748, type: DATA_TYPE_STRING, ISNUMBER: 0
+config.c(329) config_property_set_value: p->dest: 0x561293f80748, p->dsize: 511
+conv.c(147) conv_type: src: 
+conv.c(2389) conv_type: dt: 4(DATA_TYPE_STRING)
+conv.c(2392) conv_type: string: 
+conv.c(2424) conv_type: returning: 0
+config.c(335) config_property_set_value: ==> trigger: 1, p->dest: 0x561293f80748, p->trigger: (nil)
+config.c(341) config_property_set_value: old_dest: 0x561293f80c40
+config.c(343) config_property_set_value: destroying old_dest...
+influx.c(1058) influx_add_props: name: test
+config.c(697) config_add_props: cp: 0x561293f57590, props: 0x7ffcac9413e0, flags: 0
+config.c(621) config_get_section: looking for section: test
+config.c(624) config_get_section: name: test
+config.c(626) config_get_section: found
+config.c(701) config_add_props: section: 0x561293f57850
+config.c(703) config_add_props: section: 0x561293f57850
+config.c(531) config_section_add_property: cp: 0x561293f57590, s: 0x561293f57850, p: 0x7ffcac9413e0
+config.c(534) config_section_add_property: cp->triggers: 1, NOTRIG: 0
+config.c(538) config_section_add_property: p->name: influx_enabled, flags: 0, trig: 1
+config.c(152) config_section_get_property: section: test, name: influx_enabled
+config.c(166) config_section_get_property: NOT found
+config.c(543) config_section_add_property: p: 0x7ffcac9413e0, pp: (nil)
+config.c(564) config_section_add_property: influx_enabled: dest: 0x561293f65eb0, def: yes, flags: 0
+config.c(276) config_property_set_value: ***************************************
+config.c(277) config_property_set_value: p->name: influx_enabled, trigger: 1
+config.c(250) _destdup: type: DATA_TYPE_BOOL
+config.c(253) _destdup: size: 0
+config.c(256) _destdup: NEW size: 4
+config.c(265) _destdup: dest: 0x561293f80c40
+conv.c(2389) conv_type: dt: 8(DATA_TYPE_BOOL)
+conv.c(2424) conv_type: returning: 4
+config.c(295) config_property_set_value: p->dest: 0x561293f65eb0, p->flags: 0
+config.c(303) config_property_set_value: p->dest: 0x561293f65eb0, type: DATA_TYPE_BOOL, ISNUMBER: 1
+config.c(329) config_property_set_value: p->dest: 0x561293f65eb0, p->dsize: 0
+conv.c(2389) conv_type: dt: 8(DATA_TYPE_BOOL)
+conv.c(2424) conv_type: returning: 4
+config.c(335) config_property_set_value: ==> trigger: 1, p->dest: 0x561293f65eb0, p->trigger: 0x56126ed163bc
+config.c(337) config_property_set_value: calling trigger!
+influx.c(1037) enabled_set: enabled: 1, connected: 0
+influx.c(912) influx_connect: connected: 0
+influx.c(916) influx_connect: endpoint: 
+influx.c(926) influx_connect: error: 1
+config.c(341) config_property_set_value: old_dest: 0x561293f80c40
+config.c(343) config_property_set_value: destroying old_dest...
+config.c(531) config_section_add_property: cp: 0x561293f57590, s: 0x561293f57850, p: 0x7ffcac941478
+config.c(534) config_section_add_property: cp->triggers: 1, NOTRIG: 0
+config.c(538) config_section_add_property: p->name: influx_timeout, flags: 0, trig: 1
+config.c(152) config_section_get_property: section: test, name: influx_timeout
+config.c(166) config_section_get_property: NOT found
+config.c(543) config_section_add_property: p: 0x7ffcac941478, pp: (nil)
+config.c(564) config_section_add_property: influx_timeout: dest: 0x561293f66120, def: 10, flags: 0
+config.c(276) config_property_set_value: ***************************************
+config.c(277) config_property_set_value: p->name: influx_timeout, trigger: 1
+config.c(250) _destdup: type: DATA_TYPE_S32
+config.c(253) _destdup: size: 0
+config.c(256) _destdup: NEW size: 4
+config.c(265) _destdup: dest: 0x561293f61d40
+conv.c(2389) conv_type: dt: 14(DATA_TYPE_S32)
+conv.c(2424) conv_type: returning: 4
+config.c(295) config_property_set_value: p->dest: 0x561293f66120, p->flags: 0
+config.c(303) config_property_set_value: p->dest: 0x561293f66120, type: DATA_TYPE_S32, ISNUMBER: 1
+config.c(329) config_property_set_value: p->dest: 0x561293f66120, p->dsize: 0
+conv.c(117) _str2int: s: 10
+conv.c(123) _str2int: i: 10
+conv.c(89) _getmult: s: 10(2)
+conv.c(92) _getmult: c(30): 0
+conv.c(109) _getmult: m: 1
+conv.c(125) _str2int: returning: 10
+conv.c(2389) conv_type: dt: 14(DATA_TYPE_S32)
+conv.c(2424) conv_type: returning: 4
+config.c(335) config_property_set_value: ==> trigger: 1, p->dest: 0x561293f66120, p->trigger: (nil)
+config.c(341) config_property_set_value: old_dest: 0x561293f61d40
+config.c(343) config_property_set_value: destroying old_dest...
+config.c(531) config_section_add_property: cp: 0x561293f57590, s: 0x561293f57850, p: 0x7ffcac941510
+config.c(534) config_section_add_property: cp->triggers: 1, NOTRIG: 0
+config.c(538) config_section_add_property: p->name: influx_endpoint, flags: 0, trig: 1
+config.c(152) config_section_get_property: section: test, name: influx_endpoint
+config.c(166) config_section_get_property: NOT found
+config.c(543) config_section_add_property: p: 0x7ffcac941510, pp: (nil)
+config.c(564) config_section_add_property: influx_endpoint: dest: 0x561293f65eb4, def: http://localhost:8086, flags: 0
+config.c(276) config_property_set_value: ***************************************
+config.c(277) config_property_set_value: p->name: influx_endpoint, trigger: 1
+config.c(250) _destdup: type: DATA_TYPE_STRING
+config.c(265) _destdup: dest: 0x561293f80c40
+conv.c(147) conv_type: src: 
+conv.c(2389) conv_type: dt: 4(DATA_TYPE_STRING)
+conv.c(2392) conv_type: string: 
+conv.c(2424) conv_type: returning: 0
+config.c(295) config_property_set_value: p->dest: 0x561293f65eb4, p->flags: 0
+config.c(303) config_property_set_value: p->dest: 0x561293f65eb4, type: DATA_TYPE_STRING, ISNUMBER: 0
+config.c(329) config_property_set_value: p->dest: 0x561293f65eb4, p->dsize: 127
+conv.c(147) conv_type: src: http://localhost:8086
+conv.c(2389) conv_type: dt: 4(DATA_TYPE_STRING)
+conv.c(2392) conv_type: string: http://localhost:8086
+conv.c(2424) conv_type: returning: 21
+config.c(335) config_property_set_value: ==> trigger: 1, p->dest: 0x561293f65eb4, p->trigger: (nil)
+config.c(341) config_property_set_value: old_dest: 0x561293f80c40
+config.c(343) config_property_set_value: destroying old_dest...
+config.c(531) config_section_add_property: cp: 0x561293f57590, s: 0x561293f57850, p: 0x7ffcac9415a8
+config.c(534) config_section_add_property: cp->triggers: 1, NOTRIG: 0
+config.c(538) config_section_add_property: p->name: influx_database, flags: 0, trig: 1
+config.c(152) config_section_get_property: section: test, name: influx_database
+config.c(166) config_section_get_property: NOT found
+config.c(543) config_section_add_property: p: 0x7ffcac9415a8, pp: (nil)
+config.c(564) config_section_add_property: influx_database: dest: 0x561293f65f34, def: , flags: 0
+config.c(276) config_property_set_value: ***************************************
+config.c(277) config_property_set_value: p->name: influx_database, trigger: 1
+config.c(250) _destdup: type: DATA_TYPE_STRING
+config.c(265) _destdup: dest: 0x561293f80c40
+conv.c(147) conv_type: src: 
+conv.c(2389) conv_type: dt: 4(DATA_TYPE_STRING)
+conv.c(2392) conv_type: string: 
+conv.c(2424) conv_type: returning: 0
+config.c(295) config_property_set_value: p->dest: 0x561293f65f34, p->flags: 0
+config.c(303) config_property_set_value: p->dest: 0x561293f65f34, type: DATA_TYPE_STRING, ISNUMBER: 0
+config.c(329) config_property_set_value: p->dest: 0x561293f65f34, p->dsize: 63
+conv.c(147) conv_type: src: 
+conv.c(2389) conv_type: dt: 4(DATA_TYPE_STRING)
+conv.c(2392) conv_type: string: 
+conv.c(2424) conv_type: returning: 0
+config.c(335) config_property_set_value: ==> trigger: 1, p->dest: 0x561293f65f34, p->trigger: (nil)
+config.c(341) config_property_set_value: old_dest: 0x561293f80c40
+config.c(343) config_property_set_value: destroying old_dest...
+config.c(531) config_section_add_property: cp: 0x561293f57590, s: 0x561293f57850, p: 0x7ffcac941640
+config.c(534) config_section_add_property: cp->triggers: 1, NOTRIG: 0
+config.c(538) config_section_add_property: p->name: influx_username, flags: 0, trig: 1
+config.c(152) config_section_get_property: section: test, name: influx_username
+config.c(166) config_section_get_property: NOT found
+config.c(543) config_section_add_property: p: 0x7ffcac941640, pp: (nil)
+config.c(564) config_section_add_property: influx_username: dest: 0x561293f65f74, def: , flags: 0
+config.c(276) config_property_set_value: ***************************************
+config.c(277) config_property_set_value: p->name: influx_username, trigger: 1
+config.c(250) _destdup: type: DATA_TYPE_STRING
+config.c(265) _destdup: dest: 0x561293f80c40
+conv.c(147) conv_type: src: 
+conv.c(2389) conv_type: dt: 4(DATA_TYPE_STRING)
+conv.c(2392) conv_type: string: 
+conv.c(2424) conv_type: returning: 0
+config.c(295) config_property_set_value: p->dest: 0x561293f65f74, p->flags: 0
+config.c(303) config_property_set_value: p->dest: 0x561293f65f74, type: DATA_TYPE_STRING, ISNUMBER: 0
+config.c(329) config_property_set_value: p->dest: 0x561293f65f74, p->dsize: 31
+conv.c(147) conv_type: src: 
+conv.c(2389) conv_type: dt: 4(DATA_TYPE_STRING)
+conv.c(2392) conv_type: string: 
+conv.c(2424) conv_type: returning: 0
+config.c(335) config_property_set_value: ==> trigger: 1, p->dest: 0x561293f65f74, p->trigger: (nil)
+config.c(341) config_property_set_value: old_dest: 0x561293f80c40
+config.c(343) config_property_set_value: destroying old_dest...
+config.c(531) config_section_add_property: cp: 0x561293f57590, s: 0x561293f57850, p: 0x7ffcac9416d8
+config.c(534) config_section_add_property: cp->triggers: 1, NOTRIG: 0
+config.c(538) config_section_add_property: p->name: influx_password, flags: 0, trig: 1
+config.c(152) config_section_get_property: section: test, name: influx_password
+config.c(166) config_section_get_property: NOT found
+config.c(543) config_section_add_property: p: 0x7ffcac9416d8, pp: (nil)
+config.c(564) config_section_add_property: influx_password: dest: 0x561293f65f94, def: , flags: 0
+config.c(276) config_property_set_value: ***************************************
+config.c(277) config_property_set_value: p->name: influx_password, trigger: 1
+config.c(250) _destdup: type: DATA_TYPE_STRING
+config.c(265) _destdup: dest: 0x561293f80c40
+conv.c(147) conv_type: src: 
+conv.c(2389) conv_type: dt: 4(DATA_TYPE_STRING)
+conv.c(2392) conv_type: string: 
+conv.c(2424) conv_type: returning: 0
+config.c(295) config_property_set_value: p->dest: 0x561293f65f94, p->flags: 0
+config.c(303) config_property_set_value: p->dest: 0x561293f65f94, type: DATA_TYPE_STRING, ISNUMBER: 0
+config.c(329) config_property_set_value: p->dest: 0x561293f65f94, p->dsize: 31
+conv.c(147) conv_type: src: 
+conv.c(2389) conv_type: dt: 4(DATA_TYPE_STRING)
+conv.c(2392) conv_type: string: 
+conv.c(2424) conv_type: returning: 0
+config.c(335) config_property_set_value: ==> trigger: 1, p->dest: 0x561293f65f94, p->trigger: (nil)
+config.c(341) config_property_set_value: old_dest: 0x561293f80c40
+config.c(343) config_property_set_value: destroying old_dest...
+common.c(358) common_read_config: conf: /opt/sd/etc/common.conf
+common.c(360) common_read_config: fp1: 0x561293f21400
+common.c(367) common_read_config: tempfile: /tmp/_sdctmp46621.conf
+common.c(369) common_read_config: fp2: 0x561293f530e0
+config.c(1375) config_set_filename: cp: 0x561293f57590, filename: /tmp/_sdctmp46621.conf, format: 0
+config.c(1319) _set_rw: format: 0
+config.c(1319) _set_rw: format: 1
+config.c(1297) config_set_reader: cp: 0x561293f57590
+config.c(1300) config_set_reader: func: 0x56126ed001df, ctx: 0x561293f57590
+config.c(1308) config_set_writer: cp: 0x561293f57590
+config.c(1311) config_set_writer: func: 0x56126ed014d3, ctx: 0x561293f57590
+config.c(1354) config_read: cp: 0x561293f57590
+config.c(1357) config_read: reader: 0x56126ed001df
+config.c(886) config_read_ini: cp: 0x561293f57590
+config.c(889) config_read_ini: filename: /tmp/_sdctmp46621.conf
+cfg.c(415) cfg_read: filename: /tmp/_sdctmp46621.conf
+cfg.c(435) cfg_read: line: [test]
+cfg.c(530) cfg_get_section: looking for section: TEST
+cfg.c(533) cfg_get_section: name: 
+cfg.c(435) cfg_read: line: mqtt_uri=tcp://localhost:1883
+cfg.c(121) cfg_section_get_item: looking for keyword: MQTT_URI
+cfg.c(130) cfg_section_get_item: not found
+cfg.c(506) cfg_read: keyword: MQTT_URI, value: tcp://localhost:1883
+cfg.c(435) cfg_read: line: influx_endpoint=localhost:8086
+cfg.c(121) cfg_section_get_item: looking for keyword: INFLUX_ENDPOINT
+cfg.c(124) cfg_section_get_item: item->keyword: MQTT_URI
+cfg.c(130) cfg_section_get_item: not found
+cfg.c(506) cfg_read: keyword: INFLUX_ENDPOINT, value: localhost:8086
+cfg.c(435) cfg_read: line: 
+config.c(891) config_read_ini: cfg: 0x561293f555c0
+config.c(898) config_read_ini: cfgsec->name: 
+config.c(621) config_get_section: looking for section: 
+config.c(624) config_get_section: name: test
+config.c(631) config_get_section: NOT found!
+config.c(658) config_create_section: name: , flags: 10
+config.c(898) config_read_ini: cfgsec->name: TEST
+config.c(621) config_get_section: looking for section: TEST
+config.c(624) config_get_section: name: test
+config.c(626) config_get_section: found
+config.c(903) config_read_ini: item->keyword: MQTT_URI
+config.c(152) config_section_get_property: section: test, name: MQTT_URI
+config.c(160) config_section_get_property: found: 0x561293f60910
+config.c(905) config_read_ini: p: 0x561293f60910
+config.c(907) config_read_ini: value: tcp://localhost:1883
+conv.c(147) conv_type: src: tcp://localhost:1883
+conv.c(2389) conv_type: dt: 4(DATA_TYPE_STRING)
+conv.c(2392) conv_type: string: tcp://localhost:1883
+conv.c(2424) conv_type: returning: 20
+config.c(903) config_read_ini: item->keyword: INFLUX_ENDPOINT
+config.c(152) config_section_get_property: section: test, name: INFLUX_ENDPOINT
+config.c(160) config_section_get_property: found: 0x561293f5b7d0
+config.c(905) config_read_ini: p: 0x561293f5b7d0
+config.c(907) config_read_ini: value: localhost:8086
+conv.c(147) conv_type: src: localhost:8086
+conv.c(2389) conv_type: dt: 4(DATA_TYPE_STRING)
+conv.c(2392) conv_type: string: localhost:8086
+conv.c(2424) conv_type: returning: 14
+config.c(917) config_read_ini: building map...
+config.c(587) config_build_propmap: cp->map: (nil)
+config.c(590) config_build_propmap: cp->id: 38, size: 304
+config.c(592) config_build_propmap: cp->map: 0x561293f624a0
+config.c(610) config_build_propmap: map count: 38
+cfg.c(103) cfg_destroy: item->keyword: MQTT_URI
+cfg.c(103) cfg_destroy: item->keyword: INFLUX_ENDPOINT
+common.c(464) solard_common_startup: config_from_mqtt: 0
+common.c(480) solard_common_startup: configfile: 
+mqtt.c(49) mqtt_init: s: 0x561293f80480
+mqtt.c(171) mqtt_newclient: gen'ing MQTT ClientID...
+mqtt.c(173) mqtt_newclient: unparsing uuid...
+mqtt.c(175) mqtt_newclient: clientid: 0b3667a8-70b6-4f39-b082-5b2434a58a86
+mqtt.c(179) mqtt_newclient: uri: tcp://localhost:1883
+mqtt.c(181) mqtt_newclient: create rc: 0
+mqtt.c(188) mqtt_newclient: setting callbacks...
+mqtt.c(190) mqtt_newclient: setcb rc: 0
+mqtt.c(256) mqtt_connect: s: 0x561293f80480, interval: 20
+mqtt.c(259) mqtt_connect: enabled: 1
+mqtt.c(262) mqtt_connect: interval: 20
+mqtt.c(264) mqtt_connect: lwt: SolarD/Agents/test/Status
+mqtt.c(272) mqtt_connect: uri: tcp://localhost:1883
+mqtt.c(299) mqtt_connect: connectv5
+mqtt.c(317) mqtt_connect: rc: 0, SUCCESS: 0
+mqtt.c(473) mqtt_pub: s: 0x561293f80480, topic: SolarD/Agents/test/Status, message: Online, wait: 1, retain: 1
+mqtt.c(478) mqtt_pub: enabled: 1
+mqtt.c(503) mqtt_pub: publishing...
+mqtt.c(511) mqtt_pub: rc: 0
+mqtt.c(525) mqtt_pub: waiting...
+mqtt.c(527) mqtt_pub: rc: 0
+mqtt.c(540) mqtt_pub: delivered message... token: 1
+mqtt.c(542) mqtt_pub: done!
+mqtt.c(330) mqtt_connect: count: 0
+mqtt.c(576) mqtt_sub: s: 0x561293f80480
+mqtt.c(578) mqtt_sub: enabled: 1
+mqtt.c(587) mqtt_sub: topic: SolarD/Clients/0b3667a8-70b6-4f39-b082-5b2434a58a86/#
+mqtt.c(596) mqtt_sub: rc: 0
+mqtt.c(559) mqtt_addsub: topic: SolarD/Clients/0b3667a8-70b6-4f39-b082-5b2434a58a86/#
+mqtt.c(567) mqtt_addsub: adding!
+influx.c(912) influx_connect: connected: 0
+influx.c(916) influx_connect: endpoint: localhost:8086
+influx.c(918) influx_connect: database: 
+influx.c(926) influx_connect: error: 1
+driver.c(197) driver_config: req: 4096
+driver.c(248) driver_config: ep: 0x561293f838f0, p->e: 0x561293f268d0
+driver.c(256) driver_config: returning: 0
+agent.c(637) agent_startup: ap->js.e: 0x561293f268d0
+agent.c(642) agent_startup: name: test, instance_name: test
+agent.c(514) set_script_dir: script_dir(0): 
+agent.c(518) set_script_dir: NEW script_dir(23): /opt/sd/lib/agents/test
+agent.c(520) set_script_dir: ap->js.e: 0x561293f268d0
+agent.c(486) agent_run_set: run_scripts: 0
+config.c(697) config_add_props: cp: 0x561293f57590, props: 0x561293f77f40, flags: 2c2
+config.c(621) config_get_section: looking for section: agent
+config.c(624) config_get_section: name: test
+config.c(624) config_get_section: name: 
+config.c(631) config_get_section: NOT found!
+config.c(701) config_add_props: section: (nil)
+config.c(658) config_create_section: name: agent, flags: 2c2
+config.c(703) config_add_props: section: 0x561293f71f00
+config.c(531) config_section_add_property: cp: 0x561293f57590, s: 0x561293f71f00, p: 0x561293f77f40
+config.c(534) config_section_add_property: cp->triggers: 1, NOTRIG: 0
+config.c(538) config_section_add_property: p->name: interval, flags: 2c2, trig: 1
+config.c(152) config_section_get_property: section: agent, name: interval
+config.c(166) config_section_get_property: NOT found
+config.c(543) config_section_add_property: p: 0x561293f77f40, pp: (nil)
+config.c(564) config_section_add_property: interval: dest: 0x561293f578c0, def: 7, flags: 13e2
+config.c(531) config_section_add_property: cp: 0x561293f57590, s: 0x561293f71f00, p: 0x561293f77fd8
+config.c(534) config_section_add_property: cp->triggers: 1, NOTRIG: 0
+config.c(538) config_section_add_property: p->name: driver_name, flags: 2c2, trig: 1
+config.c(152) config_section_get_property: section: agent, name: driver_name
+config.c(166) config_section_get_property: NOT found
+config.c(543) config_section_add_property: p: 0x561293f77fd8, pp: (nil)
+config.c(564) config_section_add_property: driver_name: dest: 0x561293f83484, def: (null), flags: 2c2
+config.c(531) config_section_add_property: cp: 0x561293f57590, s: 0x561293f71f00, p: 0x561293f78070
+config.c(534) config_section_add_property: cp->triggers: 1, NOTRIG: 0
+config.c(538) config_section_add_property: p->name: name, flags: 2c2, trig: 1
+config.c(152) config_section_get_property: section: agent, name: name
+config.c(166) config_section_get_property: NOT found
+config.c(543) config_section_add_property: p: 0x561293f78070, pp: (nil)
+config.c(564) config_section_add_property: name: dest: 0x561293f837d0, def: (null), flags: 2c2
+config.c(531) config_section_add_property: cp: 0x561293f57590, s: 0x561293f71f00, p: 0x561293f78108
+config.c(534) config_section_add_property: cp->triggers: 1, NOTRIG: 0
+config.c(538) config_section_add_property: p->name: configfile, flags: 2c2, trig: 1
+config.c(152) config_section_get_property: section: agent, name: configfile
+config.c(166) config_section_get_property: NOT found
+config.c(543) config_section_add_property: p: 0x561293f78108, pp: (nil)
+config.c(564) config_section_add_property: configfile: dest: 0x561293f834a4, def: (null), flags: 2c2
+config.c(531) config_section_add_property: cp: 0x561293f57590, s: 0x561293f71f00, p: 0x561293f781a0
+config.c(534) config_section_add_property: cp->triggers: 1, NOTRIG: 0
+config.c(538) config_section_add_property: p->name: agent_libdir, flags: 2c2, trig: 1
+config.c(152) config_section_get_property: section: agent, name: agent_libdir
+config.c(166) config_section_get_property: NOT found
+config.c(543) config_section_add_property: p: 0x561293f781a0, pp: (nil)
+config.c(564) config_section_add_property: agent_libdir: dest: 0x561293f837f0, def: (null), flags: 2c2
+config.c(531) config_section_add_property: cp: 0x561293f57590, s: 0x561293f71f00, p: 0x561293f78238
+config.c(534) config_section_add_property: cp->triggers: 1, NOTRIG: 0
+config.c(538) config_section_add_property: p->name: run_count, flags: 2c2, trig: 1
+config.c(152) config_section_get_property: section: agent, name: run_count
+config.c(166) config_section_get_property: NOT found
+config.c(543) config_section_add_property: p: 0x561293f78238, pp: (nil)
+config.c(564) config_section_add_property: run_count: dest: 0x561293f837bc, def: (null), flags: 2c3
+config.c(531) config_section_add_property: cp: 0x561293f57590, s: 0x561293f71f00, p: 0x561293f782d0
+config.c(534) config_section_add_property: cp->triggers: 1, NOTRIG: 0
+config.c(538) config_section_add_property: p->name: read_count, flags: 2c2, trig: 1
+config.c(152) config_section_get_property: section: agent, name: read_count
+config.c(166) config_section_get_property: NOT found
+config.c(543) config_section_add_property: p: 0x561293f782d0, pp: (nil)
+config.c(564) config_section_add_property: read_count: dest: 0x561293f837c0, def: (null), flags: 2c3
+config.c(531) config_section_add_property: cp: 0x561293f57590, s: 0x561293f71f00, p: 0x561293f78368
+config.c(534) config_section_add_property: cp->triggers: 1, NOTRIG: 0
+config.c(538) config_section_add_property: p->name: write_count, flags: 2c2, trig: 1
+config.c(152) config_section_get_property: section: agent, name: write_count
+config.c(166) config_section_get_property: NOT found
+config.c(543) config_section_add_property: p: 0x561293f78368, pp: (nil)
+config.c(564) config_section_add_property: write_count: dest: 0x561293f837c4, def: (null), flags: 2c3
+config.c(531) config_section_add_property: cp: 0x561293f57590, s: 0x561293f71f00, p: 0x561293f78400
+config.c(534) config_section_add_property: cp->triggers: 1, NOTRIG: 0
+config.c(538) config_section_add_property: p->name: purge, flags: 2c2, trig: 1
+config.c(152) config_section_get_property: section: agent, name: purge
+config.c(166) config_section_get_property: NOT found
+config.c(543) config_section_add_property: p: 0x561293f78400, pp: (nil)
+config.c(564) config_section_add_property: purge: dest: 0x561293f837a0, def: true, flags: 2c2
+config.c(531) config_section_add_property: cp: 0x561293f57590, s: 0x561293f71f00, p: 0x561293f78498
+config.c(534) config_section_add_property: cp->triggers: 1, NOTRIG: 0
+config.c(538) config_section_add_property: p->name: rtsize, flags: 2c2, trig: 1
+config.c(152) config_section_get_property: section: agent, name: rtsize
+config.c(166) config_section_get_property: NOT found
+config.c(543) config_section_add_property: p: 0x561293f78498, pp: (nil)
+config.c(564) config_section_add_property: rtsize: dest: 0x561293f838f8, def: (null), flags: 2c3
+config.c(531) config_section_add_property: cp: 0x561293f57590, s: 0x561293f71f00, p: 0x561293f78530
+config.c(534) config_section_add_property: cp->triggers: 1, NOTRIG: 0
+config.c(538) config_section_add_property: p->name: stacksize, flags: 2c2, trig: 1
+config.c(152) config_section_get_property: section: agent, name: stacksize
+config.c(166) config_section_get_property: NOT found
+config.c(543) config_section_add_property: p: 0x561293f78530, pp: (nil)
+config.c(564) config_section_add_property: stacksize: dest: 0x561293f838fc, def: (null), flags: 2c3
+config.c(531) config_section_add_property: cp: 0x561293f57590, s: 0x561293f71f00, p: 0x561293f785c8
+config.c(534) config_section_add_property: cp->triggers: 1, NOTRIG: 0
+config.c(538) config_section_add_property: p->name: run_scripts, flags: 2c2, trig: 1
+config.c(152) config_section_get_property: section: agent, name: run_scripts
+config.c(166) config_section_get_property: NOT found
+config.c(543) config_section_add_property: p: 0x561293f785c8, pp: (nil)
+config.c(564) config_section_add_property: run_scripts: dest: 0x561293f83900, def: (null), flags: 2c2
+config.c(531) config_section_add_property: cp: 0x561293f57590, s: 0x561293f71f00, p: 0x561293f78660
+config.c(534) config_section_add_property: cp->triggers: 1, NOTRIG: 0
+config.c(538) config_section_add_property: p->name: script_dir, flags: 2c2, trig: 1
+config.c(152) config_section_get_property: section: agent, name: script_dir
+config.c(166) config_section_get_property: NOT found
+config.c(543) config_section_add_property: p: 0x561293f78660, pp: (nil)
+config.c(564) config_section_add_property: script_dir: dest: 0x561293f83948, def: (null), flags: 2c2
+config.c(531) config_section_add_property: cp: 0x561293f57590, s: 0x561293f71f00, p: 0x561293f786f8
+config.c(534) config_section_add_property: cp->triggers: 1, NOTRIG: 0
+config.c(538) config_section_add_property: p->name: init_script, flags: 2c2, trig: 1
+config.c(152) config_section_get_property: section: agent, name: init_script
+config.c(166) config_section_get_property: NOT found
+config.c(543) config_section_add_property: p: 0x561293f786f8, pp: (nil)
+config.c(564) config_section_add_property: init_script: dest: 0x561293f83a48, def: init.js, flags: 2c2
+config.c(531) config_section_add_property: cp: 0x561293f57590, s: 0x561293f71f00, p: 0x561293f78790
+config.c(534) config_section_add_property: cp->triggers: 1, NOTRIG: 0
+config.c(538) config_section_add_property: p->name: start_script, flags: 2c2, trig: 1
+config.c(152) config_section_get_property: section: agent, name: start_script
+config.c(166) config_section_get_property: NOT found
+config.c(543) config_section_add_property: p: 0x561293f78790, pp: (nil)
+config.c(564) config_section_add_property: start_script: dest: 0x561293f83b4c, def: start.js, flags: 2c2
+config.c(531) config_section_add_property: cp: 0x561293f57590, s: 0x561293f71f00, p: 0x561293f78828
+config.c(534) config_section_add_property: cp->triggers: 1, NOTRIG: 0
+config.c(538) config_section_add_property: p->name: read_script, flags: 2c2, trig: 1
+config.c(152) config_section_get_property: section: agent, name: read_script
+config.c(166) config_section_get_property: NOT found
+config.c(543) config_section_add_property: p: 0x561293f78828, pp: (nil)
+config.c(564) config_section_add_property: read_script: dest: 0x561293f83d50, def: read.js, flags: 2c2
+config.c(531) config_section_add_property: cp: 0x561293f57590, s: 0x561293f71f00, p: 0x561293f788c0
+config.c(534) config_section_add_property: cp->triggers: 1, NOTRIG: 0
+config.c(538) config_section_add_property: p->name: write_script, flags: 2c2, trig: 1
+config.c(152) config_section_get_property: section: agent, name: write_script
+config.c(166) config_section_get_property: NOT found
+config.c(543) config_section_add_property: p: 0x561293f788c0, pp: (nil)
+config.c(564) config_section_add_property: write_script: dest: 0x561293f83e50, def: write.js, flags: 2c2
+config.c(531) config_section_add_property: cp: 0x561293f57590, s: 0x561293f71f00, p: 0x561293f78958
+config.c(534) config_section_add_property: cp->triggers: 1, NOTRIG: 0
+config.c(538) config_section_add_property: p->name: run_script, flags: 2c2, trig: 1
+config.c(152) config_section_get_property: section: agent, name: run_script
+config.c(166) config_section_get_property: NOT found
+config.c(543) config_section_add_property: p: 0x561293f78958, pp: (nil)
+config.c(564) config_section_add_property: run_script: dest: 0x561293f83f50, def: run.js, flags: 2c2
+config.c(531) config_section_add_property: cp: 0x561293f57590, s: 0x561293f71f00, p: 0x561293f789f0
+config.c(534) config_section_add_property: cp->triggers: 1, NOTRIG: 0
+config.c(538) config_section_add_property: p->name: stop_script, flags: 2c2, trig: 1
+config.c(152) config_section_get_property: section: agent, name: stop_script
+config.c(166) config_section_get_property: NOT found
+config.c(543) config_section_add_property: p: 0x561293f789f0, pp: (nil)
+config.c(564) config_section_add_property: stop_script: dest: 0x561293f83c50, def: stop.js, flags: 2c2
+config.c(531) config_section_add_property: cp: 0x561293f57590, s: 0x561293f71f00, p: 0x561293f78a88
+config.c(534) config_section_add_property: cp->triggers: 1, NOTRIG: 0
+config.c(538) config_section_add_property: p->name: gc_interval, flags: 2c2, trig: 1
+config.c(152) config_section_get_property: section: agent, name: gc_interval
+config.c(166) config_section_get_property: NOT found
+config.c(543) config_section_add_property: p: 0x561293f78a88, pp: (nil)
+config.c(564) config_section_add_property: gc_interval: dest: 0x561293f83940, def: 60, flags: 2c2
+driver.c(197) driver_config: req: 0
+driver.c(204) driver_config: **** CONFIG INIT *******
+driver.c(211) driver_config: cx: 0x561293f28d10, obj: 0x7f2091785140, ap: 0x561293f83480
+agent.c(1718) js_agent_new: Creating Agent object...
+agent.c(1723) js_agent_new: ap->cp: 0x561293f57590
+config.c(621) config_get_section: looking for section: agent
+config.c(624) config_get_section: name: test
+config.c(624) config_get_section: name: 
+config.c(624) config_get_section: name: agent
+config.c(626) config_get_section: found
+config.c(1960) js_config_to_props: count: 21, size: 672
+config.c(1968) js_config_to_props: adding config...
+config.c(1988) js_config_to_props: building map...
+config.c(587) config_build_propmap: cp->map: 0x561293f624a0
+config.c(590) config_build_propmap: cp->id: 58, size: 464
+config.c(592) config_build_propmap: cp->map: 0x561293f21400
+config.c(610) config_build_propmap: map count: 58
+agent.c(1732) js_agent_new: Defining agent config props
+config.c(2166) js_config_to_funcs: cp: 0x561293f57590
+config.c(2171) js_config_to_funcs: count: 7
+config.c(2176) js_config_to_funcs: count: 8, size: 192
+config.c(2184) js_config_to_funcs: adding config...
+config.c(2199) js_config_to_funcs: dump:
+config.c(2201) js_config_to_funcs: func: name: ping, call: 0x56126ed20dcd, nargs: 0, flags: 1800, extra: 0
+config.c(2201) js_config_to_funcs: func: name: exit, call: 0x56126ed20dcd, nargs: 0, flags: 1800, extra: 0
+config.c(2201) js_config_to_funcs: func: name: repub, call: 0x56126ed20dcd, nargs: 0, flags: 1800, extra: 0
+config.c(2201) js_config_to_funcs: func: name: get, call: 0x56126ed20dcd, nargs: 1, flags: 1800, extra: 10000
+config.c(2201) js_config_to_funcs: func: name: set, call: 0x56126ed20dcd, nargs: 2, flags: 1800, extra: 20000
+config.c(2201) js_config_to_funcs: func: name: clear, call: 0x56126ed20dcd, nargs: 1, flags: 1800, extra: 10000
+config.c(2201) js_config_to_funcs: func: name: log_open, call: 0x56126ed20dcd, nargs: 1, flags: 1800, extra: 10000
+agent.c(1745) js_agent_new: Defining agent config funcs
+agent.c(1753) js_agent_new: Creating config_val...
+config.c(3945) js_config_new: creating Config object...
+config.c(3951) js_config_new: done!
+agent.c(1758) js_agent_new: Setting private to: 0x561293f83480
+agent.c(1762) js_agent_new: Creating agent_val...
+agent.c(1764) js_agent_new: agent_val: 91785400
+agent.c(1769) js_agent_new: Creating mqtt_val...
+mqtt.c(1222) js_mqtt_new: Creating MQTT object...
+mqtt.c(1228) js_mqtt_new: newobj: 0x7f2091785480
+agent.c(1777) js_agent_new: Creating influx_val...
+influx.c(1906) js_influx_new: Creating Influx object...
+influx.c(1912) js_influx_new: newobj: 0x7f20917854c0
+agent.c(1782) js_agent_new: e: 0x561293f667f0
+event.c(225) js_event_new: Creating Event object...
+driver.c(92) _callfunc: name: init, argc: 1, argv: 0x7ffcac941c68, rval: 0x7ffcac941c70
+driver.c(308) driver_getprop: id type: string
+config.c(2212) js_config_common_getprop: id type: string
+config.c(2227) js_config_common_getprop: sname: (nil)
+config.c(2231) js_config_common_getprop: NEW sname: 0x56126ee56a83
+config.c(2235) js_config_common_getprop: name: init
+config.c(193) config_get_property: sname: Driver, name: init
+config.c(621) config_get_section: looking for section: Driver
+config.c(624) config_get_section: name: test
+config.c(624) config_get_section: name: 
+config.c(624) config_get_section: name: agent
+config.c(631) config_get_section: NOT found!
+config.c(196) config_get_property: s: (nil)
+driver.c(78) _getfunc: ok: 1
+driver.c(80) _getfunc: isfunc: 1
+*** INIT ***
+testagent.js(7): agent: [object Agent]
+driver.c(96) _callfunc: ok: 1
+driver.c(102) _getrval: isvoid: 1
+driver.c(256) driver_config: returning: 0
+agent.c(66) agent_sub: name: test, func: (null)
+agent.c(52) agent_mktopic: name: test, func: (null)
+agent.c(70) agent_sub: topic: SolarD/Agents/test
+mqtt.c(576) mqtt_sub: s: 0x561293f80480
+mqtt.c(578) mqtt_sub: enabled: 1
+mqtt.c(587) mqtt_sub: topic: SolarD/Agents/test
+mqtt.c(596) mqtt_sub: rc: 0
+mqtt.c(559) mqtt_addsub: topic: SolarD/Agents/test
+mqtt.c(567) mqtt_addsub: adding!
+agent.c(912) agent_init: ap->js.e: 0x561293f268d0
+agent.c(918) agent_init: jsexec(0): 
+agent.c(927) agent_init: init_script: init.js
+agent.c(283) agent_script_path: script_dir: /opt/sd/lib/agents/test, name: init.js
+agent.c(292) agent_script_path: path: /opt/sd/lib/agents/test/init.js
+agent.c(303) agent_script_exists: r: 0
+agent.c(938) agent_init: script: 
+agent.c(254) agent_get_info: info_flag: 0
+driver.c(197) driver_config: req: 1
+driver.c(221) driver_config: cp: 0x561293f57590
+driver.c(226) driver_config: vp: 0x561293f83610
+driver.c(92) _callfunc: name: get_info, argc: 1, argv: 0x7ffcac941c30, rval: 0x7ffcac941c40
+driver.c(308) driver_getprop: id type: string
+config.c(2212) js_config_common_getprop: id type: string
+config.c(2227) js_config_common_getprop: sname: (nil)
+config.c(2231) js_config_common_getprop: NEW sname: 0x56126ee56a83
+config.c(2235) js_config_common_getprop: name: get_info
+config.c(193) config_get_property: sname: Driver, name: get_info
+config.c(621) config_get_section: looking for section: Driver
+config.c(624) config_get_section: name: test
+config.c(624) config_get_section: name: 
+config.c(624) config_get_section: name: agent
+config.c(631) config_get_section: NOT found!
+config.c(196) config_get_property: s: (nil)
+driver.c(78) _getfunc: ok: 1
+driver.c(80) _getfunc: isfunc: 1
+*** INFO ***
+driver.c(96) _callfunc: ok: 1
+driver.c(237) driver_config: j: {}
+driver.c(239) driver_config: v: 0x561293f723b0
+config.c(1715) config_add_info: ca: 0x561293f75250
+config.c(1481) _get_json_section: name: test
+config.c(1496) _get_json_section: NOT found
+config.c(1524) _get_json_prop: name: name
+config.c(1749) config_add_info: adding prop: name
+json.c(129) json_object_set_number: object: 0x561293f732e0, name: size, value: 31.000000
+config.c(1524) _get_json_prop: name: configfile
+config.c(1749) config_add_info: adding prop: configfile
+json.c(129) json_object_set_number: object: 0x561293f72320, name: size, value: 255.000000
+config.c(1524) _get_json_prop: name: agent_libdir
+config.c(1749) config_add_info: adding prop: agent_libdir
+json.c(129) json_object_set_number: object: 0x7f208c000b60, name: size, value: 255.000000
+config.c(1524) _get_json_prop: name: run_count
+config.c(1749) config_add_info: adding prop: run_count
+config.c(1524) _get_json_prop: name: read_count
+config.c(1749) config_add_info: adding prop: read_count
+config.c(1524) _get_json_prop: name: write_count
+config.c(1749) config_add_info: adding prop: write_count
+config.c(1524) _get_json_prop: name: purge
+config.c(1749) config_add_info: adding prop: purge
+config.c(1524) _get_json_prop: name: rtsize
+config.c(1749) config_add_info: adding prop: rtsize
+config.c(1524) _get_json_prop: name: stacksize
+config.c(1749) config_add_info: adding prop: stacksize
+config.c(1524) _get_json_prop: name: run_scripts
+config.c(1749) config_add_info: adding prop: run_scripts
+config.c(1524) _get_json_prop: name: script_dir
+config.c(1749) config_add_info: adding prop: script_dir
+json.c(129) json_object_set_number: object: 0x561293f7a730, name: size, value: 255.000000
+config.c(1524) _get_json_prop: name: init_script
+config.c(1749) config_add_info: adding prop: init_script
+json.c(129) json_object_set_number: object: 0x561293f7aad0, name: size, value: 255.000000
+config.c(1524) _get_json_prop: name: start_script
+config.c(1749) config_add_info: adding prop: start_script
+json.c(129) json_object_set_number: object: 0x561293f7b2c0, name: size, value: 255.000000
+config.c(1524) _get_json_prop: name: read_script
+config.c(1749) config_add_info: adding prop: read_script
+json.c(129) json_object_set_number: object: 0x561293f7b790, name: size, value: 255.000000
+config.c(1524) _get_json_prop: name: write_script
+config.c(1749) config_add_info: adding prop: write_script
+json.c(129) json_object_set_number: object: 0x561293f7f6c0, name: size, value: 255.000000
+config.c(1524) _get_json_prop: name: run_script
+config.c(1749) config_add_info: adding prop: run_script
+json.c(129) json_object_set_number: object: 0x561293f7fb10, name: size, value: 255.000000
+config.c(1524) _get_json_prop: name: stop_script
+config.c(1749) config_add_info: adding prop: stop_script
+json.c(129) json_object_set_number: object: 0x561293f814d0, name: size, value: 255.000000
+config.c(1524) _get_json_prop: name: gc_interval
+config.c(1749) config_add_info: adding prop: gc_interval
+config.c(1524) _get_json_prop: name: BINDIR
+config.c(1749) config_add_info: adding prop: BINDIR
+json.c(129) json_object_set_number: object: 0x561293f82400, name: size, value: 255.000000
+config.c(1524) _get_json_prop: name: ETCDIR
+config.c(1749) config_add_info: adding prop: ETCDIR
+json.c(129) json_object_set_number: object: 0x561293f82b50, name: size, value: 255.000000
+config.c(1524) _get_json_prop: name: LIBDIR
+config.c(1749) config_add_info: adding prop: LIBDIR
+json.c(129) json_object_set_number: object: 0x561293f66530, name: size, value: 255.000000
+config.c(1524) _get_json_prop: name: LOGDIR
+config.c(1749) config_add_info: adding prop: LOGDIR
+json.c(129) json_object_set_number: object: 0x561293f68090, name: size, value: 255.000000
+config.c(1524) _get_json_prop: name: TEMPDIR
+config.c(1749) config_add_info: adding prop: TEMPDIR
+json.c(129) json_object_set_number: object: 0x561293f79ed0, name: size, value: 255.000000
+config.c(1524) _get_json_prop: name: mqtt_enabled
+config.c(1749) config_add_info: adding prop: mqtt_enabled
+json.c(129) json_object_set_number: object: 0x561293f76e60, name: size, value: 3.000000
+config.c(1524) _get_json_prop: name: mqtt_uri
+config.c(1749) config_add_info: adding prop: mqtt_uri
+json.c(129) json_object_set_number: object: 0x561293f77290, name: size, value: 127.000000
+config.c(1524) _get_json_prop: name: mqtt_clientid
+config.c(1749) config_add_info: adding prop: mqtt_clientid
+json.c(129) json_object_set_number: object: 0x561293f7fc70, name: size, value: 63.000000
+config.c(1524) _get_json_prop: name: mqtt_username
+config.c(1749) config_add_info: adding prop: mqtt_username
+json.c(129) json_object_set_number: object: 0x561293f800a0, name: size, value: 511.000000
+config.c(1524) _get_json_prop: name: mqtt_password
+config.c(1749) config_add_info: adding prop: mqtt_password
+json.c(129) json_object_set_number: object: 0x561293f84480, name: size, value: 511.000000
+config.c(1524) _get_json_prop: name: influx_enabled
+config.c(1749) config_add_info: adding prop: influx_enabled
+config.c(1524) _get_json_prop: name: influx_timeout
+config.c(1749) config_add_info: adding prop: influx_timeout
+config.c(1524) _get_json_prop: name: influx_endpoint
+config.c(1749) config_add_info: adding prop: influx_endpoint
+json.c(129) json_object_set_number: object: 0x561293f70eb0, name: size, value: 127.000000
+config.c(1524) _get_json_prop: name: influx_database
+config.c(1749) config_add_info: adding prop: influx_database
+json.c(129) json_object_set_number: object: 0x561293f78bf0, name: size, value: 63.000000
+config.c(1524) _get_json_prop: name: influx_username
+config.c(1749) config_add_info: adding prop: influx_username
+json.c(129) json_object_set_number: object: 0x561293f79020, name: size, value: 31.000000
+config.c(1524) _get_json_prop: name: influx_password
+config.c(1749) config_add_info: adding prop: influx_password
+json.c(129) json_object_set_number: object: 0x561293f73aa0, name: size, value: 31.000000
+config.c(1481) _get_json_section: name: 
+config.c(1487) _get_json_section: type: Object
+config.c(1496) _get_json_section: NOT found
+config.c(1673) _addgetset: have: get: 1, set: 1, clear: 1, load: 0
+json.c(129) json_object_set_number: object: 0x561293f74790, name: nargs, value: 0.000000
+json.c(129) json_object_set_number: object: 0x561293f5bdb0, name: nargs, value: 0.000000
+json.c(129) json_object_set_number: object: 0x561293f5c100, name: nargs, value: 0.000000
+json.c(129) json_object_set_number: object: 0x561293f5c450, name: nargs, value: 1.000000
+json.c(129) json_object_set_number: object: 0x561293f5c7a0, name: nargs, value: 2.000000
+json.c(129) json_object_set_number: object: 0x561293f5caf0, name: nargs, value: 1.000000
+json.c(129) json_object_set_number: object: 0x561293f5ce40, name: nargs, value: 1.000000
+json.c(129) json_object_set_number: object: 0x561293f5d190, name: nargs, value: 1.000000
+driver.c(256) driver_config: returning: 0
+agent.c(263) agent_get_info: pub: 1
+agent.c(99) agent_pubinfo: m: 0x561293f80480, info: 0x561293f723b0
+agent.c(102) agent_pubinfo: enabled: 1
+agent.c(106) agent_pubinfo: info: 0x561293f7b800
+agent.c(111) agent_pubinfo: disp: 0
+agent.c(83) agent_pub: func: Info, message: {
+    "configuration": [
+      , retain: 1
+agent.c(52) agent_mktopic: name: test, func: Info
+agent.c(87) agent_pub: topic: SolarD/Agents/test/Info
+mqtt.c(473) mqtt_pub: s: 0x561293f80480, topic: SolarD/Agents/test/Info, message: {
+    "configuration": [
+        {
+            "test": [
+                {
+                    "name": "name",
+                    "type": "DATA_TYPE_STRING",
+                    "size": 31
+                },
+                {
+                    "name": "configfile",
+                    "type": "DATA_TYPE_STRING",
+                    "size": 255
+                },
+                {
+                    "name": "agent_libdir",
+                    "type": "DATA_TYPE_STRING",
+                    "size": 255
+                },
+                {
+                    "name": "run_count",
+                    "type": "DATA_TYPE_S32"
+                },
+                {
+                    "name": "read_count",
+                    "type": "DATA_TYPE_S32"
+                },
+                {
+                    "name": "write_count",
+                    "type": "DATA_TYPE_S32"
+                },
+                {
+                    "name": "purge",
+                    "type": "DATA_TYPE_BOOL",
+                    "default": "true"
+                },
+                {
+                    "name": "rtsize",
+                    "type": "DATA_TYPE_S32"
+                },
+                {
+                    "name": "stacksize",
+                    "type": "DATA_TYPE_S32"
+                },
+                {
+                    "name": "run_scripts",
+                    "type": "DATA_TYPE_BOOL"
+                },
+                {
+                    "name": "script_dir",
+                    "type": "DATA_TYPE_STRING",
+                    "size": 255
+                },
+                {
+                    "name": "init_script",
+                    "type": "DATA_TYPE_STRING",
+                    "size": 255,
+                    "default": "init.js"
+                },
+                {
+                    "name": "start_script",
+                    "type": "DATA_TYPE_STRING",
+                    "size": 255,
+                    "default": "start.js"
+                },
+                {
+                    "name": "read_script",
+                    "type": "DATA_TYPE_STRING",
+                    "size": 255,
+                    "default": "read.js"
+                },
+                {
+                    "name": "write_script",
+                    "type": "DATA_TYPE_STRING",
+                    "size": 255,
+                    "default": "write.js"
+                },
+                {
+                    "name": "run_script",
+                    "type": "DATA_TYPE_STRING",
+                    "size": 255,
+                    "default": "run.js"
+                },
+                {
+                    "name": "stop_script",
+                    "type": "DATA_TYPE_STRING",
+                    "size": 255,
+                    "default": "stop.js"
+                },
+                {
+                    "name": "gc_interval",
+                    "type": "DATA_TYPE_S32",
+                    "default": "60"
+                },
+                {
+                    "name": "BINDIR",
+                    "type": "DATA_TYPE_STRING",
+                    "size": 255
+                },
+                {
+                    "name": "ETCDIR",
+                    "type": "DATA_TYPE_STRING",
+                    "size": 255
+                },
+                {
+                    "name": "LIBDIR",
+                    "type": "DATA_TYPE_STRING",
+                    "size": 255
+                },
+                {
+                    "name": "LOGDIR",
+                    "type": "DATA_TYPE_STRING",
+                    "size": 255
+                },
+                {
+                    "name": "TEMPDIR",
+                    "type": "DATA_TYPE_STRING",
+                    "size": 255
+                },
+                {
+                    "name": "mqtt_enabled",
+                    "type": "DATA_TYPE_BOOL",
+                    "size": 3,
+                    "default": "yes"
+                },
+                {
+                    "name": "mqtt_uri",
+                    "type": "DATA_TYPE_STRING",
+                    "size": 127,
+                    "default": "tcp:\/\/localhost:1883"
+                },
+                {
+                    "name": "mqtt_clientid",
+                    "type": "DATA_TYPE_STRING",
+                    "size": 63,
+                    "default": ""
+                },
+                {
+                    "name": "mqtt_username",
+                    "type": "DATA_TYPE_STRING",
+                    "size": 511,
+                    "default": ""
+                },
+                {
+                    "name": "mqtt_password",
+                    "type": "DATA_TYPE_STRING",
+                    "size": 511,
+                    "default": ""
+                },
+                {
+                    "name": "influx_enabled",
+                    "type": "DATA_TYPE_BOOL",
+                    "default": "yes"
+                },
+                {
+                    "name": "influx_timeout",
+                    "type": "DATA_TYPE_S32",
+                    "default": "10"
+                },
+                {
+                    "name": "influx_endpoint",
+                    "type": "DATA_TYPE_STRING",
+                    "size": 127,
+                    "default": "http:\/\/localhost:8086"
+                },
+                {
+                    "name": "influx_database",
+                    "type": "DATA_TYPE_STRING",
+                    "size": 63,
+                    "default": ""
+                },
+                {
+                    "name": "influx_username",
+                    "type": "DATA_TYPE_STRING",
+                    "size": 31,
+                    "default": ""
+                },
+                {
+                    "name": "influx_password",
+                    "type": "DATA_TYPE_STRING",
+                    "size": 31,
+                    "default": ""
+                }
+            ]
+        },
+        {
+            "": []
+        }
+    ],
+    "functions": [
+        {
+            "name": "ping",
+            "nargs": 0
+        },
+        {
+            "name": "exit",
+            "nargs": 0
+        },
+        {
+            "name": "repub",
+            "nargs": 0
+        },
+        {
+            "name": "get",
+            "nargs": 1
+        },
+        {
+            "name": "set",
+            "nargs": 2
+        },
+        {
+            "name": "clear",
+            "nargs": 1
+        },
+        {
+            "name": "log_open",
+            "nargs": 1
+        },
+        {
+            "name": "load",
+            "nargs": 1
+        }
+    ]
+}, wait: 1, retain: 1
+mqtt.c(478) mqtt_pub: enabled: 1
+mqtt.c(503) mqtt_pub: publishing...
+mqtt.c(511) mqtt_pub: rc: 0
+mqtt.c(525) mqtt_pub: waiting...
+mqtt.c(527) mqtt_pub: rc: 0
+mqtt.c(540) mqtt_pub: delivered message... token: 4
+mqtt.c(542) mqtt_pub: done!
+agent.c(119) agent_pubinfo: r: 0
+agent.c(267) agent_get_info: done!
+agent.c(131) agent_pubconfig: publishing config...
+config.c(1214) config_to_json: noflags: 40, dirty: 1
+config.c(1219) config_to_json: section: name: test, flags: 0, noflags: 40, result: 0
+config.c(1221) config_to_json: section: test
+config.c(1225) config_to_json: item count: 37
+config.c(1228) config_to_json: p: name: interval, flags: 13e2, noflags: 40, dirty: 0, wantdirty: 1
+config.c(1228) config_to_json: p: name: driver_name, flags: 242, noflags: 40, dirty: 0, wantdirty: 1
+config.c(1228) config_to_json: p: name: name, flags: 0, noflags: 40, dirty: 0, wantdirty: 1
+config.c(1228) config_to_json: p: name: configfile, flags: 2, noflags: 40, dirty: 0, wantdirty: 1
+config.c(1228) config_to_json: p: name: agent_libdir, flags: 0, noflags: 40, dirty: 0, wantdirty: 1
+config.c(1228) config_to_json: p: name: run_count, flags: 1, noflags: 40, dirty: 0, wantdirty: 1
+config.c(1228) config_to_json: p: name: read_count, flags: 1, noflags: 40, dirty: 0, wantdirty: 1
+config.c(1228) config_to_json: p: name: write_count, flags: 1, noflags: 40, dirty: 0, wantdirty: 1
+config.c(1228) config_to_json: p: name: purge, flags: 0, noflags: 40, dirty: 0, wantdirty: 1
+config.c(1228) config_to_json: p: name: rtsize, flags: 1, noflags: 40, dirty: 0, wantdirty: 1
+config.c(1228) config_to_json: p: name: stacksize, flags: 1, noflags: 40, dirty: 0, wantdirty: 1
+config.c(1228) config_to_json: p: name: run_scripts, flags: 2, noflags: 40, dirty: 0, wantdirty: 1
+config.c(1228) config_to_json: p: name: script_dir, flags: 0, noflags: 40, dirty: 0, wantdirty: 1
+config.c(1228) config_to_json: p: name: init_script, flags: 0, noflags: 40, dirty: 0, wantdirty: 1
+config.c(1228) config_to_json: p: name: start_script, flags: 0, noflags: 40, dirty: 0, wantdirty: 1
+config.c(1228) config_to_json: p: name: read_script, flags: 0, noflags: 40, dirty: 0, wantdirty: 1
+config.c(1228) config_to_json: p: name: write_script, flags: 0, noflags: 40, dirty: 0, wantdirty: 1
+config.c(1228) config_to_json: p: name: run_script, flags: 0, noflags: 40, dirty: 0, wantdirty: 1
+config.c(1228) config_to_json: p: name: stop_script, flags: 0, noflags: 40, dirty: 0, wantdirty: 1
+config.c(1228) config_to_json: p: name: gc_interval, flags: 0, noflags: 40, dirty: 0, wantdirty: 1
+config.c(1228) config_to_json: p: name: BINDIR, flags: 0, noflags: 40, dirty: 0, wantdirty: 1
+config.c(1228) config_to_json: p: name: ETCDIR, flags: 0, noflags: 40, dirty: 0, wantdirty: 1
+config.c(1228) config_to_json: p: name: LIBDIR, flags: 0, noflags: 40, dirty: 0, wantdirty: 1
+config.c(1228) config_to_json: p: name: LOGDIR, flags: 0, noflags: 40, dirty: 0, wantdirty: 1
+config.c(1228) config_to_json: p: name: TEMPDIR, flags: 0, noflags: 40, dirty: 0, wantdirty: 1
+config.c(1228) config_to_json: p: name: debug, flags: 242, noflags: 40, dirty: 0, wantdirty: 1
+config.c(1228) config_to_json: p: name: mqtt_enabled, flags: 0, noflags: 40, dirty: 0, wantdirty: 1
+config.c(1228) config_to_json: p: name: mqtt_uri, flags: 8, noflags: 40, dirty: 0, wantdirty: 1
+config.c(1239) config_to_json: adding...
+config.c(1228) config_to_json: p: name: mqtt_clientid, flags: 0, noflags: 40, dirty: 0, wantdirty: 1
+config.c(1228) config_to_json: p: name: mqtt_username, flags: 0, noflags: 40, dirty: 0, wantdirty: 1
+config.c(1228) config_to_json: p: name: mqtt_password, flags: 0, noflags: 40, dirty: 0, wantdirty: 1
+config.c(1228) config_to_json: p: name: influx_enabled, flags: 0, noflags: 40, dirty: 0, wantdirty: 1
+config.c(1228) config_to_json: p: name: influx_timeout, flags: 0, noflags: 40, dirty: 0, wantdirty: 1
+config.c(1228) config_to_json: p: name: influx_endpoint, flags: 8, noflags: 40, dirty: 0, wantdirty: 1
+config.c(1239) config_to_json: adding...
+config.c(1228) config_to_json: p: name: influx_database, flags: 0, noflags: 40, dirty: 0, wantdirty: 1
+config.c(1228) config_to_json: p: name: influx_username, flags: 0, noflags: 40, dirty: 0, wantdirty: 1
+config.c(1228) config_to_json: p: name: influx_password, flags: 0, noflags: 40, dirty: 0, wantdirty: 1
+config.c(1242) config_to_json: count: 2
+config.c(1246) config_to_json: so: 0x561293f5d770
+json.c(524) json_from_type: type: 4(DATA_TYPE_STRING)
+config.c(1250) config_to_json: v: 0x561293f5d500
+json.c(140) json_object_set_value: object: 0x561293f5d770, name: mqtt_uri, value: 0x561293f5d500
+json.c(524) json_from_type: type: 4(DATA_TYPE_STRING)
+config.c(1250) config_to_json: v: 0x561293f5d5a0
+json.c(140) json_object_set_value: object: 0x561293f5d770, name: influx_endpoint, value: 0x561293f5d5a0
+config.c(1219) config_to_json: section: name: , flags: 10, noflags: 40, result: 0
+config.c(1221) config_to_json: section: 
+config.c(1219) config_to_json: section: name: agent, flags: 2c2, noflags: 40, result: 64
+config.c(1258) config_to_json: returning: 0x561293f74ab0
+agent.c(134) agent_pubconfig: v: 0x561293f5d4d0
+agent.c(83) agent_pub: func: Config, message: {
+    "test": {
+        "mqtt_u, retain: 1
+agent.c(52) agent_mktopic: name: test, func: Config
+agent.c(87) agent_pub: topic: SolarD/Agents/test/Config
+mqtt.c(473) mqtt_pub: s: 0x561293f80480, topic: SolarD/Agents/test/Config, message: {
+    "test": {
+        "mqtt_uri": "tcp:\/\/localhost:1883",
+        "influx_endpoint": "localhost:8086"
+    }
+}, wait: 1, retain: 1
+mqtt.c(478) mqtt_pub: enabled: 1
+mqtt.c(503) mqtt_pub: publishing...
+mqtt.c(511) mqtt_pub: rc: 0
+mqtt.c(525) mqtt_pub: waiting...
+mqtt.c(527) mqtt_pub: rc: 0
+mqtt.c(540) mqtt_pub: delivered message... token: 5
+mqtt.c(542) mqtt_pub: done!
+agent.c(957) agent_init: returning: 0x561293f83480
+config.c(193) config_get_property: sname: test, name: interval
+config.c(621) config_get_section: looking for section: test
+config.c(624) config_get_section: name: test
+config.c(626) config_get_section: found
+config.c(196) config_get_property: s: 0x561293f57850
+config.c(199) config_get_property: item count: 37
+config.c(204) config_get_property: found
+agent.c(1626) js_agent_ctor: p: 0x561293f77f40
+jsconv.c(31) type_to_jsval: type: 14(DATA_TYPE_S32), src: 0x561293f578c0, len: 4
+jsconv.c(161) type_to_jsval: returning type: number
+agent.c(1630) js_agent_ctor: val: f, void: 80000001
+agent.c(1634) js_agent_ctor: define ok: 1
+agent.c(1637) js_agent_ctor: interval: 0
+config.c(193) config_get_property: sname: test, name: interval
+config.c(621) config_get_section: looking for section: test
+config.c(624) config_get_section: name: test
+config.c(626) config_get_section: found
+config.c(196) config_get_property: s: 0x561293f57850
+config.c(199) config_get_property: item count: 37
+config.c(204) config_get_property: found
+agent.c(1641) js_agent_ctor: p: 0x561293f77f40
+agent.c(1643) js_agent_ctor: p->dest: 0x561293f578c0
+agent.c(1644) js_agent_ctor: interval: 0x561293f837b8
+agent.c(1648) js_agent_ctor: Defining agent ctor funcs
+agent.c(1162) js_agent_getprop: ap: 0x561293f83480
+agent.c(1168) js_agent_getprop: id type: number
+agent.c(1171) js_agent_getprop: prop_id: 38
+config.c(1450) config_get_propbyid: id: 38
+config.c(1453) config_get_propbyid: section: test, prop count: 37
+config.c(1456) config_get_propbyid: p: id: 38, name: interval
+config.c(1458) config_get_propbyid: found
+agent.c(1245) js_agent_getprop: p: 0x561293f77f40
+agent.c(1260) js_agent_getprop: p: 0x561293f77f40
+agent.c(1262) js_agent_getprop: p: type: 14(DATA_TYPE_S32), name: interval
+jsconv.c(31) type_to_jsval: type: 14(DATA_TYPE_S32), src: 0x561293f578c0, len: 4
+jsconv.c(161) type_to_jsval: returning type: number
+jsconv.c(186) jsval_to_type: cx: 0x561293f28d10, val: 15
+jsconv.c(188) jsval_to_type: jstype: 4(number), dtype: 14(DATA_TYPE_S32), dest: 0x7ffcac943b7c, dlen: 4
+jsconv.c(263) jsval_to_type: IS_INT: 1, IS_DOUBLE: 0
+jsconv.c(266) jsval_to_type: i: 7
+jsconv.c(299) jsval_to_type: dtype: DATA_TYPE_S32, stype: DATA_TYPE_S32, src: 0x7ffcac943a3c, slen: 4
+conv.c(2389) conv_type: dt: 14(DATA_TYPE_S32)
+conv.c(2424) conv_type: returning: 4
+interval: 7
+jsglobal.c(297) js_abort: argc: 1

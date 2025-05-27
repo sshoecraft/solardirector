@@ -10,10 +10,17 @@ LICENSE file in the root directory of this source tree.
 #define dlevel 2
 #include "debug.h"
 
-#include "common.h"
+#include <stdio.h>
+#include <dirent.h>
+#include <string.h>
+#include <stdlib.h>
+#include <unistd.h>
+#include <ctype.h>
 #include <sys/types.h>
 #include <sys/stat.h>
 #include <fcntl.h>
+#include <limits.h>
+
 #ifndef __WIN32
 #include <sys/wait.h>
 #include <signal.h>
@@ -22,6 +29,7 @@ LICENSE file in the root directory of this source tree.
 #include <windows.h>
 #define OPTS (O_WRONLY | O_CREAT | O_TRUNC)
 #endif
+#include "common.h"
 
 int solard_kill(int pid) {
 	int r;
@@ -319,4 +327,105 @@ int solard_checkpid(int pid, int *exitcode) {
 	dprintf(dlevel,"r: %d\n", r);
 	return (r == 0 ? 1 : 0);
 #endif
+}
+
+int solard_pidofname(char *name) {
+	DIR *dirp;
+	struct dirent *ent;
+	int pid = -1;
+	FILE *fp;
+	char status_path[292],line[256],*pname;
+
+	dprintf(dlevel,"name: %s\n", name);
+
+	// Open the /proc directory to scan for processes
+	dirp = opendir("/proc");
+	dprintf(dlevel+1,"dirp: %p\n", dirp);
+	if (!dirp) {
+		log_syserror("solard_getpid: unable to opendir /proc");
+		return -1;
+	}
+
+	// Loop through all entries in /proc
+	while ((ent = readdir(dirp)) != 0) {
+		// Check if the entry is a number (i.e., a process directory)
+		if (ent->d_type == DT_DIR && isdigit(ent->d_name[0])) {
+			// Construct the path to the status file
+			snprintf(status_path, sizeof(status_path), "/proc/%s/status", ent->d_name);
+			dprintf(dlevel+1,"status_path: %s\n", status_path);
+
+			// Open the status file for this process
+			fp = fopen(status_path, "r");
+			dprintf(dlevel+1,"fp: %p\n", fp);
+			if (!fp) continue;
+
+			// Read the process name from the status file
+			if (fgets(line, sizeof(line), fp) != 0) {
+				dprintf(dlevel+1,"line: %s\n", line);
+				// The process name is the second token in the first line
+				if (strncmp(line, "Name:", 5) == 0) {
+					// Compare the process name with the binary name
+					pname = trim(strele(1," ",line));
+					dprintf(dlevel+1,"pname: %s\n", pname);
+					if (strcmp(pname,name) == 0) {
+						dprintf(dlevel+1,"found!\n");
+						pid = atoi(ent->d_name);
+					}
+				}
+			}
+			fclose(fp);
+		}
+		if (pid >= 0) break;
+	}
+
+	closedir(dirp);
+	dprintf(dlevel,"pid: %d\n", pid);
+	return pid;
+}
+
+int solard_pidofpath(char *path) {
+	DIR *dirp;
+	struct dirent *ent;
+	int pid = -1;
+	char link_path[292],process_path[1024];
+	ssize_t len;
+
+	dprintf(dlevel,"path: %s\n", path);
+
+	// Open the /proc directory to scan for processes
+	dirp = opendir("/proc");
+	dprintf(dlevel+1,"dirp: %p\n", dirp);
+	if (!dirp) {
+		log_syserror("solard_getpid: unable to opendir /proc");
+		return -1;
+	}
+
+	// Loop through all entries in /proc
+	while ((ent = readdir(dirp)) != 0) {
+		// Check if the entry is a number (i.e., a process directory)
+		if (ent->d_type == DT_DIR && isdigit(ent->d_name[0])) {
+			// Construct the path to the /proc/[pid]/exe symlink
+			snprintf(link_path, sizeof(link_path), "/proc/%s/exe", ent->d_name);
+			dprintf(dlevel+1,"link_path: %s\n", link_path);
+
+			// Read the symlink to get the full executable path
+			len = readlink(link_path, process_path, sizeof(process_path) - 1);
+			if (len < 0) continue;
+
+			// Null-terminate the path
+			process_path[len] = '\0';
+			dprintf(dlevel+1,"process_path: %s\n", process_path);
+
+			// Compare the process path with the desired path
+			if (strcmp(process_path, path) == 0) {
+				dprintf(dlevel,"found!\n");
+				pid = atoi(ent->d_name);
+			}
+		}
+		if (pid >= 0) break;
+	}
+
+	closedir(dirp);
+	dprintf(dlevel,"pid: %d\n", pid);
+	return pid;
 }

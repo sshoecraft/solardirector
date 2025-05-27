@@ -42,6 +42,7 @@ typedef struct _list_item * list_item;
 /* Define the list */
 struct _llist {
 	int type;			/* Data type in list */
+	list_item_free_t item_free;
 	list_item first;		/* First item in list */
 	list_item last;			/* Last item in list */
 	list_item next;			/* Next item in list */
@@ -91,7 +92,7 @@ static list_item _newitem(void *item, int size) {
 	list_item new_item;
 
 	dprintf(dlevel,"_newitem: item: %p, size: %d\n", item, size);
-	new_item = (list_item) calloc(LIST_ITEM_SIZE,1);
+	new_item = (list_item) calloc(1,LIST_ITEM_SIZE);
 	if (!new_item) return 0;
 
 	if (size) {
@@ -199,6 +200,7 @@ list list_create(void) {
 	lp = (list) malloc(LIST_SIZE);
 	dprintf(dlevel,"list_create: lp: %p\n", lp);
 	if (!lp) return 0;
+	lp->item_free = free;
 
 	lp->first = lp->last = lp->next = (list_item) 0;
 
@@ -229,7 +231,7 @@ static void _delete_item(list lp,list_item ip) {
 	/* Was this the next item? */
 	if (ip == lp->next) lp->next = next;
 
-	if (ip->size) free(ip->item); /* Free the item */
+	if (ip->size) lp->item_free(ip->item); /* Free the item */
 	free(ip);		/* Free the ptr */
 	time(&lp->last_update);
 }
@@ -278,7 +280,7 @@ int list_purge(list lp) {
 
 	ip = lp->first;                         /* Start at beginning */
 	while(ip) {
-		if (ip->size) free(ip->item);	/* Free the item data */
+		if (ip->size) lp->item_free(ip->item);	/* Free the item data */
 		next = ip->next;                /* Get next pointer */
 		free(ip);			/* Free current item */
 		ip = next;                      /* Set current item to next */
@@ -296,15 +298,17 @@ int list_purge(list lp) {
 int list_destroy(list lp) {
 	list_item ip,next;
 
+	dprintf(dlevel,"lp: %p\n", lp);
 	if (!lp) return -1;
 
 #if THREAD_SAFE
 	pthread_mutex_lock(&lp->mutex);
 #endif
 
+	dprintf(dlevel,"lp->first: %p\n", lp->first);
 	ip = lp->first;                         /* Start at beginning */
 	while(ip) {
-		if (ip->size) free(ip->item);	/* Free the item data */
+		if (ip->size) lp->item_free(ip->item);	/* Free the item data */
 		next = ip->next;                /* Get next pointer */
 		free(ip);			/* Free current item */
 		ip = next;                      /* Set current item to next */

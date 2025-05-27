@@ -8,7 +8,7 @@ This source code is licensed under the BSD-style license found in the
 LICENSE file in the root directory of this source tree.
 */
 
-#define dlevel 2
+#define dlevel 4
 #include "debug.h"
 
 #include "common.h"
@@ -243,6 +243,29 @@ static JSClass js_message_class = {
 	JSCLASS_NO_OPTIONAL_MEMBERS
 };
 
+#if 0
+// would need a parent list backlink for this and even then ... danger
+static JSBool js_message_delete(JSContext *cx, JSObject *obj, jsval id, jsval *rval) {
+	solard_message_t *msg;
+	JSObject *parent;
+
+	msg = JS_GetPrivate(cx,obj);
+	dprintf(-1,"msg: %p\n", msg);
+	if (!msg) {
+		JS_ReportError(cx, "js_message_delete: internal error: private is null!");
+		return JS_FALSE;
+	}
+	parent = JS_GetParent(cx,obj);
+	dprintf(-1,"parent: %p\n", parent);
+	if (parent) {
+		list l = JS_GetPrivate(cx,parent);
+		dprintf(-1,"l: %p\n", l);
+		if (l) list_delete(l,msg);
+	}
+	return JS_TRUE;
+}
+#endif
+
 JSObject *js_InitMessageClass(JSContext *cx, JSObject *parent) {
 	JSPropertySpec message_props[] = {
 		{ "topic", MESSAGE_PROPERTY_ID_TOPIC, JSPROP_ENUMERATE | JSPROP_READONLY },
@@ -287,15 +310,17 @@ JSObject *js_create_messages_array(JSContext *cx, JSObject *parent, list l) {
 	solard_message_t *msg;
 	int i,c;
 
-	dprintf(dlevel,"l: %p\n", l);
+	dprintf(dlevel+2,"l: %p\n", l);
 	c = (l ? list_count(l) : 0);
-	dprintf(dlevel,"c: %d\n", c);
-	rows = JS_NewArrayObject(cx, c, NULL);
+	dprintf(dlevel+2,"c: %d\n", c);
+	rows = JS_NewArrayObject(cx, 0, NULL);
+	// turns out array object stores array info in private section - whoda thunk
+//	JS_SetPrivate(cx,rows,l);
 	i = 0;
 	list_reset(l);
 	while((msg = list_get_next(l)) != 0) {
 		mobj = js_message_new(cx,rows,msg);
-//		dprintf(0,"mobj: %p\n", mobj);
+//		dprintf(dlevel+2,"mobj: %p\n", mobj);
 		if (!mobj) continue;
 		val = OBJECT_TO_JSVAL(mobj);
 		JS_SetElement(cx, rows, i++, &val);

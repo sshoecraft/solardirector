@@ -1,0 +1,9 @@
+
+function test_handler(name,module,action) {
+        dprintf(-1,"name: %s, module: %s, action: %s\n", name, module, action);
+}
+
+
+e = new Event();
+e.handler(test_handler,"MyName","all","all");
+e.signal("a","b","c");

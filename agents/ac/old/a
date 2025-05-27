@@ -1,0 +1,12 @@
+# pumps
+sdconfig ac add_pump primer "enabled=true:pin=0:"
+sdconfig ac add_pump ac1 "enabled=true:pin=2:primer=primer:primer_timeout=20:flow_sensor=can,0x450,0:min_flow=10:wait_time=10:flow_wait_time=5:flow_timeout=20:temp_in_sensor=can,0x453,0:temp_out_sensor=can,0x452,0:warmup=0:warmup_threshold=10:cooldown=60:cooldown_threshold=1"
+sdconfig ac add_pump ah1 "enabled=true:pin=21:primer=primer:primer_timeout=20:flow_sensor=:min_flow=0:wait_time=10:flow_wait_time=5:flow_timeout=20:temp_in_sensor=can,0x452,2:temp_out_sensor=can,0x453,2:warmup=60:warmup_threshold=10:cooldown=0:cooldown_threshold=10"
+sdconfig ac add_pump ah2 "enabled=true:pin=22:primer=primer:primer_timeout=20:flow_sensor=:min_flow=0:wait_time=10:flow_wait_time=5:flow_timeout=20:temp_in_sensor=can,0x452,3:temp_out_sensor=can,0x453,3:warmup=60:warmup_threshold=10:cooldown=0:cooldown_threshold=10"
+
+#fans
+sdconfig ac add_fan ah1 "enabled=true:topic=SolarD/Agents/ah1/Data:pump=ah1:start_timeout=20:pump_timeout=120:cooldown=30:cooldown_threshold=20"
+sdconfig ac add_fan ah2 "enabled=true:topic=SolarD/Agents/ah2/Data:pump=ah2:start_timeout=20:pump_timeout=120:cooldown=30:cooldown_threshold=20"
+
+#units
+sdconfig ac add_unit ac1 "enabled=true:pump=ac1:pump_timeout=60:coolpin=1:heatpin=4:rvpin=5:rvcool=false:rvevery=false:liquid_temp_sensor=can,0x455,0:vapor_temp_sensor=can,0x455,1"

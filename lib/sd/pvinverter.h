@@ -28,7 +28,7 @@ struct solard_pvinverter {
 	int errcode;			/* Inverter Error code, 0 if none */
 	char errmsg[256];		/* Inverter Error message */
 	uint16_t state;			/* Inverter State */
-	long last_update;
+	time_t last_update;
 };
 typedef struct solard_pvinverter solard_pvinverter_t;
 

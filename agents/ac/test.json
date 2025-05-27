@@ -1,0 +1,16 @@
+{
+    "ac": {
+        "can_target": "vcan0",
+        "name": "actest",
+        "script_dir": ".",
+        "ETCDIR": ".",
+        "mqtt_uri": "tcp:\/\/localhost:1883",
+        "influx_endpoint": "http:\/\/localhost:808",
+        "influx_database": "test",
+        "debug_mem": 1,
+        "debug_mem_always": 1,
+        "temp_sensor": "func,get_influx,solardirector|hvac|last(temp) as temp,last(humidity) as humidity,last(pressure) as pressure",
+        "sample_interval": 300,
+        "pa_name": "patest"
+    }
+}

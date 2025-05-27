@@ -17,6 +17,11 @@ struct can_frame {
 #endif
 typedef struct can_frame can_frame_t;
 
+#if !defined(__WIN32) && !defined(__WIN64)
+#include "driver.h"
+extern solard_driver_t can_driver;
+#endif
+
 struct can_config_filter {
 	uint32_t *id;
 	uint32_t count;

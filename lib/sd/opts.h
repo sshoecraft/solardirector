@@ -22,6 +22,9 @@ struct opt_process_table {
 	void *value;                    /* Default value */
 	opts_ptcallback_t *cb;		/* Callback */
 	int have;                       /* Internal flags */
+#if JS
+	char *name;
+#endif
 };
 typedef struct opt_process_table opt_proctab_t;
 #define OPTS_END { 0, 0, 0, 0, 0 ,0, 0 }
@@ -40,4 +43,8 @@ void opt_usage(char *,opt_proctab_t *);
 }
 #endif
 
+#if JS
+opt_proctab_t *js_opt_arr2opts(JSContext *cx, JSObject *arr);
+int js_opt_add_opts(JSContext *cx, JSObject *obj, opt_proctab_t *opts);
+#endif
 #endif /* __OPTS_H */

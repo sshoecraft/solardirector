@@ -12,7 +12,7 @@ function current_init() {
 		[ "collect_current", DATA_TYPE_BOOL, "false", 0 ],
 	];
 
-	config.add_props(si,current_props);
+	config.add_props(si,current_props,si.driver_name);
 	si.current_init = true;
 }
 
@@ -30,7 +30,7 @@ function current_main() {
 		"TotExtCur"
 	];
 
-	let dlevel = -1;
+	let dlevel = 1;
 
 	// this is so i can put it in place while running
 	if (typeof(si.current_init) == "undefined") si.current_init = false;

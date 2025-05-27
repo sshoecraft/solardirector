@@ -420,35 +420,30 @@ JS_ArenaCountRetract(JSArenaPool *pool, char *mark)
     pool->stats.nfastrels++;
 }
 
-#if 0
-#include <stdio.h>
+JS_PUBLIC_API(void) JS_DumpArenaStats(FILE *fp) {
+	JSArenaStats *stats;
+//	double mean;
+	double sigma;
 
-JS_PUBLIC_API(void)
-JS_DumpArenaStats(FILE *fp)
-{
-    JSArenaStats *stats;
-    double mean, sigma;
+	for (stats = arena_stats_list; stats; stats = stats->next) {
+//		mean = JS_MeanAndStdDev(stats->nallocs, stats->nbytes, stats->variance, &sigma);
 
-    for (stats = arena_stats_list; stats; stats = stats->next) {
-///        mean = JS_MeanAndStdDev(stats->nallocs, stats->nbytes, stats->variance, &sigma);
-
-        fprintf(fp, "\n%s allocation statistics:\n", stats->name);
-        fprintf(fp, "              number of arenas: %u\n", stats->narenas);
-        fprintf(fp, "         number of allocations: %u\n", stats->nallocs);
-        fprintf(fp, "        number of malloc calls: %u\n", stats->nmallocs);
-        fprintf(fp, "       number of deallocations: %u\n", stats->ndeallocs);
-        fprintf(fp, "  number of allocation growths: %u\n", stats->ngrows);
-        fprintf(fp, "    number of in-place growths: %u\n", stats->ninplace);
-        fprintf(fp, " number of realloc'ing growths: %u\n", stats->nreallocs);
-        fprintf(fp, "number of released allocations: %u\n", stats->nreleases);
-        fprintf(fp, "       number of fast releases: %u\n", stats->nfastrels);
-        fprintf(fp, "         total bytes allocated: %u\n", (unsigned int)stats->nbytes);
- //       fprintf(fp, "          mean allocation size: %g\n", mean);
-        fprintf(fp, "            standard deviation: %g\n", sigma);
-        fprintf(fp, "       maximum allocation size: %u\n", stats->maxalloc);
-    }
+		fprintf(fp, "\n%s allocation statistics:\n", stats->name);
+		fprintf(fp, "              number of arenas: %u\n", stats->narenas);
+		fprintf(fp, "         number of allocations: %u\n", stats->nallocs);
+		fprintf(fp, "        number of malloc calls: %u\n", stats->nmallocs);
+		fprintf(fp, "       number of deallocations: %u\n", stats->ndeallocs);
+		fprintf(fp, "  number of allocation growths: %u\n", stats->ngrows);
+		fprintf(fp, "    number of in-place growths: %u\n", stats->ninplace);
+		fprintf(fp, " number of realloc'ing growths: %u\n", stats->nreallocs);
+		fprintf(fp, "number of released allocations: %u\n", stats->nreleases);
+		fprintf(fp, "       number of fast releases: %u\n", stats->nfastrels);
+		fprintf(fp, "         total bytes allocated: %u\n", (unsigned int)stats->nbytes);
+//		fprintf(fp, "          mean allocation size: %g\n", mean);
+		fprintf(fp, "            standard deviation: %g\n", sigma);
+		fprintf(fp, "       maximum allocation size: %lu\n", stats->maxalloc);
+	}
 }
-#endif
 
 JS_PUBLIC_API(size_t)
 JS_ArenaTotalBytes(void)

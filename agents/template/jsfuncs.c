@@ -21,10 +21,9 @@ LICENSE file in the root directory of this source tree.
 
 enum PROPERTY_IDS {
 	PROPERTY_ID_INFO=1024,
-	PROPERTY_ID_AGENT,
 };
 
-static JSBool getprop(JSContext *cx, JSObject *obj, jsval id, jsval *rval) {
+static JSBool js_template_getprop(JSContext *cx, JSObject *obj, jsval id, jsval *rval) {
 	int prop_id;
 	template_session_t *s;
 	config_property_t *p;
@@ -58,10 +57,6 @@ static JSBool getprop(JSContext *cx, JSObject *obj, jsval id, jsval *rval) {
 			*rval = json2jsval(v, cx);
 		    }
 		    break;
-		case PROPERTY_ID_AGENT:
-			dprintf(dlevel,"getting agent..\n");
-			*rval = s->agent_val;
-			break;
 		default:
 			p = CONFIG_GETMAP(s->ap->cp,prop_id);
 			dprintf(dlevel,"p: %p\n", p);
@@ -93,7 +88,7 @@ static JSBool getprop(JSContext *cx, JSObject *obj, jsval id, jsval *rval) {
 	return JS_TRUE;
 }
 
-static JSBool setprop(JSContext *cx, JSObject *obj, jsval id, jsval *rval) {
+static JSBool js_template_setprop(JSContext *cx, JSObject *obj, jsval id, jsval *rval) {
 	template_session_t *s;
 
 	s = JS_GetPrivate(cx,obj);
@@ -109,8 +104,8 @@ static JSClass myclass = {
 	JSCLASS_GLOBAL_FLAGS | JSCLASS_HAS_PRIVATE,	/* Flags */
 	JS_PropertyStub,	/* addProperty */
 	JS_PropertyStub,	/* delProperty */
-	getprop,		/* getProperty */
-	setprop,		/* setProperty */
+	js_template_getprop,		/* getProperty */
+	js_template_setprop,		/* setProperty */
 	JS_EnumerateStub,	/* enumerate */
 	JS_ResolveStub,		/* resolve */
 	JS_ConvertStub,		/* convert */
@@ -118,18 +113,18 @@ static JSClass myclass = {
 	JSCLASS_NO_OPTIONAL_MEMBERS
 };
 
-static JSBool callfunc(JSContext *cx, uintN argc, jsval *vp) {
+static JSBool js_template_callfunc(JSContext *cx, uintN argc, jsval *vp) {
 	JSObject *obj;
 	template_session_t *s;
 
 	obj = JS_THIS_OBJECT(cx, vp);
 	if (!obj) {
-		JS_ReportError(cx, "callfunc: internal error: object is null!\n");
+		JS_ReportError(cx, "js_template_callfunc: internal error: object is null!\n");
 		return JS_FALSE;
 	}
 	s = JS_GetPrivate(cx, obj);
 	if (!s) {
-		JS_ReportError(cx, "callfunc: internal error: private is null!\n");
+		JS_ReportError(cx, "js_template_callfunc: internal error: private is null!\n");
 		return JS_FALSE;
 	}
 	if (!s->ap) return JS_TRUE;
@@ -138,14 +133,32 @@ static JSBool callfunc(JSContext *cx, uintN argc, jsval *vp) {
 	return js_config_callfunc(s->ap->cp, cx, argc, vp);
 }
 
+static JSBool js_template_signal(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rval) {
+	template_session_t *s;
+	char *module,*action;
+
+	s = JS_GetPrivate(cx, obj);
+	dprintf(dlevel,"s: %p\n", s);
+	if (!s) {
+		JS_ReportError(cx,"template private is null!\n");
+		return JS_FALSE;
+	}
+	module = action = 0;
+	if (!JS_ConvertArguments(cx, argc, argv, "s s", &module, &action)) return JS_FALSE;
+	agent_event(s->ap,module,action);
+	if (module) JS_free(cx,module);
+	if (action) JS_free(cx,action);
+	return JS_TRUE;
+}
+
 static int js_init(JSContext *cx, JSObject *parent, void *priv) {
 	template_session_t *s = priv;
 	JSPropertySpec props[] = {
 		{ "info", PROPERTY_ID_INFO, JSPROP_ENUMERATE | JSPROP_READONLY },
-		{ "agent", PROPERTY_ID_AGENT, JSPROP_ENUMERATE | JSPROP_READONLY },
 		{ 0 }
 	};
 	JSFunctionSpec funcs[] = {
+		JS_FS("signal",js_template_signal,2,2,0),
 		{ 0 }
 	};
 	JSAliasSpec aliases[] = {
@@ -168,7 +181,7 @@ static int js_init(JSContext *cx, JSObject *parent, void *priv) {
 			}
 		}
 		if (!s->funcs) {
-			s->funcs = js_config_to_funcs(s->ap->cp, cx, callfunc, funcs);
+			s->funcs = js_config_to_funcs(s->ap->cp, cx, js_template_callfunc, funcs);
 			dprintf(dlevel,"s->funcs: %p\n",s->funcs);
 			if (!s->funcs) {
 				log_error("unable to create funcs: %s\n", config_get_errmsg(s->ap->cp));
@@ -183,7 +196,7 @@ static int js_init(JSContext *cx, JSObject *parent, void *priv) {
 	dprintf(dlevel,"Defining %s object\n",myclass.name);
 	obj = JS_InitClass(cx, parent, 0, &myclass, 0, 0, s->props, s->funcs, 0, 0);
 	if (!obj) {
-		JS_ReportError(cx,"unable to initialize si class");
+		JS_ReportError(cx,"unable to initialize %s class", AGENT_NAME);
 		return 1;
 	}
 
@@ -208,6 +221,7 @@ static int js_init(JSContext *cx, JSObject *parent, void *priv) {
 	JS_DefineProperty(cx, parent, "config", s->ap->js.config_val, 0, 0, JSPROP_ENUMERATE);
 	JS_DefineProperty(cx, parent, "mqtt", s->ap->js.mqtt_val, 0, 0, JSPROP_ENUMERATE);
 	JS_DefineProperty(cx, parent, "influx", s->ap->js.influx_val, 0, 0, JSPROP_ENUMERATE);
+	JS_DefineProperty(cx, parent, "event", s->ap->js.event_val, 0, 0, JSPROP_ENUMERATE);
 	return 0;
 }
 

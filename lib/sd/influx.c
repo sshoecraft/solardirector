@@ -48,13 +48,13 @@ struct influx_session {
 	int bufsize;                    /* Buffer size */
 	int bufidx;                     /* Current write pos */
 	list responses;
-//	influx_response_t *response;
 	char *login_fields;
 	char *read_fields;
 	char *config_fields;
 	bool verbose;
 	bool convdt;
 	bool timeout;
+	bool ctor;
 };
 typedef struct influx_session influx_session_t;
 
@@ -286,21 +286,23 @@ int influx_destroy_result(influx_result_t *rp) {
 	influx_series_t *sp;
 	int c;
 
-	dprintf(dlevel,"rp: %p\n", rp);
+	int ldlevel = dlevel;
+
+	dprintf(ldlevel,"rp: %p\n", rp);
 	if (!rp) return 0;
 
-	dprintf(dlevel,"refs: %d\n", rp->refs);
+	dprintf(ldlevel,"refs: %d\n", rp->refs);
 	if (rp->refs) return 1;
 
 	/* Destroy series */
 	list_reset(rp->series);
 	while((sp = list_get_next(rp->series)) != 0) influx_destroy_series(sp);
 	c = list_count(rp->series);
-	dprintf(dlevel,"c: %d\n", c);
+	dprintf(ldlevel,"c: %d\n", c);
 	if (!c) {
 		list_destroy(rp->series);
 		if (rp->parent) {
-			dprintf(dlevel,"rp->parent: %p\n", rp->parent);
+			dprintf(ldlevel,"rp->parent: %p\n", rp->parent);
 			list_delete(rp->parent->results,rp);
 		}
 	}
@@ -322,8 +324,9 @@ int influx_destroy_response(influx_response_t *r) {
 	c = list_count(r->results);
 	if (!c) {
 		list_destroy(r->results);
+		dprintf(dlevel,"r->parent: %p\n", r->parent);
 		if (r->parent) {
-			dprintf(dlevel,"r->parent: %p\n", r->parent);
+			dprintf(dlevel,"r->parent->responses: %p\n", r->parent->responses);
 			list_delete(r->parent->responses,r);
 		}
 	}
@@ -809,25 +812,24 @@ int influx_health(influx_session_t *s) {
 }
 
 int influx_ping(influx_session_t *s) {
+	influx_response_t *r;
 	char *url;
 	long rc;
+	int error;
 
 	if (!s->enabled) return 0;
 
 	url = influx_mkurl(s,"ping",0);
 	dprintf(dlevel,"url: %p\n", url);
 	if (!url) return 1;
-//	curl_easy_setopt(s->curl, CURLOPT_HEADERFUNCTION, influx_getheader);
-//	curl_easy_setopt(s->curl, CURLOPT_HEADERDATA, s);
-	if (influx_request(s,url,0,0)) {
-		free(url);
-		return 1;
-	}
-//	curl_easy_setopt(s->curl, CURLOPT_HEADERFUNCTION, 0);
-//	curl_easy_setopt(s->curl, CURLOPT_HEADERDATA, 0);
+	r = influx_request(s,url,0,0);
+	error = r->error;
+	influx_destroy_response(r);
+	free(url);
+	if (error) return error;
+
 	curl_easy_getinfo(s->curl, CURLINFO_RESPONSE_CODE, &rc);
 	dprintf(dlevel,"rc: %d\n", rc);
-	free(url);
 	return (rc == 200 || rc == 204 ? 0 : 1);
 }
 
@@ -1065,7 +1067,7 @@ int influx_write_json(influx_session_t *s, char *name, json_value_t *rv) {
 	json_object_t *o;
 	char value[2048], *string;
 	int strsize,stridx,newidx,len,count;
-	int i,type;
+	int i,type,error;
 
 	if (!s->enabled) return 0;
 	if (!rv) return 1;
@@ -1118,9 +1120,11 @@ int influx_write_json(influx_session_t *s, char *name, json_value_t *rv) {
 	}
 	dprintf(dlevel,"string: %s\n", string);
 	r = influx_write(s,name,string);
+	error = r->error;
 	free(string);
-	dprintf(dlevel,"returning: %d\n", r->error);
-	return r->error;
+	influx_release_response(r);
+	dprintf(dlevel,"returning: %d\n", error);
+	return error;
 }
 
 /********************************************************************************/
@@ -1133,23 +1137,28 @@ int influx_write_json(influx_session_t *s, char *name, json_value_t *rv) {
 #include "jsdate.h"
 #include "jsstr.h"
 
+extern int js_mem_used_pct(JSContext *cx);
+
 JSObject *js_influx_values_new(JSContext *cx, JSObject *obj, influx_series_t *sp) {
 	JSObject *js_values,*vo,*dateobj;
 	jsval ie,ke;
-	int i,j,time_col,doconv;
+	int i,j,time_col,doconv,count;
 	influx_value_t *vp;
 	JSString *str;
 	jsdouble d;
 //	char *p;
 
+	int ldlevel = dlevel;
+
 	/* values is an array of influx_value pointers */
-	dprintf(dlevel,"value_count: %d\n", sp->value_count);
-	js_values = JS_NewArrayObject(cx, sp->value_count, NULL);
-	dprintf(dlevel,"js_values: %p\n", js_values);
+	dprintf(ldlevel,"value_count: %d\n", sp->value_count);
+	js_values = JS_NewArrayObject(cx, 0, NULL);
+	dprintf(ldlevel,"js_values: %p\n", js_values);
 	if (!js_values) return 0;
 
 	/* Get the time column */
 	time_col = -1;
+	dprintf(ldlevel,"column_count: %d\n", sp->column_count);
 	for(i=0; i < sp->column_count; i++) {
 //		printf("columns[%d]: %p\n", i, sp->columns[i]);
 		if (strcmp(sp->columns[i],"time") == 0) {
@@ -1157,9 +1166,13 @@ JSObject *js_influx_values_new(JSContext *cx, JSObject *obj, influx_series_t *sp
 			break;
 		}
 	}
+	dprintf(ldlevel,"value_count: %d\n", sp->value_count);
+	count = 0;
 	for(i=0; i < sp->value_count; i++) {
-		vo = JS_NewArrayObject(cx, sp->column_count, NULL);
-		dprintf(dlevel,"vo: %p\n", vo);
+		/* XXX req'd as strange things happen otherwise */
+		if (js_mem_used_pct(cx) == 100) break;
+		vo = JS_NewArrayObject(cx, 0, NULL);
+		dprintf(ldlevel,"vo: %p\n", vo);
 		if (!vo) break;
 		for(j=0; j < sp->column_count; j++) {
 			vp = sp->values[i][j];
@@ -1184,8 +1197,10 @@ JSObject *js_influx_values_new(JSContext *cx, JSObject *obj, influx_series_t *sp
 		}
 		ie = OBJECT_TO_JSVAL(vo);
 		JS_SetElement(cx, js_values, i, &ie);
+		count++;
 	}
-	dprintf(dlevel,"returning: %p\n", js_values);
+	/* fix up the array object with the real count */
+	dprintf(ldlevel,"returning: %p\n", js_values);
 	return js_values;
 }
 
@@ -1241,9 +1256,9 @@ static JSBool js_influx_series_getprop(JSContext *cx, JSObject *obj, jsval id, j
 				JSObject *a,*aa;
 				jsval e;
 
-				a = JS_NewArrayObject(cx, sp->values_count, NULL);
+				a = JS_NewArrayObject(cx, 0, NULL);
 				for(i=0; i < sp->values_count; i++) {
-					aa = JS_NewArrayObject(cx, sp->column_count, NULL);
+					aa = JS_NewArrayObject(cx, 0, NULL);
 					for(j=0; j < sp->column_count; j++) {
 						e = OBJECT_TO_JSVAL(js_influx_values_new(cx,obj,sp->values[i][j]));
 						JS_SetElement(cx, aa, i, &e);
@@ -1282,6 +1297,7 @@ JSObject *js_InitInfluxSeriesClass(JSContext *cx, JSObject *parent) {
 
 	dprintf(dlevel,"creating %s class...\n",js_influx_series_class.name);
 	obj = JS_InitClass(cx, parent, 0, &js_influx_series_class, 0, 0, series_props, 0, 0, 0);
+	dprintf(dlevel,"obj: %p\n", obj);
 	if (!obj) {
 		JS_ReportError(cx,"unable to initialize %s class", js_influx_series_class.name);
 		return 0;
@@ -1296,6 +1312,7 @@ JSObject *js_influx_series_new(JSContext *cx, JSObject *parent, influx_series_t 
 	/* Create the new object */
 	dprintf(dlevel,"Creating %s object...\n", js_influx_series_class.name);
 	newobj = JS_NewObject(cx, &js_influx_series_class, 0, parent);
+	dprintf(dlevel,"newobj: %p\n", newobj);
 	if (!newobj) return 0;
 
 	JS_SetPrivate(cx,newobj,sp);
@@ -1355,7 +1372,7 @@ static JSBool js_influx_result_getprop(JSContext *cx, JSObject *obj, jsval id, j
 				influx_series_t *sp;
 				jsval e;
 
-				a = JS_NewArrayObject(cx, list_count(rp->series), NULL);
+				a = JS_NewArrayObject(cx, 0, NULL);
 				list_reset(rp->series);
 				i = 0;
 				while((sp = list_get_next(rp->series)) != 0) {
@@ -1394,6 +1411,7 @@ JSObject *js_InitInfluxResultClass(JSContext *cx, JSObject *parent) {
 
 	dprintf(dlevel,"creating %s class...\n",js_influx_result_class.name);
 	obj = JS_InitClass(cx, parent, 0, &js_influx_result_class, 0, 0, result_props, 0, 0, 0);
+	dprintf(dlevel,"obj: %p\n", obj);
 	if (!obj) {
 		JS_ReportError(cx,"unable to initialize %s class", js_influx_result_class.name);
 		return 0;
@@ -1408,6 +1426,7 @@ static JSObject *js_influx_result_new(JSContext *cx, JSObject *parent, influx_re
 	/* Create the new object */
 	dprintf(dlevel,"Creating %s object...\n", js_influx_result_class.name);
 	newobj = JS_NewObject(cx, &js_influx_result_class, 0, parent);
+	dprintf(dlevel,"newobj: %p\n", newobj);
 	if (!newobj) return 0;
 
 	JS_SetPrivate(cx,newobj,rp);
@@ -1462,7 +1481,7 @@ static JSBool js_influx_response_getprop(JSContext *cx, JSObject *obj, jsval id,
 				influx_result_t *rp;
 				jsval e;
 
-				a = JS_NewArrayObject(cx, list_count(r->results), NULL);
+				a = JS_NewArrayObject(cx, 0, NULL);
 				list_reset(r->results);
 				i = 0;
 				while((rp = list_get_next(r->results)) != 0) {
@@ -1501,6 +1520,7 @@ JSObject *js_InitInfluxResponseClass(JSContext *cx, JSObject *parent) {
 
 	dprintf(dlevel,"creating %s class...\n",js_influx_response_class.name);
 	obj = JS_InitClass(cx, parent, 0, &js_influx_response_class, 0, 0, response_props, 0, 0, 0);
+	dprintf(dlevel,"obj: %p\n", obj);
 	if (!obj) {
 		JS_ReportError(cx,"unable to initialize %s class", js_influx_response_class.name);
 		return 0;
@@ -1515,6 +1535,7 @@ static JSObject *js_influx_response_new(JSContext *cx, JSObject *parent, influx_
 	/* Create the new object */
 	dprintf(dlevel,"Creating %s object...\n", js_influx_response_class.name);
 	newobj = JS_NewObject(cx, &js_influx_response_class, 0, parent);
+	dprintf(dlevel,"newobj: %p\n", newobj);
 	if (!newobj) return 0;
 
 	JS_SetPrivate(cx,newobj,r);
@@ -1642,6 +1663,22 @@ static JSBool influx_setprop(JSContext *cx, JSObject *obj, jsval id, jsval *vp) 
 	return JS_TRUE;
 }
 
+static void js_influx_finalize(JSContext *cx, JSObject *obj) {
+	influx_session_t *s;
+
+	int ldlevel = dlevel;
+
+	dprintf(ldlevel,"obj: %p\n", obj);
+	s = JS_GetPrivate(cx, obj);
+	dprintf(ldlevel,"s: %p\n", s);
+	/* XXX return silently */
+	if (!s) return;
+	/* Only destroy sessions we created */
+	dprintf(ldlevel,"ctor: %d\n", s->ctor);
+	if (s->ctor) influx_destroy_session(s);
+	return;
+}
+
 static JSClass js_influx_class = {
 	"Influx",		/* Name */
 	JSCLASS_HAS_PRIVATE,	/* Flags */
@@ -1652,7 +1689,7 @@ static JSClass js_influx_class = {
 	JS_EnumerateStub,	/* enumerate */
 	JS_ResolveStub,		/* resolve */
 	JS_ConvertStub,		/* convert */
-	JS_FinalizeStub,	/* finalize */
+	js_influx_finalize,	/* finalize */
 	JSCLASS_NO_OPTIONAL_MEMBERS
 };
 
@@ -1672,6 +1709,7 @@ static JSBool js_influx_query(JSContext *cx, uintN argc, jsval *vp) {
 	char *type,*query;
 
 	obj = JS_THIS_OBJECT(cx, vp);
+	dprintf(dlevel,"obj: %p\n", obj);
 	if (!obj) return JS_FALSE;
 	s = JS_GetPrivate(cx, obj);
 	dprintf(dlevel,"s: %p\n", s);
@@ -1709,6 +1747,7 @@ static JSBool js_influx_write(JSContext *cx, uintN argc, jsval *vp) {
 	jsval val;
 
 	obj = JS_THIS_OBJECT(cx, vp);
+	dprintf(dlevel,"obj: %p\n", obj);
 	if (!obj) return JS_FALSE;
 	s = JS_GetPrivate(cx, obj);
 	dprintf(dlevel,"s: %p\n", s);
@@ -1819,6 +1858,7 @@ static JSBool js_influx_connect(JSContext *cx, uintN argc, jsval *vp) {
 	influx_session_t *s;
 
 	obj = JS_THIS_OBJECT(cx, vp);
+	dprintf(dlevel,"obj: %p\n", obj);
 	if (!obj) return JS_FALSE;
 	s = JS_GetPrivate(cx, obj);
 	dprintf(dlevel,"s: %p\n", s);
@@ -1844,6 +1884,7 @@ static JSBool js_influx_ctor(JSContext *cx, JSObject *obj, uintN argc, jsval *ar
 		return JS_FALSE;
 	}
 	s->enabled = true;
+	s->ctor = true;
 
 	if (argc) {
 		url = db = user = pass = 0;
@@ -1860,7 +1901,7 @@ static JSBool js_influx_ctor(JSContext *cx, JSObject *obj, uintN argc, jsval *ar
 	}
 
 	newobj = js_influx_new(cx,JS_GetGlobalObject(cx),s);
-	JS_SetPrivate(cx,newobj,s);
+	dprintf(dlevel,"newobj: %p\n", newobj);
 	*rval = OBJECT_TO_JSVAL(newobj);
 
 	return JS_TRUE;
@@ -1891,6 +1932,7 @@ static JSObject *js_InitInfluxClass(JSContext *cx, JSObject *global_object) {
 
 	dprintf(dlevel,"Creating %s class...\n", js_influx_class.name);
 	obj = JS_InitClass(cx, global_object, 0, &js_influx_class, js_influx_ctor, 2, influx_props, influx_funcs, 0, 0);
+	dprintf(dlevel,"obj: %p\n", obj);
 	if (!obj) {
 		JS_ReportError(cx,"unable to initialize influx class");
 		return 0;
@@ -1905,6 +1947,7 @@ JSObject *js_influx_new(JSContext *cx, JSObject *parent, influx_session_t *s) {
 	/* Create the new object */
 	dprintf(dlevel,"Creating %s object...\n", js_influx_class.name);
 	newobj = JS_NewObject(cx, &js_influx_class, 0, parent);
+	dprintf(dlevel,"==> newobj: %p\n", newobj);
 	if (!newobj) return 0;
 
 	JS_SetPrivate(cx,newobj,s);

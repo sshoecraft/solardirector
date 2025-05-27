@@ -1,0 +1,44 @@
+
+include("../../lib/sd/dumpobj.js");
+
+function recursiveDelete(obj) {
+    if (obj && typeof obj === 'object') {
+        if (Array.isArray(obj)) {
+            // If it's an array, loop through the elements
+            for (let i = 0; i < obj.length; i++) {
+                // Recursively call for each element
+                recursiveDelete(obj[i]);
+            }
+            // After processing all elements, clear the array
+            obj.length = 0;
+        } else {
+            // If it's an object, loop through its keys
+            for (let key in obj) {
+                if (obj.hasOwnProperty(key)) {
+                    // Recursively call for each key's value
+                    recursiveDelete(obj[key]);
+                    // Delete the property after recursion
+                    delete obj[key];
+                }
+            }
+        }
+    }
+}
+
+// Example usage:
+let myObj = {
+    a: 1,
+    b: {
+        b1: 2,
+        b2: {
+            b21: 3
+        }
+    },
+    c: [4, 5, { d: 6 }],
+    e: 7
+};
+
+dumpobj(myObj,"before");
+recursiveDelete(myObj);
+dumpobj(myObj,"after");
+

@@ -6,7 +6,7 @@ function gen_init() {
 		[ "gen_max_power", DATA_TYPE_FLOAT, "24000", 0 ],
 	];
 
-	config.add_props(si,gen_props);
+	config.add_props(si,gen_props,si.driver_name);
 }
 
 // dynamically modify charge amps to keep gen under max power

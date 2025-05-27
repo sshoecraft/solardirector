@@ -1,0 +1,10 @@
+{
+    "unit1":{
+        "pump":"unit1",
+        "reserve":375
+    },
+    "unit2":{
+        "pump":"unit2",
+        "reserve":250
+    }
+}

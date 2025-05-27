@@ -1,3 +1,4 @@
+
 /*
 Copyright (c) 2021, Stephen P. Shoecraft
 All rights reserved.
@@ -6,7 +7,7 @@ This source code is licensed under the BSD-style license found in the
 LICENSE file in the root directory of this source tree.
 */
 
-#define dlevel 7
+#define dlevel 6
 #include "debug.h"
 
 #include <string.h>
@@ -47,7 +48,7 @@ jsval type_to_jsval(JSContext *cx, int type, void *src, int len) {
 		val = INT_TO_JSVAL(*((int *)src));
 		break;
 	case DATA_TYPE_U32:
-		val = INT_TO_JSVAL(*((uint32_t *)src));
+		val = NUMBER_TO_JSVAL(*((uint32_t *)src));
 		break;
 	case DATA_TYPE_FLOAT:
 		JS_NewDoubleValue(cx, *((float *)src), &val);
@@ -59,7 +60,6 @@ jsval type_to_jsval(JSContext *cx, int type, void *src, int len) {
 	case DATA_TYPE_STRING:
 	case DATA_TYPE_STRINGP:
 		{
-//			JSString *newstr = JS_InternString(cx,(char *)src);
 			JSString *newstr = JS_NewStringCopyZ(cx,(char *)src);
 			dprintf(dlevel,"newstr: %p\n", newstr);
 			if (newstr) val = STRING_TO_JSVAL(newstr);
@@ -74,7 +74,7 @@ jsval type_to_jsval(JSContext *cx, int type, void *src, int len) {
 			int i,*ia;
 
 			ia = (int *)src;
-			arr = JS_NewArrayObject(cx, len, NULL);
+			arr = JS_NewArrayObject(cx, 0, NULL);
 			for(i=0; i < len; i++) {
 				JS_NewNumberValue(cx, ia[i], &element);
 				JS_SetElement(cx, arr, i, &element);
@@ -90,7 +90,7 @@ jsval type_to_jsval(JSContext *cx, int type, void *src, int len) {
 			int i;
 
 			fa = (float *)src;
-			arr = JS_NewArrayObject(cx, len, NULL);
+			arr = JS_NewArrayObject(cx, 0, NULL);
 			for(i=0; i < len; i++) {
 //				dprintf(dlevel,"adding[%d]: %f\n", i, fa[i]);
 				JS_NewDoubleValue(cx, fa[i], &element);
@@ -104,16 +104,12 @@ jsval type_to_jsval(JSContext *cx, int type, void *src, int len) {
 			JSObject *arr;
 			jsval element;
 			char **sa;
-			int i,c;
+			int i;
 
 			sa = (char **)src;
-			for(i=c=0; i < 9999; i++) {
-				dprintf(dlevel,"sa[%d]: %s\n", i, sa[i] ? sa[i] : "null");
-				if (!sa[i]) break;
-			}
-			c = i;
-			arr = JS_NewArrayObject(cx, c, NULL);
-			for(i=0; i < c; i++) {
+			arr = JS_NewArrayObject(cx, 0, NULL);
+			for(i=0; i < len; i++) {
+				dprintf(dlevel,"sa[%d]: %p\n", i, sa[i]);
 				element = STRING_TO_JSVAL(JS_NewStringCopyZ(cx,sa[i]));
 				JS_SetElement(cx, arr, i, &element);
 			}
@@ -128,7 +124,7 @@ jsval type_to_jsval(JSContext *cx, int type, void *src, int len) {
 			int i;
 
 			ua = (uint8_t *)src;
-			arr = JS_NewArrayObject(cx, len, NULL);
+			arr = JS_NewArrayObject(cx, 0, NULL);
 			for(i=0; i < len; i++) {
 				JS_NewNumberValue(cx, ua[i], &element);
 				JS_SetElement(cx, arr, i, &element);
@@ -146,7 +142,7 @@ jsval type_to_jsval(JSContext *cx, int type, void *src, int len) {
 
 			count = list_count(l);
 			dprintf(dlevel,"count: %d\n", count);
-			arr = JS_NewArrayObject(cx, count, NULL);
+			arr = JS_NewArrayObject(cx, 0, NULL);
 			i = 0;
 			list_reset(l);
 			while((p = list_get_next(l)) != 0) {
@@ -191,6 +187,7 @@ int jsval_to_type(int dtype, void *dest, int dlen, JSContext *cx, jsval val) {
 	jstype = JS_TypeOfValue(cx,val);
 	dprintf(dlevel,"jstype: %d(%s), dtype: %d(%s), dest: %p, dlen: %d\n", jstype, JS_TYPE_STR(jstype), dtype, typestr(dtype), dest, dlen);
 	r = 0;
+	str = 0;
 	slen = -1;
 	switch (jstype) {
 	case JSTYPE_VOID:
@@ -245,9 +242,11 @@ int jsval_to_type(int dtype, void *dest, int dlen, JSContext *cx, jsval val) {
 				free(values);
 				dprintf(dlevel,"dest: %p\n", dest);
 			} else {
-				log_error("jsval_to_type: object is not an array\n");
-				dprintf(0,"jstype: %d(%s), dtype: %d(%s), dest: %p, dlen: %d\n", jstype, jstypestr(cx,val), dtype, typestr(dtype), dest, dlen);
-				return 0;
+				jstr = JS_ValueToString(cx, val);
+				str = (char *)JS_EncodeString(cx, jstr);
+				stype = DATA_TYPE_STRING;
+				src = str;
+				slen = strlen(str);
 			}
 		}
 		break;
@@ -261,15 +260,6 @@ int jsval_to_type(int dtype, void *dest, int dlen, JSContext *cx, jsval val) {
 		slen = strlen(str);
 		break;
 	case JSTYPE_NUMBER:
-#if 0
-		/* Convert all numbers to a string (because of F32 <-> F64) */
-		jstr = JS_ValueToString(cx, val);
-		str = (char *)JS_EncodeString(cx, jstr);
-		dprintf(0,"str: %s\n", str);
-		stype = DATA_TYPE_STRING;
-		src = str;
-		slen = strlen(str);
-#else
 		dprintf(dlevel,"IS_INT: %d, IS_DOUBLE: %d\n", JSVAL_IS_INT(val), JSVAL_IS_DOUBLE(val));
 		if (JSVAL_IS_INT(val)) {
 			i = JSVAL_TO_INT(val);
@@ -286,7 +276,6 @@ int jsval_to_type(int dtype, void *dest, int dlen, JSContext *cx, jsval val) {
 		} else {
 			dprintf(dlevel,"unknown number type!\n");
 		}
-#endif
 		break;
 	case JSTYPE_BOOLEAN:
 		b = JSVAL_TO_BOOLEAN(val);
@@ -308,21 +297,8 @@ int jsval_to_type(int dtype, void *dest, int dlen, JSContext *cx, jsval val) {
 		break;
 	}
 	dprintf(dlevel,"dtype: %s, stype: %s, src: %p, slen: %d\n", typestr(dtype), typestr(stype), src, slen);
-
-#if 0
-	if (dtype == DATA_TYPE_STRINGP) {
-		jstr = JS_ValueToString(cx, val);
-		char **strp = dest;
-
-		*strp = (char *)JS_EncodeString(cx, jstr);
-		dprintf(dlevel,"strp: %p, value: %s\n", *strp, *strp);
-		if (strcmp(*strp,"null") == 0) *(*strp) = 0;
-		r = strlen(*strp);
-	} else if (slen >= 0) {
-#endif
-	if (slen >= 0) {
-		r = conv_type(dtype,dest,dlen,stype,src,slen);
-		if (jstype == JSTYPE_STRING) JS_free(cx,str);
-	}
+	if (slen >= 0) r = conv_type(dtype,dest,dlen,stype,src,slen);
+	/* free allocated str */
+	if (str && stype == DATA_TYPE_STRING) JS_free(cx,str);
 	return r;
 }

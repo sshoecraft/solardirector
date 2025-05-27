@@ -19,6 +19,9 @@ typedef struct _llist * list;
 extern "C" {
 #endif
 
+typedef void (*list_item_free_t)(void *);
+list list_create( void );
+void list_set_item_free(list_item_free_t);
 list list_create( void );
 int list_destroy( list );
 list list_dup( list );

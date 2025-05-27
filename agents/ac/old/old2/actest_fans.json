@@ -1,0 +1,9 @@
+{
+    "ahtest":{
+        "topic":"SolarD/Agents/ahtest/Data",
+        "pump":"ahtest",
+        "cooldown":5,
+        "reserve":499,
+        "priority":1
+    }
+}

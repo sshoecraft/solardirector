@@ -10,15 +10,18 @@ LICENSE file in the root directory of this source tree.
 #ifndef __SD_CLIENT_H
 #define __SD_CLIENT_H
 
-#include "agent.h"
+#include "common.h"
 
-struct solard_agent;
-typedef struct solard_agent solard_agent_t;
-#define client_agentinfo_t solard_agent_t
-
-#define CLIENT_AGENTINFO_REPLY		0x0001		/* Function called, expecting a reply */
-#define CLIENT_AGENTINFO_STATUS		0x0002		/* Status/errmsg set */
-#define CLIENT_AGENTINFO_CHECKED	0x0004		/* Status checked */
+#ifdef MQTT
+#include "mqtt.h"
+#endif
+#ifdef INFLUX
+#include "influx.h"
+#endif
+#include "config.h"
+#ifdef JS
+#include "jsengine.h"
+#endif
 
 struct solard_client {
 	int flags;
@@ -29,32 +32,33 @@ struct solard_client {
 	bool config_from_mqtt;
 	int mqtt_init;
 	list mq;				/* Messages */
+	bool addmq;				/* add messages to q if true */
 #endif
 #ifdef INFLUX
 	influx_session_t *i;			/* Influx session */
 #endif
 	event_session_t *e;
 	config_t *cp;				/* Config */
-	list agents;				/* Agents */
-	bool addmq;
-	void (*cb)(solard_agent_t *ap, solard_message_t *msg);
 #ifdef JS
-	JSPropertySpec *props;
-	int rtsize;
-	int stacksize;
-	JSEngine *js;
-	jsval client_val;
-	jsval config_val;
-	jsval mqtt_val;
-	jsval influx_val;
-	jsval agents_val;
-	list roots;
-	char script_dir[SOLARD_PATH_MAX];
-	char init_script[SOLARD_PATH_MAX];
-	char start_script[SOLARD_PATH_MAX];
-	char stop_script[SOLARD_PATH_MAX];
+	struct {
+		int rtsize;
+		int stacksize;
+		JSEngine *e;
+		JSPropertySpec *props;
+		jsval client_val;
+		jsval config_val;
+		jsval mqtt_val;
+		jsval influx_val;
+		list roots;
+#if 0
+		char script_dir[SOLARD_PATH_MAX];
+		char init_script[SOLARD_PATH_MAX];
+		char start_script[SOLARD_PATH_MAX];
+		char stop_script[SOLARD_PATH_MAX];
 #endif
-	void *private;
+	} js;
+#endif
+//	void *private;
 };
 typedef struct solard_client solard_client_t;
 
@@ -64,10 +68,12 @@ typedef struct solard_client solard_client_t;
 #define CLIENT_FLAG_NOEVENT		0x0080		/* Don't init Event subsystem */
 #define CLIENT_FLAG_JSGLOBAL		0x1000		/* Create global config/mqtt/influx objects */
 
-typedef int (client_callback_t)(void *ctx, solard_client_t *);
-solard_client_t *client_init(int argc,char **argv,char *version,opt_proctab_t *client_opts,char *Cname,int flags,config_property_t *props,config_function_t *funcs,client_callback_t *initcb,void *ctx);
-void client_destroy_client(solard_client_t *c);
+solard_client_t *client_init(int argc,char **argv,char *Cname, char *version, opt_proctab_t *opts, int flags, config_property_t *props);
 void client_shutdown(void);
+
+#if 0
+typedef int (client_callback_t)(void *ctx, solard_client_t *);
+void client_destroy_client(solard_client_t *c);
 
 client_agentinfo_t *client_getagentbyname(solard_client_t *c, char *name);
 client_agentinfo_t *client_getagentbyid(solard_client_t *c, char *name);
@@ -80,6 +86,7 @@ int client_mqtt_init(solard_client_t *c);
 int client_matchagent(client_agentinfo_t *info, char *target, bool exact);
 int client_getagentstatus(client_agentinfo_t *info, solard_message_t *msg);
 char *client_getagentrole(client_agentinfo_t *info);
+#endif
 
 #ifdef JS
 JSObject *js_InitClientClass(JSContext *cx, JSObject *parent);

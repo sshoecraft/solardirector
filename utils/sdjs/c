@@ -1,0 +1,17 @@
+var str_with_num = "0.1";
+
+var obj = { 
+	elem getter: function() {
+		return str_with_num;
+	},
+	elem setter: function(value) {
+		gc();
+	}
+
+};
+
+var expected = Number(str_with_num);
+var actual = obj.elem++;
+gc();
+if (actual !== expected)
+	print("BAD result: "+actual);

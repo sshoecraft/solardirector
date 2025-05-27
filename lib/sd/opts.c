@@ -7,7 +7,7 @@ This source code is licensed under the BSD-style license found in the
 LICENSE file in the root directory of this source tree.
 */
 
-#define dlevel 7
+#define dlevel 6
 #include "debug.h"
 
 #include <stdio.h>
@@ -633,3 +633,139 @@ void opt_usage(char *name, opt_proctab_t *opts) {
 	log_info("%s",out);
 	return;
 }
+
+#ifdef JS
+
+#include "jsapi.h"
+#include "jsobj.h"
+#include "jsarray.h"
+
+static void _getele(char *name, int type, void *dest, int size, JSContext *cx, JSObject *arr, unsigned int ele) {
+	jsval val;
+
+	dprintf(dlevel,"name: %s, ele: %d\n", name, ele);
+	if (type == DATA_TYPE_NULL) {
+		JS_GetElement(cx, arr, ele, dest);
+	} else {
+		JS_GetElement(cx, arr, ele, &val);
+		jsval_to_type(type, dest, size, cx, val);
+	}
+}
+
+static int _js_opt_get_opt(JSContext *cx, JSObject *arr, opt_proctab_t *ent) {
+	unsigned int count;
+	char *opt, *name, *def;
+	int i,type,req;
+
+	int ldlevel = dlevel;
+
+	opt = name = def = 0;
+	type = req = 0;
+
+	if (!js_GetLengthProperty(cx, arr, &count)) {
+		JS_ReportError(cx,"_js_opt_get_opt: unable to get array length");
+		return 1;
+	}
+	dprintf(ldlevel,"count: %d\n", count);
+	if (count < 4) {
+		JS_ReportError(cx,"a min of 4 opt fields reqd (opt,name,type,def)");
+		return 1;
+	}
+	i = 0;
+	_getele("opt",DATA_TYPE_STRINGP, &opt, 0, cx, arr, i++);
+	_getele("name",DATA_TYPE_STRINGP, &name, 0, cx, arr, i++);
+	_getele("type",DATA_TYPE_INT, &type, 0, cx, arr, i++);
+	_getele("def",DATA_TYPE_STRINGP, &def, 0, cx, arr, i++);
+	if (count > 4) _getele("req",DATA_TYPE_INT, &req, 0, cx, arr, i++);
+	dprintf(ldlevel,"opt: %s, name: %s, type: %d, def: %s, req: %d\n", opt, name, type, def, req);
+
+	memset(ent,0,sizeof(*ent));
+	ent->keyword = opt;
+	ent->name = name;
+	ent->len = 1024;
+	ent->dest = JS_malloc(cx, ent->len);
+	memset(ent->dest,0,ent->len);
+	ent->type = type;
+	ent->value = def;
+	ent->reqd = req;
+
+	return 0;
+}
+
+opt_proctab_t *js_opt_arr2opts(JSContext *cx, JSObject *arr) {
+	unsigned int count;
+	opt_proctab_t *opts,*op, ent;
+	int sz,i;
+	jsval val;
+
+	int ldlevel = dlevel;
+
+	/* get array count and alloc props */
+	if (!js_GetLengthProperty(cx, arr, &count)) {
+		JS_ReportError(cx,"unable to get array length");
+		return 0;
+	}
+	dprintf(ldlevel,"count: %d\n", count);
+	sz = sizeof(opt_proctab_t) * (count + 1);
+	dprintf(ldlevel,"sz: %d\n", sz);
+	opts = JS_malloc(cx,sz);
+	dprintf(ldlevel,"opts: %p\n", opts);
+	if (!opts) {
+		JS_ReportError(cx,"unable to malloc opts");
+		return 0;
+	}
+	memset(opts,0,sz);
+	op = opts;
+
+	for(i=0; i < count; i++) {
+		JS_GetElement(cx, arr, i, &val);
+		dprintf(ldlevel,"arr[%d] type: %s\n", i, jstypestr(cx,val));
+		if (!JSVAL_IS_OBJECT(val) || !OBJ_IS_ARRAY(cx,JSVAL_TO_OBJECT(val))) {
+			JS_ReportError(cx, "element %d is not an array", i);
+			JS_free(cx,opts);
+			return 0;
+		}
+		if (_js_opt_get_opt(cx,JSVAL_TO_OBJECT(val),&ent)) {
+			JS_free(cx,opts);
+			return 0;
+		}
+		*op++ = ent;
+	}
+
+	return opts;
+}
+
+/* XXX note this function destroys opts */
+int js_opt_add_opts(JSContext *cx, JSObject *parent, opt_proctab_t *opts) {
+	opt_proctab_t *op;
+	JSObject *newobj;
+	jsval val;
+
+	dprintf(dlevel,"opts: %p\n", opts);
+	newobj = JS_NewObject(cx,0,0,parent);
+	dprintf(dlevel,"newobj: %p\n", newobj);
+	if (opts) {
+		for(op = opts; op->keyword; op++) {
+			char value[1024];
+			if (op->dest) val = conv_type(DATA_TYPE_STRING,value,sizeof(value),op->type,op->dest,op->len);
+			else *value = 0;
+//			dprintf(dlevel,"op: name: %s, type: %d(%s), dest: %p, len: %d\n", op->name, op->type, typestr(op->type), op->dest, op->len);
+			dprintf(dlevel,"op: name: %s, type: %d(%s), value: %s, len: %d\n", op->name, op->type, typestr(op->type), value, op->len);
+			val = type_to_jsval(cx,op->type,op->dest,op->len);
+			JS_DefineProperty(cx, newobj, op->name, val, 0, 0, JSPROP_READONLY|JSPROP_ENUMERATE);
+			JS_free(cx,op->keyword);
+			JS_free(cx,op->name);
+			JS_free(cx,op->dest);
+			JS_free(cx,op->value);
+		}
+	}
+	/* Add optind */
+	val = type_to_jsval(cx,DATA_TYPE_INT,&optind,0);
+	JS_DefineProperty(cx, newobj, "optind", val, 0, 0, JSPROP_READONLY|JSPROP_ENUMERATE);
+
+	/* Create the opts property on the parent */
+	JS_DefineProperty(cx, parent, "opts", OBJECT_TO_JSVAL(newobj), 0, 0, JSPROP_READONLY|JSPROP_ENUMERATE);
+	return 0;
+}
+
+#endif

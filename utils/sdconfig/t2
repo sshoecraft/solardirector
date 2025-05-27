@@ -1,7 +1,0 @@
-
-a = 1;
-start:
-a++;
-printf("a: %s\n", a);
-if (a == 2) goto start;
-printf("a: %s\n", a);

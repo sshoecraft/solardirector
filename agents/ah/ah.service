@@ -1,0 +1,13 @@
+[Unit]
+Description=Air Handler Agent
+After=network-online.target network.target mosquitto.service influxdb.service
+
+[Service]
+Type=idle
+EnvironmentFile=/etc/sd.env
+ExecStartPre=/usr/bin/sleep 30
+ExecStart=/opt/sd/bin/ah -ic /opt/sd/etc/ah.json -l /opt/sd/log/ah.log -a
+Restart=on-failure
+
+[Install]
+WantedBy=multi-user.target

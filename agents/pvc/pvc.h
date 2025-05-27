@@ -1,33 +1,28 @@
 
-/*
-Copyright (c) 2022, Stephen P. Shoecraft
-All rights reserved.
-
-This source code is licensed under the BSD-style license found in the
-LICENSE file in the root directory of this source tree.
-*/
-
 #ifndef __PVC_H
 #define __PVC_H
 
 #include "agent.h"
 #include "pvinverter.h"
-#include "client.h"
 
 struct pvc_session {
 	solard_agent_t *ap;
-	solard_client_t *c;
-	int interval;
-	list pvs;
-	float last_power;
+	char data_source[128];
+	mqtt_session_t *m;
 	bool log_power;
+	int last_power;
+	list agents;
 };
 typedef struct pvc_session pvc_session_t;
 
-extern solard_driver_t pvc_driver;
+struct _pvc_agentinfo {
+	char name[SOLARD_NAME_LEN];
+	char role[SOLARD_ROLE_LEN];
+	bool have_data;
+	solard_pvinverter_t data;
+};
+typedef struct _pvc_agentinfo pvc_agentinfo_t;
 
-#ifdef JS
-int pvc_jsinit(JSContext *cx, JSObject *parent, void *priv);
-#endif
+extern solard_driver_t pvc_driver;
 
 #endif

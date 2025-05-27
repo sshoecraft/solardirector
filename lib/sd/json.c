@@ -629,7 +629,7 @@ int json_to_type(int dt, void *dest, int len, json_value_t *v) {
 			char value[32768];
 			char *str,*p;
 
-	dprintf(-1,"dt: %d(%s), dest: %p, dsize: %d, json_type: %s\n", dt, typestr(dt), dest, len, json_typestr(VAL(v)->type));
+//	dprintf(-1,"dt: %d(%s), dest: %p, dsize: %d, json_type: %s\n", dt, typestr(dt), dest, len, json_typestr(VAL(v)->type));
 			a = parson_array(VAL(v));
 			for (i = size = 0; i < a->count; i++) {
 				json_to_type(DATA_TYPE_STRING,value,sizeof(value),(json_value_t *)a->items[i]);

@@ -2,7 +2,7 @@
 MAKE_JOBS?=$(shell cat /proc/cpuinfo | grep -c ^processor)
 
 all:
-	@for d in *; do test "$$d" = "lib" && continue; if test -d $$d; then make -j $$MAKE_JOBS -C $$d || exit 1; fi; done
+	@for d in *; do test "$$d" = "lib" && continue; echo $$d; if test -d $$d; then make -j $$MAKE_JOBS -C $$d || exit 1; fi; done
 
 install release clean cleanall::
 	for d in *; do if test -d $$d; then make -C $$d $@; fi; done

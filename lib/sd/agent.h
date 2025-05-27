@@ -62,12 +62,13 @@ struct solard_agent {
 		int rtsize;
 		int stksize;
 		bool run_scripts;
-		JSPropertySpec *props;
-		JSFunctionSpec *funcs;
+		config_property_t *props;
+		config_function_t *funcs;
 		jsval agent_val;
 		jsval config_val;
 		jsval mqtt_val;
 		jsval influx_val;
+		jsval event_val;
 		int gc_interval;
 		int ignore_js_errors;
 		char script_dir[SOLARD_PATH_MAX];
@@ -89,6 +90,7 @@ struct solard_agent {
 	int status;
 	char errmsg[128];
 	bool debug_mem;
+	bool debug_mem_always;
 	void *private;			/* Per-instance private data */
 	bool refresh;
 };
@@ -108,14 +110,15 @@ struct js_agent_rootinfo {
 
 /* Agent flags */
 #define AGENT_FLAG_NOMQTT		0x0001          /* Dont't init MQTT */
-#define AGENT_FLAG_NOINFLUX		0x0020		/* Don't init influx */
-#define AGENT_FLAG_NOJS			0x0040		/* Don't init JSEngine */
-#define AGENT_FLAG_NOEVENT		0x0080		/* Don't init Event subsystem */
-#define SOLARD_AGENT_FLAG_OBREAD        0x0100          /* Open before reading */
-#define SOLARD_AGENT_FLAG_CAREAD        0x0200          /* Close after reading */
-#define SOLARD_AGENT_FLAG_OBWRITE       0x0400          /* Open before writing */
-#define SOLARD_AGENT_FLAG_CAWRITE       0x0800          /* Close after wrtiing */
-#define AGENT_FLAG_AUTOCONFIG		0x1000		/* Automatically find and load config file */
+#define AGENT_FLAG_NOINFLUX		0x0002		/* Don't init influx */
+#define AGENT_FLAG_NOJS			0x0004		/* Don't init JSEngine */
+#define AGENT_FLAG_NOEVENT		0x0008		/* Don't init Event subsystem */
+#define AGENT_FLAG_NOPUB		0x0010		/* Don't publish during init */
+#define AGENT_FLAG_AUTOCONFIG		0x0020		/* Automatically find and load config file during init */
+#define SOLARD_AGENT_FLAG_OBREAD        0x1000          /* Open before reading */
+#define SOLARD_AGENT_FLAG_CAREAD        0x2000          /* Close after reading */
+#define SOLARD_AGENT_FLAG_OBWRITE       0x4000          /* Open before writing */
+#define SOLARD_AGENT_FLAG_CAWRITE       0x8000          /* Close after wrtiing */
 #define AGENT_FLAG_NOALL		AGENT_FLAG_NOMQTT | AGENT_FLAG_NOINFLUX | AGENT_FLAG_NOJS | AGENT_FLAG_NOEVENT
 
 /* Special config func */
@@ -156,6 +159,7 @@ int agent_script_exists(solard_agent_t *ap, char *name);
 JSObject *js_InitAgentClass(JSContext *cx, JSObject *global_object);
 JSObject *js_agent_new(JSContext *cx, JSObject *parent, void *priv);
 int agent_jsexec(solard_agent_t *ap, char *string);
+int _js_agent_obj_init(JSContext *cx, JSObject *obj);
 #endif
 
 #endif /* __SD_AGENT_H */

@@ -40,7 +40,7 @@ struct mqtt_session {
 	MQTTClient_SSLOptions *ssl_opts;
 	list subs;
 	int connected;
-	char errmsg[128];
+	char errmsg[256];
 	/* for CTOR only */
 	bool ctor;
 	list mq;

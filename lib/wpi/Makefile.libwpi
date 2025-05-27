@@ -1,0 +1,15 @@
+
+include ../../make.opts
+
+ifeq ($(JS),yes)
+	_NJ=-js
+	_OJ=.js
+endif
+LIBNAME=wpi$(_NJ)
+SRCS=wpi.c bme280.c
+
+OBJSUFFIX=$(_OJ)
+
+WPI=yes
+
+include ../../Makefile.sd

@@ -1,3 +1,4 @@
+
 ///////////////////////////////////////////////////////////////////////////////
 // \author (c) Marco Paland (info@paland.com)
 //             2014-2019, PALANDesign Hannover, Germany
@@ -30,7 +31,8 @@
 //
 ///////////////////////////////////////////////////////////////////////////////
 
-#define DEBUG_THIS 0
+#define DEBUG_THIS 1
+#define DEBUG_JSPRINTF 0
 
 #ifdef DEBUG
 #undef DEBUG
@@ -643,7 +645,7 @@ static int _getarg(void *dest, JSContext *cx, int *idx, int argc, jsval *argv, e
 
 	dprintf(dlevel,"arg[%d] type: %s\n", *idx, jstypestr(cx, argv[*idx]));
 
-	dprintf(dlevel,"arg type: %d(%s)\n", type, _typestr(type));
+	dprintf(dlevel,"arg type: %d(%s)\n", type, jstypestr(cx,type));
 	switch(type) {
 	case JSARG_TYPE_CHAR:
 		jsval_to_type(DATA_TYPE_S8,dest,1,cx,argv[*idx]);
@@ -730,7 +732,7 @@ static int js_vsnprintf(out_fct_type out, bufinfo_t *b, JSContext *cx, JSObject 
 		} else if (*format == '*') {
 //			const int w = va_arg(va, int);
 			int w;
-			if (_getarg(&w, cx, &argvidx, argc, argv, JSARG_TYPE_INT)) return -1;
+			if (_getarg(&w, cx, &argvidx, argc, argv, JSARG_TYPE_INT)) goto js_vsnprintf_error;
 			if (w < 0) {
 				flags |= FLAGS_LEFT;    // reverse padding
 				width = (unsigned int)-w;
@@ -750,7 +752,7 @@ static int js_vsnprintf(out_fct_type out, bufinfo_t *b, JSContext *cx, JSObject 
 			} else if (*format == '*') {
 //				const int prec = (int)va_arg(va, int);
 				int prec;
-				if (_getarg(&prec, cx, &argvidx, argc, argv, JSARG_TYPE_INT)) return -1;
+				if (_getarg(&prec, cx, &argvidx, argc, argv, JSARG_TYPE_INT)) goto js_vsnprintf_error;
 				precision = prec > 0 ? (unsigned int)prec : 0U;
 				format++;
 			}
@@ -835,24 +837,24 @@ static int js_vsnprintf(out_fct_type out, bufinfo_t *b, JSContext *cx, JSObject 
 			#if defined(PRINTF_SUPPORT_LONG_LONG)
 	//		    const long long value = va_arg(va, long long);
 			    long long value;
-				if (_getarg(&value, cx, &argvidx, argc, argv, JSARG_TYPE_INT)) return -1;
+				if (_getarg(&value, cx, &argvidx, argc, argv, JSARG_TYPE_INT)) goto js_vsnprintf_error;
 			    idx = _ntoa_long_long(out,b, idx, (unsigned long long)(value > 0 ? value : 0 - value), value < 0, base, precision, width, flags);
 			#endif
 			  }
 			  else if (flags & FLAGS_LONG) {
 	//		    const long value = va_arg(va, long);
 			    long value;
-				if (_getarg(&value, cx, &argvidx, argc, argv, JSARG_TYPE_INT)) return -1;
+				if (_getarg(&value, cx, &argvidx, argc, argv, JSARG_TYPE_INT)) goto js_vsnprintf_error;
 			    idx = _ntoa_long(out,b, idx, (unsigned long)(value > 0 ? value : 0 - value), value < 0, base, precision, width, flags);
 			  } else {
 	//		    const int value = (flags & FLAGS_CHAR) ? (char)va_arg(va, int) : (flags & FLAGS_SHORT) ? (short int)va_arg(va, int) : va_arg(va, int);
 			    int value;
 				if (flags & FLAGS_CHAR) {
-					if (_getarg(&value, cx, &argvidx, argc, argv, JSARG_TYPE_CHAR)) return -1;
+					if (_getarg(&value, cx, &argvidx, argc, argv, JSARG_TYPE_CHAR)) goto js_vsnprintf_error;
 				} else if (flags & FLAGS_SHORT) {
-					if (_getarg(&value, cx, &argvidx, argc, argv, JSARG_TYPE_SHORT)) return -1;
+					if (_getarg(&value, cx, &argvidx, argc, argv, JSARG_TYPE_SHORT)) goto js_vsnprintf_error;
 				} else {
-					if (_getarg(&value, cx, &argvidx, argc, argv, JSARG_TYPE_INT)) return -1;
+					if (_getarg(&value, cx, &argvidx, argc, argv, JSARG_TYPE_INT)) goto js_vsnprintf_error;
 				}
 			    idx = _ntoa_long(out,b, idx, (unsigned int)(value > 0 ? value : 0 - value), value < 0, base, precision, width, flags);
 			  }
@@ -863,7 +865,7 @@ static int js_vsnprintf(out_fct_type out, bufinfo_t *b, JSContext *cx, JSObject 
 			#if defined(PRINTF_SUPPORT_LONG_LONG)
 	//		    idx = _ntoa_long_long(out,b, idx, va_arg(va, unsigned long long), false, base, precision, width, flags);
 			    long long value;
-				if (_getarg(&value, cx, &argvidx, argc, argv, JSARG_TYPE_INT)) return -1;
+				if (_getarg(&value, cx, &argvidx, argc, argv, JSARG_TYPE_INT)) goto js_vsnprintf_error;
 				
 			    idx = _ntoa_long_long(out,b, idx, value, false, base, precision, width, flags);
 			#endif
@@ -871,18 +873,18 @@ static int js_vsnprintf(out_fct_type out, bufinfo_t *b, JSContext *cx, JSObject 
 			  else if (flags & FLAGS_LONG) {
 	//		    idx = _ntoa_long(out,b, idx, va_arg(va, unsigned long), false, base, precision, width, flags);
 			    long long value;
-				if (_getarg(&value, cx, &argvidx, argc, argv, JSARG_TYPE_INT)) return -1;
+				if (_getarg(&value, cx, &argvidx, argc, argv, JSARG_TYPE_INT)) goto js_vsnprintf_error;
 			    idx = _ntoa_long(out,b, idx, value, false, base, precision, width, flags);
 			  }
 			  else {
 	//		    const unsigned int value = (flags & FLAGS_CHAR) ? (unsigned char)va_arg(va, unsigned int) : (flags & FLAGS_SHORT) ? (unsigned short int)va_arg(va, unsigned int) : va_arg(va, unsigned int);
 			    unsigned int value;
 				if (flags & FLAGS_CHAR) {
-					if (_getarg(&value, cx, &argvidx, argc, argv, JSARG_TYPE_UCHAR)) return -1;
+					if (_getarg(&value, cx, &argvidx, argc, argv, JSARG_TYPE_UCHAR)) goto js_vsnprintf_error;
 				} else if (flags & FLAGS_SHORT) {
-					if (_getarg(&value, cx, &argvidx, argc, argv, JSARG_TYPE_USHORT)) return -1;
+					if (_getarg(&value, cx, &argvidx, argc, argv, JSARG_TYPE_USHORT)) goto js_vsnprintf_error;
 				} else {
-					if (_getarg(&value, cx, &argvidx, argc, argv, JSARG_TYPE_UINT)) return -1;
+					if (_getarg(&value, cx, &argvidx, argc, argv, JSARG_TYPE_UINT)) goto js_vsnprintf_error;
 				}
 			    idx = _ntoa_long(out,b, idx, value, false, base, precision, width, flags);
 			  }
@@ -898,7 +900,7 @@ static int js_vsnprintf(out_fct_type out, bufinfo_t *b, JSContext *cx, JSObject 
 
 				if (*format == 'F') flags |= FLAGS_UPPERCASE;
 //				idx = _ftoa(out,b, idx, va_arg(va, double), precision, width, flags);
-				if (_getarg(&value, cx, &argvidx, argc, argv, JSARG_TYPE_DOUBLE)) return -1;
+				if (_getarg(&value, cx, &argvidx, argc, argv, JSARG_TYPE_DOUBLE)) goto js_vsnprintf_error;
 				idx = _ftoa(out,b, idx, value, precision, width, flags);
 				format++;
 				break;
@@ -913,7 +915,7 @@ static int js_vsnprintf(out_fct_type out, bufinfo_t *b, JSContext *cx, JSObject 
 				double value;
 				if ((*format == 'g')||(*format == 'G')) flags |= FLAGS_ADAPT_EXP;
 				if ((*format == 'E')||(*format == 'G')) flags |= FLAGS_UPPERCASE;
-				if (_getarg(&value, cx, &argvidx, argc, argv, JSARG_TYPE_DOUBLE)) return -1;
+				if (_getarg(&value, cx, &argvidx, argc, argv, JSARG_TYPE_DOUBLE)) goto js_vsnprintf_error;
 				idx = _etoa(out,b, idx, value, precision, width, flags);
 				format++;
 				break;
@@ -932,7 +934,7 @@ static int js_vsnprintf(out_fct_type out, bufinfo_t *b, JSContext *cx, JSObject 
 //		out((char)va_arg(va, int),b, idx++);
 		{
 			char ch;
-			if (_getarg(&ch, cx, &argvidx, argc, argv, JSARG_TYPE_CHAR)) return -1;
+			if (_getarg(&ch, cx, &argvidx, argc, argv, JSARG_TYPE_CHAR)) goto js_vsnprintf_error;
 			out(ch,b, idx++);
 		}
 		// post padding
@@ -948,7 +950,8 @@ static int js_vsnprintf(out_fct_type out, bufinfo_t *b, JSContext *cx, JSObject 
 		case 's' : {
 //			const char* p = va_arg(va, char*);
 			const char *p, *_jsp;
-			if (_getarg(&_jsp, cx, &argvidx, argc, argv, JSARG_TYPE_STRING)) return -1;
+//			dprintf(dlevel,"debugmem: calling _getarg for string...\n");
+			if (_getarg(&_jsp, cx, &argvidx, argc, argv, JSARG_TYPE_STRING)) goto js_vsnprintf_error;
 			p = _jsp;
 			unsigned int l = _strnlen_s(p, precision ? precision : (size_t)-1);
 			// pre padding
@@ -971,6 +974,7 @@ static int js_vsnprintf(out_fct_type out, bufinfo_t *b, JSContext *cx, JSObject 
 			  }
 			}
 			format++;
+//			dprintf(dlevel,"debugmem: freeing string...\n");
 			JS_free(cx,(char *)_jsp);
 			break;
 		}
@@ -1015,6 +1019,10 @@ static int js_vsnprintf(out_fct_type out, bufinfo_t *b, JSContext *cx, JSObject 
 	// return written chars without terminating \0
 	JS_free(cx,(char *)_jsfmt);
 	return (int)idx;
+
+js_vsnprintf_error:
+	JS_free(cx,(char *)_jsfmt);
+	return -1;
 }
 
 
@@ -1092,23 +1100,24 @@ JSBool js_log_write(int flags, JSContext *cx, uintN argc, jsval *vp) {
         if (!obj) return JS_FALSE;
 
 	r = JS_FALSE;
-	if (_getbuf(&buf,cx)) goto JS_SPrintf_done;
+	if (_getbuf(&buf,cx)) goto js_log_write_done;
 	ret = js_vsnprintf(_out_buffer, &buf, cx, obj, argc, argv);
 	dprintf(dlevel,"ret: %d\n", ret);
 	if (ret < 0) {
 		JS_ReportError(cx, "log_write: not enough arguments for format");
-		goto JS_SPrintf_done;
+		goto js_log_write_done;
 	}
 	buf.ptr[ret] = 0;
-	dprintf(1,"flags: %04x, buffer: %s\n", flags, buf.ptr);
+	dprintf(dlevel,"flags: %04x, buffer: %s\n", flags, buf.ptr);
 	log_write(flags,"%s",buf.ptr);
 	r = JS_TRUE;
-JS_SPrintf_done:
+js_log_write_done:
 	if (buf.ptr) JS_free(cx,buf.ptr);
 	return r;
 }
 
 JSBool JS_DPrintf(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rval) {
+#if defined(DEBUG) && DEBUG > 0
 	char prefix[256],*p;
 	bufinfo_t buf;
 	JSEngine *e;
@@ -1159,7 +1168,6 @@ JSBool JS_DPrintf(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *
 //		printf("fp->fun: %p\n", fp->fun);
 		if (fp->fun) {
 			char *fname = (char *)JS_GetFunctionName(fp->fun);
-//			printf("fname: %s\n", fname);
 			if (fname && strcmp(fname,"anonymous") != 0) {
 				p += sprintf(p, " %s", fname);
 //				JS_free(cx,fname);
@@ -1174,6 +1182,9 @@ JSBool JS_DPrintf(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *
 JS_DPrintf_done:
 	if (buf.ptr) JS_free(cx,buf.ptr);
 	return r;
+#else
+	return JS_TRUE;
+#endif
 }
 
 #if 0

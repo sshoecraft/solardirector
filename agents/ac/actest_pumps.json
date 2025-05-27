@@ -1,0 +1,16 @@
+{
+    "testprimer":{
+        "wait_time":5
+    },
+    "unit1":{
+        "wait_time":5,
+        "primer":"testprimer",
+        "warmup":5,
+        "cooldown":5
+    },
+    "ahtest":{
+        "wait_time":5,
+        "primer":"testprimer",
+        "warmup":5
+    }
+}

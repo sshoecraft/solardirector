@@ -78,7 +78,8 @@ struct solard_power {
 };
 typedef struct solard_power solard_power_t;
 
-extern char SOLARD_BINDIR[SOLARD_PATH_MAX], SOLARD_ETCDIR[SOLARD_PATH_MAX], SOLARD_LIBDIR[SOLARD_PATH_MAX], SOLARD_LOGDIR[SOLARD_PATH_MAX];
+extern char SOLARD_BINDIR[SOLARD_PATH_MAX], SOLARD_ETCDIR[SOLARD_PATH_MAX], SOLARD_LIBDIR[SOLARD_PATH_MAX], SOLARD_LOGDIR[SOLARD_PATH_MAX], SOLARD_TEMPDIR[SOLARD_PATH_MAX];
+extern char SOLARD_TZ[16], SOLARD_TZNAME[128];
 
 /* Macros */
 #define STRINGIFY2(x) #x
@@ -132,6 +133,7 @@ void common_shutdown(void);
 
 
 void common_add_props(config_t *, char *);
+void common_read_config(config_t *, char *);
 json_object_t *solard_create_results(int status, char *errmsg, ...);
 
 #ifdef JS

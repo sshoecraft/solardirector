@@ -17,18 +17,21 @@ LICENSE file in the root directory of this source tree.
 #include "jsstr.h"
 #include "jsprintf.h"
 
+static JSClass si_data_class;
 static JSBool si_data_getprop(JSContext *cx, JSObject *obj, jsval id, jsval *vp) {
 	si_session_t *s;
 
 	s = JS_GetPrivate(cx,obj);
-	return js_config_common_getprop(cx, obj, id, vp, s->ap->cp, s->data_props);
+//	return js_config_common_getprop(cx, obj, id, vp, s->ap->cp, s->data_props);
+	return js_config_common_getprop(cx, obj, id, vp, s->ap->cp, 0);
 }
 
 static JSBool si_data_setprop(JSContext *cx, JSObject *obj, jsval id, jsval *vp) {
 	si_session_t *s;
 
 	s = JS_GetPrivate(cx,obj);
-	return js_config_common_setprop(cx, obj, id, vp, s->ap->cp, s->data_props);
+//	return js_config_common_setprop(cx, obj, id, vp, s->ap->cp, s->data_props);
+	return js_config_common_setprop(cx, obj, id, vp, s->ap->cp, 0);
 }
 
 static JSClass si_data_class = {
@@ -388,6 +391,24 @@ JSBool si_callfunc(JSContext *cx, uintN argc, jsval *vp) {
 	return js_config_callfunc(s->ap->cp, cx, argc, vp);
 }
 
+static JSBool js_si_signal(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rval) {
+        si_session_t *s;
+        char *module,*action;
+
+        s = JS_GetPrivate(cx, obj);
+        dprintf(dlevel,"s: %p\n", s);
+        if (!s) {
+                JS_ReportError(cx,"ac private is null!\n");
+                return JS_FALSE;
+        }
+        module = action = 0;
+        if (!JS_ConvertArguments(cx, argc, argv, "s s", &module, &action)) return JS_FALSE;
+        agent_event(s->ap,module,action);
+        if (module) JS_free(cx,module);
+        if (action) JS_free(cx,action);
+        return JS_TRUE;
+}
+
 static int js_si_init(JSContext *cx, JSObject *parent, void *priv) {
 	si_session_t *s = priv;
 	JSPropertySpec si_props[] = {
@@ -402,6 +423,7 @@ static int js_si_init(JSContext *cx, JSObject *parent, void *priv) {
 	JSFunctionSpec si_funcs[] = {
 		JS_FN("can_read",jssi_can_read,1,1,0),
 		JS_FN("can_write",jssi_can_write,2,2,0),
+		JS_FS("signal",js_si_signal,2,2,0),
 		JS_FN("notify",jssi_notify,0,0,0),
 		{ 0 }
 	};
@@ -486,6 +508,7 @@ static int js_si_init(JSContext *cx, JSObject *parent, void *priv) {
 	JS_DefineProperty(cx, parent, "config", s->ap->js.config_val, 0, 0, JSPROP_ENUMERATE);
 	JS_DefineProperty(cx, parent, "mqtt", s->ap->js.mqtt_val, 0, 0, JSPROP_ENUMERATE);
 	JS_DefineProperty(cx, parent, "influx", s->ap->js.influx_val, 0, 0, JSPROP_ENUMERATE);
+	JS_DefineProperty(cx, parent, "event", s->ap->js.event_val, 0, 0, JSPROP_ENUMERATE);
 	return 0;
 }
 

@@ -1,11 +1,10 @@
 {
     "ah": {
-        "air_in_ch": 0,
-        "air_out_ch": 1,
-        "water_in_ch": 2,
-        "water_out_ch": 3
-    },
-    "template": {
-        "script_dir": "."
+        "sim_enable": 1,
+        "name": "ahtest",
+        "interval": 10,
+        "script_dir": ".",
+        "mqtt_uri": "tcp:\/\/localhost:1883",
+        "influx_endpoint": "localhost:8086"
     }
 }

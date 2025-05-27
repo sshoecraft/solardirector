@@ -33,6 +33,7 @@ char *js_string(JSContext *cx, jsval val) {
 	return JS_EncodeString(cx, str);
 }
 
+#if 0
 char *JS_GetObjectName((JSContext *cx, JSObject *obj) {
         JSIdArray *ida;
         jsval *ids,val;
@@ -73,3 +74,4 @@ char *JS_GetObjectName((JSContext *cx, JSObject *obj) {
 
 //        dprintf(0,"not found\n");
 }
+#endif

@@ -7,7 +7,7 @@ This source code is licensed under the BSD-style license found in the
 LICENSE file in the root directory of this source tree.
 */
 
-#define dlevel 7
+#define dlevel 6
 #include "debug.h"
 
 #include <stdio.h>
@@ -53,20 +53,20 @@ typedef enum {
  * @return Indicates if the operation succeeded, or why it failed.
  */
 static str2int_errno str2int(int *out, char *s, int base) {
-    char *end;
-    if (s[0] == '\0' || isspace(s[0]))
-        return STR2INT_INCONVERTIBLE;
-    errno = 0;
-    long l = strtol(s, &end, base);
-    /* Both checks are needed because INT_MAX == LONG_MAX is possible. */
-    if (l > INT_MAX || (errno == ERANGE && l == LONG_MAX))
-        return STR2INT_OVERFLOW;
-    if (l < INT_MIN || (errno == ERANGE && l == LONG_MIN))
-        return STR2INT_UNDERFLOW;
-    if (*end != '\0')
-        return STR2INT_INCONVERTIBLE;
-    *out = l;
-    return STR2INT_SUCCESS;
+	char *end;
+	if (s[0] == '\0' || isspace(s[0]))
+	return STR2INT_INCONVERTIBLE;
+	errno = 0;
+	long l = strtol(s, &end, base);
+	/* Both checks are needed because INT_MAX == LONG_MAX is possible. */
+	if (l > INT_MAX || (errno == ERANGE && l == LONG_MAX))
+	return STR2INT_OVERFLOW;
+	if (l < INT_MIN || (errno == ERANGE && l == LONG_MIN))
+	return STR2INT_UNDERFLOW;
+	if (*end != '\0')
+	return STR2INT_INCONVERTIBLE;
+	*out = l;
+	return STR2INT_SUCCESS;
 }
 #endif
 
@@ -86,6 +86,7 @@ static void str2list(list dest,char *src) {
 static unsigned long long int _getmult(char *s) {
 	unsigned long long int m = 1;
 	if (s) {
+		dprintf(dlevel,"s: %s(%d)\n", s, strlen(s));
 		if (!*s) return 1;
 		uint8_t c = *((char *)s + (strlen(s) - 1));
 		dprintf(dlevel,"c(%x): %c\n", c, c);
@@ -111,17 +112,17 @@ static unsigned long long int _getmult(char *s) {
 }
 
 static int _str2int(char *s) {
-	int i;
+	int i = 0;
 
-//	dprintf(dlevel,"s: %s\n", (char *)s);
+	dprintf(dlevel,"s: %s\n", (char *)s);
 	if (strncmp(s,"0x",2) == 0 || strncmp(s,"0X",2) == 0) {
 		sscanf(s,"%x",&i);
 	} else {
 		sscanf(s,"%d",&i);
 	}
-//	dprintf(dlevel,"i: %x\n", i);
+	dprintf(dlevel,"i: %d\n", i);
 	i *= _getmult(s);
-//	dprintf(dlevel,"i: %x\n", i);
+	dprintf(dlevel,"returning: %d\n", i);
 	return i;
 }
 
@@ -129,7 +130,8 @@ int conv_type(int dt,void *d,int dl,int st,void *s,int sl) {
 	register int i;
 	int return_len;
 
-	dprintf(dlevel,"dt: %d(%s), d: %p, dl: %d, st: %d(%s), s: %p, sl: %d\n", dt, typestr(dt), d, dl, st, typestr(st), s, sl);
+//	dprintf(-1,"dt: %d(%s), d: %p, dl: %d, st: %d(%s), s: %p, sl: %d\n", dt, typestr(dt), d, dl, st, typestr(st), s, sl);
+//	dprintf(dlevel,"dt: %d(%s)\n", dt, typestr(dt));
 
 	return_len = -1;
 	switch(dt) {
@@ -141,10 +143,16 @@ int conv_type(int dt,void *d,int dl,int st,void *s,int sl) {
 			*dest = 0;
 			break;
 		case DATA_TYPE_STRING:
-			*dest = 0;
-			dprintf(dlevel,"src: %s\n", (char *)s);
-			strncat(dest,s,dl);
-			trim(dest);
+			return_len = snprintf(dest,dl,"%s",(char *)s);
+#if 0 
+			if (dl == 1) {
+				*dest = 0;
+			} else {
+//				dprintf(dlevel,"src: %s\n", (char *)s);
+				strncpy(dest,s,dl);
+				trim(dest);
+			}
+#endif
 			break;
 		case DATA_TYPE_S8:
 			return_len = snprintf(d,dl,"%d",*((int8_t *)s));

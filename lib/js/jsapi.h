@@ -40,6 +40,7 @@
 
 #ifndef jsapi_h___
 #define jsapi_h___
+
 /*
  * JavaScript API.
  */
@@ -1504,7 +1505,8 @@ JS_GetClass(JSContext *cx, JSObject *obj);
 #define JS_GET_CLASS(cx,obj) JS_GetClass(cx, obj)
 #else
 extern JS_PUBLIC_API(JSClass *)
-JS_GetClass(JSObject *obj);
+//JS_GetClass(JSObject *obj);
+JS_GetClass(JSContext *cx, JSObject *obj);
 
 #define JS_GET_CLASS(cx,obj) JS_GetClass(obj)
 #endif

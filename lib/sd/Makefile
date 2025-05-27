@@ -2,12 +2,12 @@
 SCRIPTS=*.js
 
 all:
-	./mklib.sh
+	./mklib.sh $(JS) $(MQTT) $(INFLUX) $(RELEASE)
 
 include ../../Makefile.sd
 
 install:
-	./mklib.sh $@
+	./mklib.sh $(JS) $(MQTT) $(INFLUX) $(RELEASE) install
 ifeq ($(JS),yes)
 ifneq ("$(wildcard $(SCRIPTS))","")
 	mkdir -p $(LIBDIR)/sd

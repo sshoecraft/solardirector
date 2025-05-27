@@ -28,6 +28,25 @@ static list mqtt_sessions = 0;
 static list js_ctxs = 0;
 #endif
 
+void mqtt_dump(mqtt_session_t *s) {
+	char *topic;
+
+#define DFMT "%-15s: %d\n"
+#define SFMT "%-15s: %s\n"
+	printf(DFMT,"v3",s->v3);
+	printf(DFMT,"enabled",s->enabled);
+	printf(DFMT,"connected",s->connected);
+	printf(SFMT,"uri",s->uri);
+	printf(SFMT,"clientid",s->clientid);
+	printf(SFMT,"username",s->username);
+	printf(SFMT,"lwt_topic",s->lwt_topic);
+	printf(DFMT,"interval",s->interval);
+	printf(DFMT,"sub count",list_count(s->subs));
+	list_reset(s->subs);
+	while((topic = list_get_next(s->subs)) != 0) printf("  %s\n", topic);
+	printf(SFMT,"errmsg",s->errmsg);
+}
+
 int mqtt_parse_config(mqtt_session_t *s, char *mqtt_info) {
 	dprintf(dlevel,"mqtt_info: %s\n", mqtt_info);
 	strncpy(s->uri,strele(0,",",mqtt_info),sizeof(s->uri)-1);
@@ -47,6 +66,7 @@ int mqtt_get_config(char *mqtt_info, int size, mqtt_session_t *s, int id) {
 int mqtt_init(mqtt_session_t *s) {
 
 	dprintf(dlevel,"s: %p\n", s);
+	if (!s) return 1;
 
 	if (!strlen(s->uri)) {
 		log_write(LOG_WARNING,"mqtt uri not specified, using localhost\n");
@@ -97,12 +117,12 @@ void logProperties(MQTTProperties *props) {
 static void mqtt_conlost(void *ctx, char *cause) {
 	mqtt_session_t *s = ctx;
 
-	dprintf(dlevel,"cause: %s\n", cause);
+	dprintf(-1,"cause: %s\n", cause);
 	s->connected = false;
 }
 
 static void mqtt_get_reason(mqtt_session_t *s, int rc) {
-	char reason[2048];
+	char reason[192];
 	char *p = (char *)MQTTReasonCode_toString(rc);
 
 	*reason = 0;
@@ -221,6 +241,7 @@ struct mqtt_session *mqtt_new(bool v3, mqtt_callback_t *cb, void *ctx) {
 	return s;
 }
 
+#if 0
 int mqtt_set_ssl(mqtt_session_t *s, mqtt_sslinfo_t *info) {
 #if 0
 		mqtt_destroy_session(s);
@@ -240,6 +261,7 @@ void * 	ssl_error_context
 #endif
 	return 0;
 }
+#endif
 
 int mqtt_connect(mqtt_session_t *s, int interval) {
 	MQTTClient_willOptions will_opts = MQTTClient_willOptions_initializer;
@@ -249,6 +271,8 @@ int mqtt_connect(mqtt_session_t *s, int interval) {
 	MQTTClient_SSLOptions ssl_opts = MQTTClient_SSLOptions_initializer;
 	bool have_ssl;
 	int rc;
+
+	dprintf(dlevel,"s: %p, interval: %d\n", s, interval);
 
 	if (!s) return 1;
 	dprintf(dlevel,"enabled: %d\n", s->enabled);
@@ -309,19 +333,17 @@ int mqtt_connect(mqtt_session_t *s, int interval) {
 		MQTTResponse_free(response);
 	}
 
-	dprintf(dlevel,"rc: %d\n", rc);
+	dprintf(dlevel,"rc: %d, SUCCESS: %d\n", rc, MQTTCLIENT_SUCCESS);
 	if (rc != MQTTCLIENT_SUCCESS) {
 		if (rc == 5) {
 			strcpy(s->errmsg,"MQTT: bad username or password");
-			return 1;
 		} else {
 			mqtt_get_reason(s,rc);
 		}
 		return 1;
-	} else if (strlen(s->lwt_topic)) {
-		mqtt_pub(s,s->lwt_topic,"Online",1,1);
 	}
 	s->connected = true;
+	if (strlen(s->lwt_topic)) mqtt_pub(s,s->lwt_topic,"Online",1,1);
 
 	/* If we have a list of subs, resub */
 	dprintf(dlevel,"count: %d\n", list_count(s->subs));
@@ -364,22 +386,24 @@ int mqtt_resub(mqtt_session_t *s) {
 }
 
 int mqtt_reconnect(mqtt_session_t *s) {
-	int ldlevel = dlevel;
+
+	dprintf(dlevel,"s: %p\n", s);
 
 	if (!s) return 1;
-	dprintf(ldlevel,"enabled: %d\n", s->enabled);
+	dprintf(dlevel,"enabled: %d\n", s->enabled);
 	if (!s->enabled) return 0;
 
-	dprintf(ldlevel,"reconnecting...\n");
+	dprintf(-1,"reconnecting...\n");
 	if (mqtt_disconnect(s,TIMEOUT)) return 1;
 	if (mqtt_connect(s,20)) return 1;
 	if (mqtt_resub(s)) return 1;
-	dprintf(ldlevel,"reconnect done!\n");
+	dprintf(dlevel,"reconnect done!\n");
 	return 0;
 }
 
 void mqtt_set_lwt(mqtt_session_t *s, char *new_topic) {
 
+	dprintf(dlevel,"s: %p, new_topic: %s\n", s, new_topic);
 	if (!s) return;
 
 	dprintf(dlevel,"old topic: %s, new topic: %s\n", s->lwt_topic, new_topic);
@@ -440,10 +464,10 @@ void mqtt_shutdown(void) {
 			list_reset(mqtt_sessions);
 			s = list_get_next(mqtt_sessions);
 			if (!s) break;
-			mqtt_destroy_session(s);
+			if (!s->ctor) mqtt_destroy_session(s);
 		}
-		list_destroy(mqtt_sessions);
-		mqtt_sessions = 0;
+//		list_destroy(mqtt_sessions);
+//		mqtt_sessions = 0;
 	}
 #ifdef JS
 	if (js_ctxs) {
@@ -463,13 +487,15 @@ int mqtt_pub(mqtt_session_t *s, char *topic, char *message, int wait, int retain
 	MQTTResponse response = MQTTResponse_initializer;
 	int rc,rt,retry;
 
-//	dprintf(dlevel,"s: %d\n", s);
+	int ldlevel = dlevel;
+
+	dprintf(ldlevel,"s: %p, topic: %s, message: %s, wait: %d, retain: %d\n",
+		s,topic,message,wait,retain);
+
 	if (!s) return 1;
 
-//	dprintf(dlevel,"enabled: %d\n", s->enabled);
+	dprintf(ldlevel,"enabled: %d\n", s->enabled);
 	if (!s->enabled) return 0;
-
-//	dprintf(dlevel,"topic: %s, msglen: %ld, retain: %d\n", topic, message ? strlen(message) : 0, retain);
 
 	if (message) {
 		pubmsg.payload = message;
@@ -493,7 +519,7 @@ int mqtt_pub(mqtt_session_t *s, char *topic, char *message, int wait, int retain
 	token = 0;
 	retry = 0;
 again:
-	dprintf(dlevel,"publishing...\n");
+	dprintf(ldlevel,"publishing...\n");
 	if (s->v3) {
 		rc = MQTTClient_publishMessage(s->c, topic, &pubmsg, &token);
 	} else {
@@ -501,11 +527,12 @@ again:
 		rc = response.reasonCode;
 		MQTTResponse_free(response);
 	}
-	dprintf(dlevel,"rc: %d\n", rc);
+	dprintf(ldlevel,"rc: %d\n", rc);
 	if (rc != MQTTCLIENT_SUCCESS) {
-		dprintf(dlevel,"publish error\n");
+		dprintf(ldlevel,"publish error\n");
 		mqtt_get_reason(s,rc);
 		if (!retry) {
+			dprintf(ldlevel,"calling reconnect!\n");
 			mqtt_reconnect(s);
 			retry = 1;
 			goto again;
@@ -514,14 +541,24 @@ again:
 		}
 	}
 	if (wait) {
-		dprintf(dlevel,"waiting...\n");
+		dprintf(ldlevel,"waiting...\n");
 		rc = MQTTClient_waitForCompletion(s->c, token, TIMEOUT);
-		dprintf(dlevel,"rc: %d\n", rc);
-		if (rc != MQTTCLIENT_SUCCESS) return 1;
+		dprintf(ldlevel,"rc: %d\n", rc);
+		if (rc != MQTTCLIENT_SUCCESS) {
+			mqtt_get_reason(s,rc);
+			if (!retry) {
+				dprintf(ldlevel,"calling reconnect!\n");
+				mqtt_reconnect(s);
+				retry = 1;
+				goto again;
+			} else {
+				return 1;
+			}
+		}
 	}
-	dprintf(dlevel,"delivered message... token: %d\n",token);
+	dprintf(ldlevel,"delivered message... token: %d\n",token);
 	if (rt) MQTTProperties_free(&pubmsg.properties);
-	dprintf(dlevel,"done!\n");
+	dprintf(ldlevel,"done!\n");
 	return 0;
 }
 
@@ -538,12 +575,15 @@ int mqtt_setcb(mqtt_session_t *s, void *ctx, MQTTClient_connectionLost *cl, MQTT
 static void mqtt_addsub(mqtt_session_t *s, char *topic) {
 	char *p;
 
+	dprintf(dlevel,"topic: %s\n", topic);
 	list_reset(s->subs);
 	while((p = list_get_next(s->subs)) != 0) {
 		if (strcmp(p,topic) == 0) {
+			dprintf(dlevel,"already subbed, not adding.\n");
 			return;
 		}
 	}
+	dprintf(dlevel,"adding!\n");
 	list_add(s->subs,topic,strlen(topic)+1);
 }
 
@@ -621,7 +661,7 @@ int mqtt_unsub(mqtt_session_t *s, char *topic) {
 	dprintf(dlevel,"enabled: %d\n", s->enabled);
 	if (!s->enabled) return 0;
 
-	dprintf(dlevel,"s: %p, topic: %s\n", s, topic);
+	dprintf(dlevel,"v3: %d, topic: %s\n", s->v3, topic);
 	if (s->v3) {
 		rc = MQTTClient_unsubscribe(s->c, topic);
 	} else {
@@ -679,6 +719,7 @@ static int mqtt_set_uri(void *ctx, config_property_t *p, void *old_value) {
 		/* create new client (with new uri) */
 		mqtt_newclient(s);
 		/* connect and resub */
+		dprintf(dlevel,"calling reconnect!\n");
 		mqtt_reconnect(s);
 		// send a message to any clients/agents to repub
 		dprintf(dlevel,"cb: %p\n", s->cb);
@@ -747,12 +788,14 @@ enum MQTT_PROPERTY_ID {
 	MQTT_PROPERTY_ID_ERRMSG,
 	MQTT_PROPERTY_ID_CONNECTED,
 	MQTT_PROPERTY_ID_MQ,
+	MQTT_PROPERTY_ID_SUBS,
+	MQTT_PROPERTY_ID_CONFIG,
 };
 
 #include "common.h"
 #include "message.h"
 
-static JSBool mqtt_getprop(JSContext *cx, JSObject *obj, jsval id, jsval *rval) {
+static JSBool js_mqtt_getprop(JSContext *cx, JSObject *obj, jsval id, jsval *rval) {
 	mqtt_session_t *s;
 	int prop_id;
 
@@ -796,12 +839,36 @@ static JSBool mqtt_getprop(JSContext *cx, JSObject *obj, jsval id, jsval *rval) 
 			else
 				*rval = JSVAL_VOID;
 			break;
+		case MQTT_PROPERTY_ID_SUBS:
+			{
+				JSObject *arr;
+				jsval val;
+				char *p;
+				int i;
+
+				arr = JS_NewArrayObject(cx, 0, NULL);
+				i = 0;
+				list_reset(s->subs);
+				while((p = list_get_next(s->subs)) != 0) {
+					val = type_to_jsval(cx,DATA_TYPE_STRINGP,p,0);
+					JS_SetElement(cx, arr, i++, &val);
+				}
+				*rval = OBJECT_TO_JSVAL(arr);
+			}
+			break;
+		case MQTT_PROPERTY_ID_CONFIG:
+			{
+				char temp[1024];
+				mqtt_get_config(temp,sizeof(temp),s,0);
+				*rval = type_to_jsval(cx,DATA_TYPE_STRING,temp,strlen(temp));
+			}
+			break;
 		}
 	}
 	return JS_TRUE;
 }
 
-static JSBool mqtt_setprop(JSContext *cx, JSObject *obj, jsval id, jsval *vp) {
+static JSBool js_mqtt_setprop(JSContext *cx, JSObject *obj, jsval id, jsval *vp) {
 	mqtt_session_t *s;
 	int prop_id;
 
@@ -835,25 +902,43 @@ static JSBool mqtt_setprop(JSContext *cx, JSObject *obj, jsval id, jsval *vp) {
 	return JS_TRUE;
 }
 
+static void js_mqtt_finalize(JSContext *cx, JSObject *obj) {
+	mqtt_session_t *s;
+
+	int ldlevel = 1;
+
+	dprintf(ldlevel,"**** MQTT FINALIZE ****\n");
+	s = JS_GetPrivate(cx, obj);
+	dprintf(ldlevel,"s: %p\n", s);
+	/* XXX return silently */
+	if (!s) return;
+	/* Only destroy sessions we created */
+	dprintf(ldlevel,"ctor: %d\n", s->ctor);
+	if (s->ctor) mqtt_destroy_session(s);
+	return;
+}
+
 static JSClass js_mqtt_class = {
 	"MQTT",			/* Name */
 	JSCLASS_HAS_PRIVATE,	/* Flags */
 	JS_PropertyStub,	/* addProperty */
 	JS_PropertyStub,	/* delProperty */
-	mqtt_getprop,		/* getProperty */
-	mqtt_setprop,		/* setProperty */
+	js_mqtt_getprop,	/* getProperty */
+	js_mqtt_setprop,	/* setProperty */
 	JS_EnumerateStub,	/* enumerate */
 	JS_ResolveStub,		/* resolve */
 	JS_ConvertStub,		/* convert */
-	JS_FinalizeStub,	/* finalize */
+	js_mqtt_finalize,	/* finalize */
 	JSCLASS_NO_OPTIONAL_MEMBERS
 };
 
+char *jsvaltojson(JSContext *cx, jsval val);
 
 static JSBool js_mqtt_pub(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rval) {
-	char *topic,*message;
-	int retain;
 	mqtt_session_t *s;
+	char *topic,*message;
+	bool retain;
+	int type;
 
 	s = JS_GetPrivate(cx, obj);
 	dprintf(dlevel,"s: %p\n", s);
@@ -862,21 +947,32 @@ static JSBool js_mqtt_pub(JSContext *cx, JSObject *obj, uintN argc, jsval *argv,
 		return JS_FALSE;
 	}
 	dprintf(dlevel,"argc: %d\n", argc);
-	if (argc < 2) {
-		JS_ReportError(cx, "mqtt.pub requires 2 arguments: topic (string), message (striing)");
-		return JS_FALSE;
+	if (argc < 2) goto js_mqtt_pub_usage;
+	retain = false;
+	if (argc > 2) {
+		jsval_to_type(DATA_TYPE_BOOL,&retain,0,cx,argv[2]);
+		dprintf(-1,"NEW retain: %d\n", retain);
 	}
-	topic = message = 0;
-	retain = 0;
-	if (!JS_ConvertArguments(cx, argc, argv, "s s / i", &topic, &message, &retain)) return JS_FALSE;
-	dprintf(dlevel,"topic: %s, message: %s, retain: %d\n", topic, message, retain);
 
+	if (JS_TypeOfValue(cx,argv[0]) != JSTYPE_STRING) goto js_mqtt_pub_usage;
+//        int before = mem_used(); dprintf(-1,"mem_used before: %d\n", before);
+	topic = (char *)JS_EncodeString(cx, JSVAL_TO_STRING(argv[0]));
+	type = JS_TypeOfValue(cx,argv[1]);
+	if (type == JSTYPE_STRING) message = (char *)JS_EncodeString(cx, JSVAL_TO_STRING(argv[1]));
+	else if (type == JSTYPE_OBJECT) message = jsvaltojson(cx,argv[1]);
+	else goto js_mqtt_pub_usage;
+	dprintf(dlevel,"message: %s\n", message);
         mqtt_pub(s,topic,message,1,retain);
 	dprintf(dlevel,"freeing args...\n");
 	JS_free(cx,topic);
 	JS_free(cx,message);
+//	dprintf(-1,"mem_used after: %d\n", mem_used()); dprintf(-1,"diff: %d\n", mem_used()-before);
 	dprintf(dlevel,"done!\n");
     	return JS_TRUE;
+
+js_mqtt_pub_usage:
+	JS_ReportError(cx, "mqtt.pub requires 2 arguments: topic (string), message (string or object), optional: retain (bool)");
+	return JS_FALSE;
 }
 
 static JSBool js_mqtt_sub(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rval) {
@@ -903,6 +999,33 @@ static JSBool js_mqtt_sub(JSContext *cx, JSObject *obj, uintN argc, jsval *argv,
     	return JS_TRUE;
 }
 
+static JSBool js_mqtt_unsub(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rval) {
+	char *topic;
+	mqtt_session_t *s;
+
+	int ldlevel = dlevel;
+
+	s = JS_GetPrivate(cx, obj);
+	dprintf(ldlevel,"s: %p\n", s);
+	if (!s) {
+		JS_ReportError(cx, "private is null!");
+		return JS_FALSE;
+	}
+	dprintf(ldlevel,"argc: %d\n", argc);
+	if (argc < 1) {
+		JS_ReportError(cx, "mqtt.pub requires 1 argument: topic (string)");
+		return JS_FALSE;
+	}
+	topic = 0;
+	if (!JS_ConvertArguments(cx, argc, argv, "s", &topic)) return JS_FALSE;
+	dprintf(ldlevel,"topic: %s\n", topic);
+
+	mqtt_unsub(s,topic);
+	dprintf(ldlevel,"freeing...\n");
+	JS_free(cx,topic);
+	dprintf(ldlevel,"done!\n");
+    	return JS_TRUE;
+}
 
 static JSBool js_mqtt_rc(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rval) {
 	mqtt_session_t *s;
@@ -913,6 +1036,7 @@ static JSBool js_mqtt_rc(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, 
 		JS_ReportError(cx, "private is null!");
 		return JS_FALSE;
 	}
+	dprintf(dlevel,"calling reconnect!\n");
 	mqtt_reconnect(s);
 	return JS_TRUE;
 }
@@ -939,6 +1063,7 @@ static JSBool js_mqtt_con(JSContext *cx, JSObject *obj, uintN argc, jsval *argv,
 		JS_ReportError(cx, "private is null!");
 		return JS_FALSE;
 	}
+	dprintf(dlevel,"connected: %d\n", s->connected);
 	if (!s->connected) mqtt_connect(s,20);
 	return JS_TRUE;
 }
@@ -1036,6 +1161,7 @@ static JSBool js_mqtt_ctor(JSContext *cx, JSObject *obj, uintN argc, jsval *argv
 	struct _getmsg_ctx *ctx;
 	JSObject *newobj;
 
+	dprintf(dlevel,"**** JS_MQTT CTOR ****\n");
 	uri = 0;
 #if 1
 	if (!JS_ConvertArguments(cx, argc, argv, "/ s", &uri)) return JS_FALSE;
@@ -1073,10 +1199,15 @@ static JSBool js_mqtt_ctor(JSContext *cx, JSObject *obj, uintN argc, jsval *argv
 	if (uri) JS_free(cx,uri);
 	ctx->s->enabled = true;
 	mqtt_newclient(ctx->s);
+	dprintf(dlevel,"connecting!\n");
 	mqtt_connect(ctx->s,20);
 
 	newobj = js_mqtt_new(cx, obj, ctx->s);
 	dprintf(dlevel,"newobj: %p\n", newobj);
+        if (!newobj) {
+                JS_ReportError(cx, "js_mqtt_ctor: error creating new object!\n");
+                return JS_FALSE;
+        }
 	JS_DefineProperties(cx, newobj, ctor_props);
 	JS_DefineFunctions(cx, newobj, ctor_funcs);
 	JS_SetPrivate(cx,newobj,ctx->s);
@@ -1096,11 +1227,14 @@ JSObject * js_InitMQTTClass(JSContext *cx, JSObject *global_object) {
 		{ "errmsg",		MQTT_PROPERTY_ID_ERRMSG,	JSPROP_ENUMERATE | JSPROP_READONLY },
 		{ "connected",		MQTT_PROPERTY_ID_CONNECTED,	JSPROP_ENUMERATE | JSPROP_READONLY },
 //		{ "mq",			MQTT_PROPERTY_ID_MQ,		JSPROP_ENUMERATE | JSPROP_READONLY },
+		{ "subs",		MQTT_PROPERTY_ID_SUBS,		JSPROP_ENUMERATE | JSPROP_READONLY },
+		{ "config",		MQTT_PROPERTY_ID_CONFIG,	JSPROP_ENUMERATE | JSPROP_READONLY },
 		{0}
 	};
 	JSFunctionSpec mqtt_funcs[] = {
 		{ "pub",js_mqtt_pub,2 },
 		{ "sub",js_mqtt_sub,1 },
+		{ "unsub",js_mqtt_unsub,1 },
 		{ "disconnect",js_mqtt_dc,1 },
 		{ "connect",js_mqtt_con,1 },
 		{ "reconnect",js_mqtt_rc,1 },

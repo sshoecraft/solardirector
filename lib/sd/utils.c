@@ -30,6 +30,14 @@ LICENSE file in the root directory of this source tree.
 #include <math.h>
 #include "utils.h"
 
+void clear_screen(void) {
+#ifdef WINDOWS
+	system("cls");
+#else
+	system("clear");
+#endif
+}
+
 void _bindump(long offset,void *bptr,int len) {
 	unsigned char *buf = bptr;
 	char line[128];
@@ -73,11 +81,24 @@ void bindump(char *label,void *bptr,int len) {
 }
 
 char *trim(char *string) {
+	register char *src,*dest;
+
+	if (*string) return 0;
+	if (!*string) return string;
+	src = dest = string;
+	while(isspace((int)*src) && *src != '\t' && *src) src++;
+	while(*src != '\0') *dest++ = *src++;
+	*dest-- = '\0';
+	while((dest >= string) && isspace((int)*dest)) dest--;
+	*(dest+1) = '\0';
+	return string;
+#if 0
 	register char *p;
 	char *end;
 
 	/* If string is empty, just return it */
-	if (*string == '\0') return string;
+//	if (*string == '\0') return string;
+	if (!*string) return string;
 
 //	bindump("string",string,strlen(string)+1);
 
@@ -98,8 +119,10 @@ char *trim(char *string) {
 //	printf("p: %p, string: %p, end: %p\n", p, string, end);
 	if (*p != 0) *p = 0;
 
+
 //	printf("final string: >%s<\n", string);
 	return string;
+#endif
 }
 
 char *strele(int num,char *delimiter,char *string) {
@@ -446,3 +469,141 @@ int double_equals(double a, double b) {
 int double_isint(double z) {
 	return (fabs(round(z) - z) <= 10e-7 ? 1 : 0);
 }
+
+float heat_index(float T, float RH) {
+#if 0
+from: https://www.wpc.ncep.noaa.gov/html/heatindex_equation.shtml
+The computation of the heat index is a refinement of a result obtained by multiple regression analysis carried out by Lans P. Rothfusz and described in a 1990 National Weather Service (NWS) Technical Attachment (SR 90-23).  The regression equation of Rothfusz is
+HI = -42.379 + 2.04901523*T + 10.14333127*RH - .22475541*T*RH - .00683783*T*T - .05481717*RH*RH + .00122874*T*T*RH + .00085282*T*RH*RH - .00000199*T*T*RH*RH
+where T is temperature in degrees F and RH is relative humidity in percent.  HI is the heat index expressed as an apparent temperature in degrees F.  If the RH is less than 13% and the temperature is between 80 and 112 degrees F, then the following adjustment is subtracted from HI:
+ADJUSTMENT = [(13-RH)/4]*SQRT{[17-ABS(T-95.)]/17}
+where ABS and SQRT are the absolute value and square root functions, respectively.  On the other hand, if the RH is greater than 85% and the temperature is between 80 and 87 degrees F, then the following adjustment is added to HI:
+ADJUSTMENT = [(RH-85)/10] * [(87-T)/5]
+The Rothfusz regression is not appropriate when conditions of temperature and humidity warrant a heat index value below about 80 degrees F. In those cases, a simpler formula is applied to calculate values consistent with Steadmans results:
+HI = 0.5 * {T + 61.0 + [(T-68.0)*1.2] + (RH*0.094)}
+In practice, the simple formula is computed first and the result averaged with the temperature. If this heat index value is 80 degrees F or higher, the full regression equation along with any adjustment as described above is applied.
+The Rothfusz regression is not valid for extreme temperature and relative humidity conditions beyond the range of data considered by Steadman.
+#endif
+	float HI;
+
+//	printf("T: %f, RH: %f\n", T, RH);
+	if (T < 80.0) {
+		float adj;
+		adj = 0.5 * (T + 61.0 + ((T-68.0)*1.2) + (RH*0.094));
+		HI = (T + adj)/2;
+	} else {
+		HI = -42.379 + 2.04901523*T + 10.14333127*RH - .22475541*T*RH - .00683783*T*T - .05481717*RH*RH + .00122874*T*T*RH + .00085282*T*RH*RH - .00000199*T*T*RH*RH;
+		if (RH <= 13.0 && (T >= 80.0 && T <= 112.0)) {
+			float adj;
+			adj = ((13.0-RH)/4) * sqrt((17.0-fabs(T-95.0) )/17.0);
+//			printf("adj: %f\n", adj);
+			HI -= adj;
+		} else if (RH >= 85.0 && (T >= 80.0 && T <= 87.0)) {
+			float adj;
+			adj = ((RH-85.0)/10) * ((87.0-T)/5);
+//			printf("adj: %f\n", adj);
+			HI += adj;
+		}
+			
+	}
+	return HI;
+}
+
+float wet_bulb(float T, float RH) {
+	float Tw;
+
+	Tw = (0.151977 * sqrt(RH + 8.313659)) + atan(T + RH) - atan(RH - 1.676331) + (0.00391838 * pow(RH, 1.5) * atan(0.023101 * RH)) - 4.686035;
+	return Tw;
+}
+
+float wind_chill(float T, float WS) {
+	return 13.12 + 0.6215 * T - 11.37 * pow(WS, 0.16) + 0.3965 * T * pow(WS, 0.16);
+}
+
+#ifdef JS
+#include <jsapi.h>
+
+static JSBool js_clear_screen(JSContext *cx, uintN argc, jsval *vp) {
+	clear_screen();
+	return JS_TRUE;
+}
+
+static JSBool js_heat_index(JSContext *cx, uintN argc, jsval *vp) {
+	double temp,rh,hi;
+
+	if (argc != 2) {
+		JS_ReportError(cx,"heat_index requires 2 arguments (temp: number, rh: number\n");
+		return JS_FALSE;
+	}
+
+	/* Get the args*/
+	if (!JS_ConvertArguments(cx, argc, JS_ARGV(cx,vp), "d d", &temp, &rh)) return JS_FALSE;
+	dprintf(dlevel,"temp: %f, rh: %f\n", temp, rh);
+
+	hi = heat_index(temp,rh);
+	dprintf(dlevel,"hi: %f\n", hi);
+	JS_NewDoubleValue(cx,hi,vp);
+	return JS_TRUE;
+}
+
+static JSBool js_wet_bulb(JSContext *cx, uintN argc, jsval *vp) {
+	double temp,rh,wb;
+
+	if (argc != 2) {
+		JS_ReportError(cx,"wet_bulb requires 2 arguments (temp: number, rh: number\n");
+		return JS_FALSE;
+	}
+
+	/* Get the args*/
+	if (!JS_ConvertArguments(cx, argc, JS_ARGV(cx,vp), "d d", &temp, &rh)) return JS_FALSE;
+	dprintf(dlevel,"temp: %f, rh: %f\n", temp, rh);
+
+	wb = heat_index(temp,rh);
+	dprintf(dlevel,"wb: %f\n", wb);
+	JS_NewDoubleValue(cx,wb,vp);
+	return JS_TRUE;
+}
+
+static JSBool js_wind_chill(JSContext *cx, uintN argc, jsval *vp) {
+	double temp,ws,wc;
+
+	if (argc != 2) {
+		JS_ReportError(cx,"heat_index requires 2 arguments (temp: number, wind speed: number\n");
+		return JS_FALSE;
+	}
+
+	/* Get the args*/
+	if (!JS_ConvertArguments(cx, argc, JS_ARGV(cx,vp), "d d", &temp, &ws)) return JS_FALSE;
+	dprintf(dlevel,"temp: %f, ws: %f\n", temp, ws);
+
+	wc = wind_chill(temp,ws);
+	dprintf(dlevel,"wc: %f\n", wc);
+	JS_NewDoubleValue(cx,wc,vp);
+	return JS_TRUE;
+}
+
+int js_utils_init(JSContext *cx, JSObject *parent, void *priv) {
+	JSFunctionSpec funcs[] = {
+		JS_FN("clear_screen",js_clear_screen,0,0,0),
+		JS_FN("heat_index",js_heat_index,2,2,0),
+		JS_FN("wet_bulb",js_wet_bulb,2,2,0),
+		JS_FN("wind_chill",js_wind_chill,2,2,0),
+		{ 0 }
+	};
+	JSConstantSpec constants[] = {
+		{ 0 }
+	};
+
+	dprintf(dlevel,"Defining utils funcs...\n");
+	if(!JS_DefineFunctions(cx, parent, funcs)) {
+		return 1;
+	}
+
+	dprintf(dlevel,"Defining utils constants...\n");
+	if(!JS_DefineConstants(cx, parent, constants)) {
+		return 1;
+	}
+
+	return 0;
+}
+#endif /* JS */

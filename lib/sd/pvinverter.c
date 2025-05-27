@@ -100,7 +100,7 @@ static void _dump_state(void *ctx, char *name, void *dest, int flen, json_value_
 
 void pvinverter_dump(solard_pvinverter_t *inv, int dump_level) {
 	json_proctab_t tab[] = { PVINVERTER_TAB(_dump_state) }, *p;
-	char format[16],temp[1024];
+	char format[32],temp[1024];
 	int flen;
 
 	flen = 0;

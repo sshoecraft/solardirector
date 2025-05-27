@@ -1341,9 +1341,12 @@ JS_InitStandardClasses(JSContext *cx, JSObject *obj)
 #if JS_HAS_JSON_OBJECT
 		FUNC(js_InitJSONClass),
 #endif
-//		FUNC(js_InitConsoleClass),
+		FUNC(js_InitConsoleClass),
 #if JS_HAS_SOCKET_OBJECT
 		FUNC(js_InitSocketClass),
+#endif
+#ifdef JS_HAS_WPI
+		FUNC(js_InitWPIClass),
 #endif
 #if 0
 		FUNC(js_InitCANClass),
@@ -2900,6 +2903,7 @@ bad:
     goto out;
 }
 
+#if 0
 #ifdef JS_THREADSAFE
 JS_PUBLIC_API(JSClass *)
 JS_GetClass(JSContext *cx, JSObject *obj)
@@ -2913,6 +2917,13 @@ JS_GetClass(JSObject *obj)
     return LOCKED_OBJ_GET_CLASS(obj);
 }
 #endif
+#endif
+
+JS_PUBLIC_API(JSClass *)
+JS_GetClass(JSContext *cx, JSObject *obj)
+{
+    return OBJ_GET_CLASS(cx, obj);
+}
 
 JS_PUBLIC_API(JSBool)
 JS_InstanceOf(JSContext *cx, JSObject *obj, JSClass *clasp, jsval *argv)
@@ -3016,15 +3027,14 @@ JS_SetPrototype(JSContext *cx, JSObject *obj, JSObject *proto)
     return JS_TRUE;
 }
 
-JS_PUBLIC_API(JSObject *)
-JS_GetParent(JSContext *cx, JSObject *obj)
-{
-    JSObject *parent;
+JS_PUBLIC_API(JSObject *) JS_GetParent(JSContext *cx, JSObject *obj) {
+	JSObject *parent;
 
-    parent = OBJ_GET_PARENT(cx, obj);
+	parent = OBJ_GET_PARENT(cx, obj);
+	if (parent < (JSObject *)0x10000) parent = 0;
 
-    /* Beware ref to dead object (we may be called from obj's finalizer). */
-    return parent && parent->map ? parent : NULL;
+	/* Beware ref to dead object (we may be called from obj's finalizer). */
+	return parent && parent->map ? parent : NULL;
 }
 
 JS_PUBLIC_API(JSBool)
@@ -4583,8 +4593,7 @@ JS_DefineFunction(JSContext *cx, JSObject *obj, const char *name, JSNative call,
 
     CHECK_REQUEST(cx);
     atom = js_Atomize(cx, name, strlen(name), 0);
-    if (!atom)
-        return NULL;
+    if (!atom) return NULL;
     return js_DefineFunction(cx, obj, atom, call, nargs, attrs);
 }
 
@@ -5928,6 +5937,7 @@ JS_SetGCZeal(JSContext *cx, uint8 zeal)
 
 /************************************************************************/
 
+#if 0
 char *JS_GetObjectName(JSContext *cx, JSObject *obj) {
 	JSIdArray *ida;
 	jsval *ids,val;
@@ -5935,8 +5945,10 @@ char *JS_GetObjectName(JSContext *cx, JSObject *obj) {
 	char *key,*ts;
 	JSObject *parent;
 	JSClass *cp;
+	JSString *str;
 
 	parent = JS_GetParent(cx,obj);
+	dprintf(6,"parent: %p\n", parent);
 	if (!parent) {
 		if (obj == JS_GetGlobalObject(cx))
 			return JS_strdup(cx,"global");
@@ -5948,17 +5960,24 @@ char *JS_GetObjectName(JSContext *cx, JSObject *obj) {
 	ids = &ida->vector[0];
 	for(i=0; i< ida->length; i++) {
 		ts = jstypestr(cx,ids[i]);
-//		dprintf(0,"ids[%d]: %s\n", i, ts);
+//		dprintf(-1,"ids[%d]: %s\n", i, ts);
 		if (strcmp(ts,"string") != 0) continue;
-//		val = ids[i];
-//		dprintf(0,"type: %s\n", JS_GetTypeName(cx, JS_TypeOfValue(cx, val)));
-//		dprintf(0,"val: %x\n", val);
-//		str = JS_ValueToString(cx,val);
-//		str = JSVAL_TO_STRING(val);
-//		if (!str) continue;
-		key = JS_EncodeString(cx, JSVAL_TO_STRING(ids[i]));
+		val = ids[i];
+		dprintf(-1,"val: %x\n", val);
+		dprintf(-1,"type: %s\n", JS_GetTypeName(cx, JS_TypeOfValue(cx, val)));
+
+		key = 0;
+		str = JS_ValueToString(cx,val);
+		dprintf(-1,"str: %p\n", str);
+		if (str) {
+			key = JS_EncodeString(cx, str);
+			dprintf(-1,"key: %p\n", key);
+		}
 		if (!key) continue;
-		dprintf(6,"key: %s\n", key);
+		else dprintf(-1,"key: %s\n",key);
+
+//		key = JS_EncodeString(cx, JSVAL_TO_STRING(ids[i]));
+//		if (!key) continue;
 		if (!JS_GetProperty(cx,parent,key,&val)) {
 			JS_free(cx,key);
 			continue;
@@ -5982,6 +6001,7 @@ char *JS_GetObjectName(JSContext *cx, JSObject *obj) {
 	if (!cp) return JS_strdup(cx,"unknown");
 	return JS_strdup(cx,cp->name);
 }
+#endif
 
 JSObject *JS_GetObject(JSContext *cx, JSObject *parent, char *name) {
 	jsval val;

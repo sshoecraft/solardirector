@@ -1,0 +1,22 @@
+{
+    "ac": {
+        "can_target": "vcan0",
+        "name": "actest",
+        "debug_mem": 1,
+        "script_dir": ".",
+        "ETCDIR": ".",
+        "mqtt_uri": "tcp:\/\/localhost:1883",
+        "influx_endpoint": "http:\/\/localhost:8086",
+        "influx_database": "test",
+        "outside_temp_sensor": "func,readbme,",
+        "mode": 1,
+        "night_start": "sunset+120",
+        "day_start": "sunrise+30",
+        "cycle_duration": 45,
+        "sample_interval": 300,
+        "sample_duration": "60",
+        "pa_name": "patest",
+        "location": "0,0",
+        "interval": 10
+    }
+}

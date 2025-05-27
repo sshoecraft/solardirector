@@ -11,11 +11,12 @@ LICENSE file in the root directory of this source tree.
 #include "debug.h"
 
 #include "template.h"
+#include "__sd_build.h"
 
 #define TESTING 0
-#define TESTLVL 7
+#define TESTLVL 2
 
-char *template_version_string = "1.0-" STRINGIFY(__SD_BUILD);
+char *template_version_string = STRINGIFY(__SD_BUILD);
 
 int main(int argc, char **argv) {
 	template_session_t *s;

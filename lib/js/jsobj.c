@@ -1868,6 +1868,22 @@ const char js_lookupGetter_str[] = "__lookupGetter__";
 const char js_lookupSetter_str[] = "__lookupSetter__";
 #endif
 
+static JSBool obj_isarray(JSContext *cx, uintN argc, jsval *vp) {
+	JSObject *obj;
+
+	if (argc) {
+		jsval *argv = JS_ARGV(cx,vp);
+		obj = JSVAL_TO_OBJECT(argv[0]);
+	} else {
+		obj = JS_THIS_OBJECT(cx, vp);
+		if (!obj) return JS_FALSE;
+	}
+//printf("OBJ_IS_ARRAY: %d\n", OBJ_IS_ARRAY(cx, obj));
+//printf("OBJ_IS_DENSE_ARRAY: %d\n", OBJ_IS_DENSE_ARRAY(cx, obj));
+	*vp = BOOLEAN_TO_JSVAL(OBJ_IS_ARRAY(cx,obj) || OBJ_IS_DENSE_ARRAY(cx, obj));
+	return JS_TRUE;
+}
+
 static JSFunctionSpec object_methods[] = {
 #if JS_HAS_TOSOURCE
     JS_FN(js_toSource_str,             obj_toSource, 0,0,0),
@@ -1888,6 +1904,7 @@ static JSFunctionSpec object_methods[] = {
     JS_FN(js_lookupGetter_str,         obj_lookupGetter,         1,1,0),
     JS_FN(js_lookupSetter_str,         obj_lookupSetter,         1,1,0),
 #endif
+    JS_FN("isArray",                   obj_isarray,              1,1,0),
     JS_FS_END
 };
 
@@ -4278,29 +4295,22 @@ out:
 }
 
 JSIdArray *
-js_NewIdArray(JSContext *cx, jsint length)
-{
-    JSIdArray *ida;
+js_NewIdArray(JSContext *cx, jsint length) {
+	JSIdArray *ida;
 
-    ida = (JSIdArray *)
-          JS_malloc(cx, sizeof(JSIdArray) + (length-1) * sizeof(jsval));
-    if (ida)
-        ida->length = length;
-    return ida;
+	ida = (JSIdArray *) JS_malloc(cx, sizeof(JSIdArray) + (length-1) * sizeof(jsval));
+	if (ida) ida->length = length;
+	return ida;
 }
 
 JSIdArray *
-js_SetIdArrayLength(JSContext *cx, JSIdArray *ida, jsint length)
-{
-    JSIdArray *rida;
+js_SetIdArrayLength(JSContext *cx, JSIdArray *ida, jsint length) {
+	JSIdArray *rida;
 
-    rida = (JSIdArray *)
-           JS_realloc(cx, ida, sizeof(JSIdArray) + (length-1) * sizeof(jsval));
-    if (!rida)
-        JS_DestroyIdArray(cx, ida);
-    else
-        rida->length = length;
-    return rida;
+	rida = (JSIdArray *) JS_realloc(cx, ida, sizeof(JSIdArray) + (length-1) * sizeof(jsval));
+	if (!rida) JS_DestroyIdArray(cx, ida);
+	else rida->length = length;
+	return rida;
 }
 
 /* Private type used to iterate over all properties of a native JS object */

@@ -1,0 +1,7 @@
+{
+    "unit1":{
+        "pump":"unit1",
+        "reserve":375,
+        "never_p1":true
+    }
+}

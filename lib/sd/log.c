@@ -30,18 +30,18 @@ static struct _opt_info {
 	int type;
 	char *name;
 } optlist[] = {
-	{ LOG_CREATE, "CREATE" },
-	{ LOG_TIME, "TIME" },
-	{ LOG_STDERR, "STDERR" },
+	/* Types */
 	{ LOG_INFO, "INFO" },
 	{ LOG_VERBOSE, "VERBOSE" },
 	{ LOG_WARNING, "WARNING" },
 	{ LOG_ERROR, "ERROR" },
 	{ LOG_SYSERR, "SYSERR" },
 	{ LOG_DEBUG, "DEBUG" },
-	{ LOG_DEBUG2, "DEBUG2" },
-	{ LOG_DEBUG3, "DEBUG3" },
-	{ LOG_DEBUG4, "DEBUG4" },
+	/* Modifiers */
+	{ LOG_NEWLINE, "NEWLINE" },
+	{ LOG_CREATE, "CREATE" },
+	{ LOG_TIME, "TIME" },
+	{ LOG_STDERR, "STDERR" },
 	{ 0,0 }
 };
 
@@ -97,31 +97,34 @@ int log_open(char *ident,char *filename,int opts) {
 
 //FILE *log_getfp(void) { return(logfp); }
 
-static int _log_write(int type,char *format,va_list ap) {
+static int _log_write(int mask,char *format,va_list ap) {
+	int t, ot;
 	char dt[32],*errstr;
 
 	/* get the error text now before it's gone */
-	if (type & LOG_SYSERR) errstr = strerror(errno);
+	if (mask & LOG_SYSERR) errstr = strerror(errno);
 
 	/* Make sure log_open was called */
 	if (!logfp) log_open("",0,LOG_INFO|LOG_WARNING|LOG_ERROR|LOG_SYSERR|LOG_DEBUG);
 
-	/* Do we even log this type? */
-	DPRINTF("logopts: %0x, type: %0x\n",logopts,type);
-	if ( (logopts | type) != logopts) return 0;
+	t = mask & LOG_TYPE_MASK;
+	ot = logopts & LOG_TYPE_MASK;
+	DPRINTF("type: %x\n", t);
+	DPRINTF("our types: %x\n", ot);
+	if ( (ot | t) != ot) return 0;
 
 	/* Prepend the time? */
-	if (logopts & LOG_TIME || type & LOG_TIME) {
+	if (logopts & LOG_TIME || mask & LOG_TIME) {
 		DPRINTF("prepending time...\n");
 		get_timestamp(dt,sizeof(dt),1);
 		fprintf(logfp,"%s  ",dt);
 	}
 
 	/* If it's a warning, prepend warning: */
-	if (type & LOG_WARNING) fprintf(logfp,"warning: ");
+	if (mask & LOG_WARNING) fprintf(logfp,"warning: ");
 
 	/* If it's an error, prepend error: */
-	else if ((type & LOG_ERROR) || (type & LOG_SYSERR)) {
+	else if ((mask & LOG_ERROR) || (mask & LOG_SYSERR)) {
 		DPRINTF("prepending error...\n");
 		fprintf(logfp,"error: ");
 	}
@@ -133,10 +136,14 @@ static int _log_write(int type,char *format,va_list ap) {
 	va_end(ap);
 
 	/* If it's a system error, concat the system message */
-	if (type & LOG_SYSERR && errstr) {
+	if (mask & LOG_SYSERR && errstr) {
 		DPRINTF("adding error text...\n");
 		fprintf(logfp,": %s\n",errstr);
 	}
+
+	/* add newline? */
+	if (mask & LOG_NEWLINE) fprintf(logfp,"\n");
+
 	fflush(logfp);
 
 	return 0;
@@ -153,6 +160,7 @@ int log_write(int type, char *format, ...) {
 
 LOGDEF(log_info,LOG_INFO);
 LOGDEF(log_warning,LOG_WARNING);
+LOGDEF(log_verbose,LOG_VERBOSE);
 LOGDEF(log_error,LOG_ERROR);
 LOGDEF(log_syserr,LOG_SYSERR);
 LOGDEF(log_syserror,LOG_SYSERR);
@@ -200,15 +208,16 @@ int js_log_init(JSContext *cx, JSObject *parent, void *priv) {
 	free(consts);
 #endif
 	JSConstantSpec log_consts[] = {
-		JS_NUMCONST(LOG_CREATE),
-		JS_NUMCONST(LOG_TIME),
-		JS_NUMCONST(LOG_STDERR),
 		JS_NUMCONST(LOG_INFO),
 		JS_NUMCONST(LOG_VERBOSE),
 		JS_NUMCONST(LOG_WARNING),
 		JS_NUMCONST(LOG_ERROR),
 		JS_NUMCONST(LOG_SYSERR),
 		JS_NUMCONST(LOG_DEBUG),
+		JS_NUMCONST(LOG_NEWLINE),
+		JS_NUMCONST(LOG_CREATE),
+		JS_NUMCONST(LOG_TIME),
+		JS_NUMCONST(LOG_STDERR),
 		{0}
 	};
 

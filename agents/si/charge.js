@@ -63,8 +63,8 @@ function si_check_config() {
 	if (nv != ov) setcleanval("max_voltage",nv,"%.1f");
 
 	dprintf(dlevel,"min_voltage: %f, max_voltage: %f\n", si.min_voltage, si.max_voltage);
-	let spread = si.max_voltage - si.min_voltage;
-	dprintf(dlevel,"spread: %f\n", spread);
+	si.spread = si.max_voltage - si.min_voltage;
+	dprintf(dlevel,"spread: %f\n", si.spread);
 
 	while(1) {
 		dprintf(dlevel,"charge_start_voltage: %f\n", si.charge_start_voltage);
@@ -89,7 +89,7 @@ function si_check_config() {
 			dprintf(dlevel,"charge_start_level: %f\n", si.charge_start_level);
 			var csl = si.charge_start_level ? si.charge_start_level : 25;
 			dprintf(dlevel,"setting charge_start_voltage to %f\n", si.charge_start_voltage);
-			setcleanval("charge_start_voltage",si.min_voltage + (spread * (csl / 100)));
+			setcleanval("charge_start_voltage",si.min_voltage + (si.spread * (csl / 100)));
 		}
 		setcleanval("charge_start_voltage",pround(si.charge_start_voltage,1));
 
@@ -115,7 +115,7 @@ function si_check_config() {
 			dprintf(dlevel,"charge_end_level: %f\n", si.charge_end_level);
 			var cel = si.charge_end_level ? si.charge_end_level : 85;
 			dprintf(dlevel,"setting charge_end_voltage to %f\n", si.charge_end_voltage);
-			setcleanval("charge_end_voltage",si.min_voltage + (spread * (cel / 100)));
+			setcleanval("charge_end_voltage",si.min_voltage + (si.spread * (cel / 100)));
 			continue;
 		}
 		setcleanval("charge_end_voltage",pround(si.charge_end_voltage,1));
@@ -140,13 +140,13 @@ if (0) {
 		dprintf(dlevel,"charge_start_level: %s\n", si.charge_start_level);
 		var csl;
 		if (si.charge_start_level) csl = si.charge_start_level;
-		else csl = ((si.charge_start_voltage - si.min_voltage) / spread) * 100.0;
+		else csl = ((si.charge_start_voltage - si.min_voltage) / si.spread) * 100.0;
 		dprintf(dlevel,"csl: %f\n", csl);
 		si.charge_start_ah = si.battery_capacity * (csl / 100.0);
 		dprintf(dlevel,"charge_end_level: %s\n", si.charge_end_level);
 		var cel;
 		if (si.charge_end_level) cel = si.charge_end_level;
-		else cel = si.charge_end_level = ((si.charge_end_voltage - si.min_voltage) / spread) * 100.0;
+		else cel = si.charge_end_level = ((si.charge_end_voltage - si.min_voltage) / si.spread) * 100.0;
 		dprintf(dlevel,"cel: %f\n", cel);
 		si.charge_end_ah = si.battery_capacity * (cel / 100.0);
 		dprintf(dlevel,"charge_start_ah: %f, charge_end_ah: %f\n", si.charge_start_ah, si.charge_end_ah);
@@ -225,6 +225,7 @@ function set_min_voltage() {
 	dprintf(dlevel,"min_voltage: %f\n", si.min_voltage);
 	if (!si.min_voltage) return;
 	si.in_check = true;
+	si.spread = si.max_voltage - si.min_voltage;
 	set_charge_start_level();
 	set_charge_end_level();
 	si.in_check = false;
@@ -238,6 +239,7 @@ function set_max_voltage() {
 	dprintf(dlevel,"max_voltage: %f\n", si.max_voltage);
 	if (!si.max_voltage) return;
 	si.in_check = true;
+	si.spread = si.max_voltage - si.min_voltage;
 	set_charge_start_level();
 	set_charge_end_level();
 	si.in_check = false;
@@ -318,13 +320,16 @@ function charge_init() {
 		data.battery_current = 0;
 		data.GnRn = false;
 		agent = {};
-		agent.event_handler = function() { };
-		agent.event = function() { };
+		event.handler = function() { };
+		si.signal = function() { };
 		agent.driver_name = "si";
 		config.read("./sidev.json",CONFIG_FILE_FORMAT_JSON);
 //		smanet = new SMANET("rdev","192.168.1.164","serial0");
 		smanet = new SMANET();
-		if (!smanet) abort(0);
+		if (!smanet) {
+			log_error("error: charge_init: SMANET init failed");
+			abort(0);
+		}
 //		smanet.load_channels(SOLARD_LIBDIR + "/agents/si/" + smanet.type + "_channels.json");
 		smanet.readonly = true;
 	}
@@ -380,13 +385,13 @@ function charge_init() {
 
 	// Dont allow check to run while initializing
 	si.in_check = true;
-	config.add_props(si, charge_props);
+	config.add_props(si,charge_props,si.driver_name);
 
 	// Set triggers for min/max to auto set levels
 	set_trigger("min_voltage",set_min_voltage);
 	set_trigger("max_voltage",set_max_voltage);
 
-	agent.event_handler(charge_event_handler,agent.name);
+	event.handler(charge_event_handler,agent.name);
 
 	si.ba = [];
 	si.baidx = 0;
@@ -412,7 +417,7 @@ function charge_stop(force) {
 	if (!si.charge_mode && !lforce) return;
 
 	si.charge_mode = 0;
-	agent.event("Charge","Stop");
+	si.signal("Charge","Stop");
 	config.save();
 
 	// If we started grid/gen, stop them now
@@ -453,7 +458,7 @@ function charge_start(force) {
 
 	si.charge_mode = 1;
 	config.save();
-	agent.event("Charge","Start");
+	si.signal("Charge","Start");
 	si.charge_amps_soc_modifier = 1.0;
 	si.charge_amps_temp_modifier = 1.0;
 	if (si.have_battery_temp) si.start_temp = data.battery_temp;
@@ -501,7 +506,7 @@ function charge_start_cv(force) {
 	dprintf(dlevel,"charge_mode: %d, force: %s\n", si.charge_mode, lforce);
 	if (si.charge_mode == 2 && !lforce) return;
 
-	agent.event("Charge","StartCV");
+	si.signal("Charge","StartCV");
 	si.charge_mode = 2;
 	config.save();
 	si.cv_start_time = time();
@@ -518,7 +523,7 @@ function charge_end() {
 
 	if (si.mirror) return;
 
-	agent.event("Battery","Full");
+	si.signal("Battery","Full");
 
 	charge_stop();
 
@@ -628,7 +633,7 @@ function set_charge_voltage() {
 		if (si.charge_at_max) si.charge_voltage = si.max_voltage;
 		else if (si.charge_cc_voltage) si.charge_voltage = si.charge_cc_voltage;
 	}
-	if (si.charge_voltage != ov) printf("Setting charge_voltage to: %.1f\n", si.charge_voltage);
+	if (si.charge_voltage != ov) log_verbose("Setting charge_voltage to: %.1f\n", si.charge_voltage);
 
 //	si.charge_voltage = (si.charge_at_max ? si.max_voltage : si.charge_end_voltage);
 }
@@ -753,7 +758,7 @@ function charge_main()  {
 
 	// Battery is "empty", start charging
 	} else if (battery_is_empty()) {
-		agent.event("Battery","Empty");
+		si.signal("Battery","Empty");
 
 		charge_start();
 

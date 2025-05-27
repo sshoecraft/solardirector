@@ -1,0 +1,1492 @@
+common.c(286) solard_common_init: verb_flag: 0, err_flag: 0, append_flag: 0, log_opts: 3d
+common.c(299) solard_common_init: logfile: 
+common.c(314) solard_common_init: file: (null)
+common.c(335) solard_common_init: configfile: /etc/sd.conf
+cfg.c(415) cfg_read: filename: /etc/sd.conf
+cfg.c(435) cfg_read: line: prefix=/opt/sd
+cfg.c(121) cfg_section_get_item: looking for keyword: PREFIX
+cfg.c(130) cfg_section_get_item: not found
+cfg.c(506) cfg_read: keyword: PREFIX, value: /opt/sd
+cfg.c(435) cfg_read: line: 
+common.c(150) solard_get_dirs: cfg: 0x55b3edb35020, section_name: , home: /root
+common.c(105) _getpath: cfg: 0x55b3edb35020, home: /root, what: bin, ow: 1
+common.c(78) _getcfg: cfg: 0x55b3edb35020, section_name: , dest: , what: bin, ow: 1
+common.c(80) _getcfg: name: bindir
+cfg.c(156) cfg_get_item: section name: , keyword: bindir
+cfg.c(530) cfg_get_section: looking for section: 
+cfg.c(533) cfg_get_section: name: 
+cfg.c(535) cfg_get_section: found section.
+cfg.c(121) cfg_section_get_item: looking for keyword: BINDIR
+cfg.c(124) cfg_section_get_item: item->keyword: PREFIX
+cfg.c(130) cfg_section_get_item: not found
+common.c(84) _getcfg: bindir p: (nil)
+cfg.c(156) cfg_get_item: section name: , keyword: prefix
+cfg.c(530) cfg_get_section: looking for section: 
+cfg.c(533) cfg_get_section: name: 
+cfg.c(535) cfg_get_section: found section.
+cfg.c(121) cfg_section_get_item: looking for keyword: PREFIX
+cfg.c(124) cfg_section_get_item: item->keyword: PREFIX
+cfg.c(126) cfg_section_get_item: found
+common.c(87) _getcfg: prefix p: 0x55b3edb35450
+common.c(90) _getcfg: prefix: /opt/sd
+common.c(96) _getcfg: dest: /opt/sd/bin
+common.c(99) _getcfg: returning: 0
+common.c(105) _getpath: cfg: 0x55b3edb35020, home: /root, what: etc, ow: 1
+common.c(78) _getcfg: cfg: 0x55b3edb35020, section_name: , dest: , what: etc, ow: 1
+common.c(80) _getcfg: name: etcdir
+cfg.c(156) cfg_get_item: section name: , keyword: etcdir
+cfg.c(530) cfg_get_section: looking for section: 
+cfg.c(533) cfg_get_section: name: 
+cfg.c(535) cfg_get_section: found section.
+cfg.c(121) cfg_section_get_item: looking for keyword: ETCDIR
+cfg.c(124) cfg_section_get_item: item->keyword: PREFIX
+cfg.c(130) cfg_section_get_item: not found
+common.c(84) _getcfg: etcdir p: (nil)
+cfg.c(156) cfg_get_item: section name: , keyword: prefix
+cfg.c(530) cfg_get_section: looking for section: 
+cfg.c(533) cfg_get_section: name: 
+cfg.c(535) cfg_get_section: found section.
+cfg.c(121) cfg_section_get_item: looking for keyword: PREFIX
+cfg.c(124) cfg_section_get_item: item->keyword: PREFIX
+cfg.c(126) cfg_section_get_item: found
+common.c(87) _getcfg: prefix p: 0x55b3edb35450
+common.c(90) _getcfg: prefix: /opt/sd
+common.c(96) _getcfg: dest: /opt/sd/etc
+common.c(99) _getcfg: returning: 0
+common.c(105) _getpath: cfg: 0x55b3edb35020, home: /root, what: lib, ow: 1
+common.c(78) _getcfg: cfg: 0x55b3edb35020, section_name: , dest: , what: lib, ow: 1
+common.c(80) _getcfg: name: libdir
+cfg.c(156) cfg_get_item: section name: , keyword: libdir
+cfg.c(530) cfg_get_section: looking for section: 
+cfg.c(533) cfg_get_section: name: 
+cfg.c(535) cfg_get_section: found section.
+cfg.c(121) cfg_section_get_item: looking for keyword: LIBDIR
+cfg.c(124) cfg_section_get_item: item->keyword: PREFIX
+cfg.c(130) cfg_section_get_item: not found
+common.c(84) _getcfg: libdir p: (nil)
+cfg.c(156) cfg_get_item: section name: , keyword: prefix
+cfg.c(530) cfg_get_section: looking for section: 
+cfg.c(533) cfg_get_section: name: 
+cfg.c(535) cfg_get_section: found section.
+cfg.c(121) cfg_section_get_item: looking for keyword: PREFIX
+cfg.c(124) cfg_section_get_item: item->keyword: PREFIX
+cfg.c(126) cfg_section_get_item: found
+common.c(87) _getcfg: prefix p: 0x55b3edb35450
+common.c(90) _getcfg: prefix: /opt/sd
+common.c(96) _getcfg: dest: /opt/sd/lib
+common.c(99) _getcfg: returning: 0
+common.c(105) _getpath: cfg: 0x55b3edb35020, home: /root, what: log, ow: 1
+common.c(78) _getcfg: cfg: 0x55b3edb35020, section_name: , dest: , what: log, ow: 1
+common.c(80) _getcfg: name: logdir
+cfg.c(156) cfg_get_item: section name: , keyword: logdir
+cfg.c(530) cfg_get_section: looking for section: 
+cfg.c(533) cfg_get_section: name: 
+cfg.c(535) cfg_get_section: found section.
+cfg.c(121) cfg_section_get_item: looking for keyword: LOGDIR
+cfg.c(124) cfg_section_get_item: item->keyword: PREFIX
+cfg.c(130) cfg_section_get_item: not found
+common.c(84) _getcfg: logdir p: (nil)
+cfg.c(156) cfg_get_item: section name: , keyword: prefix
+cfg.c(530) cfg_get_section: looking for section: 
+cfg.c(533) cfg_get_section: name: 
+cfg.c(535) cfg_get_section: found section.
+cfg.c(121) cfg_section_get_item: looking for keyword: PREFIX
+cfg.c(124) cfg_section_get_item: item->keyword: PREFIX
+cfg.c(126) cfg_section_get_item: found
+common.c(87) _getcfg: prefix p: 0x55b3edb35450
+common.c(90) _getcfg: prefix: /opt/sd
+common.c(96) _getcfg: dest: /opt/sd/log
+common.c(99) _getcfg: returning: 0
+common.c(172) solard_get_dirs: BINDIR: /opt/sd/bin, ETCDIR: /opt/sd/etc, LIBDIR: /opt/sd/lib, LOGDIR: /opt/sd/log, TEMPDIR: /tmp
+common.c(346) solard_common_init: cfg: 0x55b3edb35020
+cfg.c(103) cfg_destroy: item->keyword: PREFIX
+common.c(349) solard_common_init: done!
+client.c(240) client_init: creating session...
+client.c(246) client_init: name: 
+client.c(254) client_init: c->name: cellmon
+client.c(255) client_init: sname: 
+client.c(258) client_init: c->section_name: cellmon
+client.c(280) client_init: trying: /opt/sd/etc/cellmon.json
+client.c(280) client_init: trying: /opt/sd/etc/cellmon.conf
+client.c(290) client_init: configfile: /opt/sd/etc/cellmon.conf
+config.c(366) config_combine_props: count: 2,  size: 408
+common.c(409) solard_common_startup: Starting up...
+common.c(412) solard_common_startup: m: 0x55b3edb37b88
+common.c(422) solard_common_startup: m: 0x55b3edb37bc0
+common.c(423) solard_common_startup: mqtt_info: 
+common.c(444) solard_common_startup: e: (nil)
+common.c(448) solard_common_startup: sname: cellmon
+config.c(633) config_add_props: cp: 0x55b3edb38280, props: 0x55b3edb35020, flags: 0
+config.c(557) config_get_section: looking for section: cellmon
+config.c(567) config_get_section: NOT found!
+config.c(637) config_add_props: section: (nil)
+config.c(594) config_create_section: name: cellmon, flags: 00
+config.c(639) config_add_props: section: 0x55b3edb384b0
+config.c(468) config_section_add_property: cp: 0x55b3edb38280, s: 0x55b3edb384b0, p: 0x55b3edb35020
+config.c(471) config_section_add_property: cp->triggers: 1, NOTRIG: 0
+config.c(475) config_section_add_property: p->name: average, flags: 0, trig: 1
+config.c(134) config_section_get_property: section: cellmon, name: average
+config.c(148) config_section_get_property: NOT found
+config.c(480) config_section_add_property: p: 0x55b3edb35020, pp: (nil)
+config.c(500) config_section_add_property: average: dest: 0x7fff958c65cc, def: yes, flags: 0
+config.c(258) config_property_set_value: ***************************************
+config.c(259) config_property_set_value: p->name: average, trigger: 1
+config.c(232) _destdup: type: DATA_TYPE_BOOL
+config.c(235) _destdup: size: 0
+config.c(238) _destdup: NEW size: 4
+config.c(247) _destdup: dest: 0x55b3edb35450
+conv.c(2389) conv_type: dt: 8(DATA_TYPE_BOOL)
+conv.c(2424) conv_type: returning: 4
+config.c(277) config_property_set_value: p->dest: 0x7fff958c65cc, p->flags: 0
+config.c(285) config_property_set_value: p->dest: 0x7fff958c65cc, type: DATA_TYPE_BOOL, ISNUMBER: 1
+config.c(311) config_property_set_value: p->dest: 0x7fff958c65cc, p->dsize: 0
+conv.c(2389) conv_type: dt: 8(DATA_TYPE_BOOL)
+conv.c(2424) conv_type: returning: 4
+config.c(317) config_property_set_value: ==> trigger: 1, p->dest: 0x7fff958c65cc, p->trigger: (nil)
+config.c(323) config_property_set_value: old_dest: 0x55b3edb35450
+config.c(325) config_property_set_value: destroying old_dest...
+config.c(468) config_section_add_property: cp: 0x55b3edb38280, s: 0x55b3edb384b0, p: 0x55b3edb350a8
+config.c(471) config_section_add_property: cp->triggers: 1, NOTRIG: 0
+config.c(475) config_section_add_property: p->name: minmax, flags: 0, trig: 1
+config.c(134) config_section_get_property: section: cellmon, name: minmax
+config.c(148) config_section_get_property: NOT found
+config.c(480) config_section_add_property: p: 0x55b3edb350a8, pp: (nil)
+config.c(500) config_section_add_property: minmax: dest: 0x7fff958c65c8, def: yes, flags: 0
+config.c(258) config_property_set_value: ***************************************
+config.c(259) config_property_set_value: p->name: minmax, trigger: 1
+config.c(232) _destdup: type: DATA_TYPE_BOOL
+config.c(235) _destdup: size: 0
+config.c(238) _destdup: NEW size: 4
+config.c(247) _destdup: dest: 0x55b3edb35450
+conv.c(2389) conv_type: dt: 8(DATA_TYPE_BOOL)
+conv.c(2424) conv_type: returning: 4
+config.c(277) config_property_set_value: p->dest: 0x7fff958c65c8, p->flags: 0
+config.c(285) config_property_set_value: p->dest: 0x7fff958c65c8, type: DATA_TYPE_BOOL, ISNUMBER: 1
+config.c(311) config_property_set_value: p->dest: 0x7fff958c65c8, p->dsize: 0
+conv.c(2389) conv_type: dt: 8(DATA_TYPE_BOOL)
+conv.c(2424) conv_type: returning: 4
+config.c(317) config_property_set_value: ==> trigger: 1, p->dest: 0x7fff958c65c8, p->trigger: (nil)
+config.c(323) config_property_set_value: old_dest: 0x55b3edb35450
+config.c(325) config_property_set_value: destroying old_dest...
+common.c(450) solard_common_startup: cp: 0x55b3edb37bb0
+config.c(633) config_add_props: cp: 0x55b3edb38280, props: 0x7fff958c5690, flags: 0
+config.c(557) config_get_section: looking for section: cellmon
+config.c(560) config_get_section: name: cellmon
+config.c(562) config_get_section: found
+config.c(637) config_add_props: section: 0x55b3edb384b0
+config.c(639) config_add_props: section: 0x55b3edb384b0
+config.c(468) config_section_add_property: cp: 0x55b3edb38280, s: 0x55b3edb384b0, p: 0x7fff958c5690
+config.c(471) config_section_add_property: cp->triggers: 1, NOTRIG: 0
+config.c(475) config_section_add_property: p->name: BINDIR, flags: 0, trig: 1
+config.c(134) config_section_get_property: section: cellmon, name: BINDIR
+config.c(148) config_section_get_property: NOT found
+config.c(480) config_section_add_property: p: 0x7fff958c5690, pp: (nil)
+config.c(500) config_section_add_property: BINDIR: dest: 0x55b3d3edccc0, def: (null), flags: 0
+config.c(468) config_section_add_property: cp: 0x55b3edb38280, s: 0x55b3edb384b0, p: 0x7fff958c5718
+config.c(471) config_section_add_property: cp->triggers: 1, NOTRIG: 0
+config.c(475) config_section_add_property: p->name: ETCDIR, flags: 0, trig: 1
+config.c(134) config_section_get_property: section: cellmon, name: ETCDIR
+config.c(148) config_section_get_property: NOT found
+config.c(480) config_section_add_property: p: 0x7fff958c5718, pp: (nil)
+config.c(500) config_section_add_property: ETCDIR: dest: 0x55b3d3edcdc0, def: (null), flags: 0
+config.c(468) config_section_add_property: cp: 0x55b3edb38280, s: 0x55b3edb384b0, p: 0x7fff958c57a0
+config.c(471) config_section_add_property: cp->triggers: 1, NOTRIG: 0
+config.c(475) config_section_add_property: p->name: LIBDIR, flags: 0, trig: 1
+config.c(134) config_section_get_property: section: cellmon, name: LIBDIR
+config.c(148) config_section_get_property: NOT found
+config.c(480) config_section_add_property: p: 0x7fff958c57a0, pp: (nil)
+config.c(500) config_section_add_property: LIBDIR: dest: 0x55b3d3edcec0, def: (null), flags: 0
+config.c(468) config_section_add_property: cp: 0x55b3edb38280, s: 0x55b3edb384b0, p: 0x7fff958c5828
+config.c(471) config_section_add_property: cp->triggers: 1, NOTRIG: 0
+config.c(475) config_section_add_property: p->name: LOGDIR, flags: 0, trig: 1
+config.c(134) config_section_get_property: section: cellmon, name: LOGDIR
+config.c(148) config_section_get_property: NOT found
+config.c(480) config_section_add_property: p: 0x7fff958c5828, pp: (nil)
+config.c(500) config_section_add_property: LOGDIR: dest: 0x55b3d3edcfc0, def: (null), flags: 0
+config.c(468) config_section_add_property: cp: 0x55b3edb38280, s: 0x55b3edb384b0, p: 0x7fff958c58b0
+config.c(471) config_section_add_property: cp->triggers: 1, NOTRIG: 0
+config.c(475) config_section_add_property: p->name: TEMPDIR, flags: 0, trig: 1
+config.c(134) config_section_get_property: section: cellmon, name: TEMPDIR
+config.c(148) config_section_get_property: NOT found
+config.c(480) config_section_add_property: p: 0x7fff958c58b0, pp: (nil)
+config.c(500) config_section_add_property: TEMPDIR: dest: 0x55b3d3edd0c0, def: (null), flags: 0
+config.c(468) config_section_add_property: cp: 0x55b3edb38280, s: 0x55b3edb384b0, p: 0x7fff958c5938
+config.c(471) config_section_add_property: cp->triggers: 1, NOTRIG: 0
+config.c(475) config_section_add_property: p->name: debug, flags: 0, trig: 1
+config.c(134) config_section_get_property: section: cellmon, name: debug
+config.c(148) config_section_get_property: NOT found
+config.c(480) config_section_add_property: p: 0x7fff958c5938, pp: (nil)
+config.c(500) config_section_add_property: debug: dest: 0x55b3d3edc880, def: (null), flags: 242
+mqtt.c(734) mqtt_add_props: adding props...
+config.c(633) config_add_props: cp: 0x55b3edb38280, props: 0x7fff958c5720, flags: 0
+config.c(557) config_get_section: looking for section: cellmon
+config.c(560) config_get_section: name: cellmon
+config.c(562) config_get_section: found
+config.c(637) config_add_props: section: 0x55b3edb384b0
+config.c(639) config_add_props: section: 0x55b3edb384b0
+config.c(468) config_section_add_property: cp: 0x55b3edb38280, s: 0x55b3edb384b0, p: 0x7fff958c5720
+config.c(471) config_section_add_property: cp->triggers: 1, NOTRIG: 0
+config.c(475) config_section_add_property: p->name: mqtt_enabled, flags: 0, trig: 1
+config.c(134) config_section_get_property: section: cellmon, name: mqtt_enabled
+config.c(148) config_section_get_property: NOT found
+config.c(480) config_section_add_property: p: 0x7fff958c5720, pp: (nil)
+config.c(500) config_section_add_property: mqtt_enabled: dest: 0x55b3edb37bc4, def: yes, flags: 0
+config.c(258) config_property_set_value: ***************************************
+config.c(259) config_property_set_value: p->name: mqtt_enabled, trigger: 1
+config.c(232) _destdup: type: DATA_TYPE_BOOL
+config.c(235) _destdup: size: 0
+config.c(238) _destdup: NEW size: 4
+config.c(247) _destdup: dest: 0x55b3edb35450
+conv.c(2389) conv_type: dt: 8(DATA_TYPE_BOOL)
+conv.c(2424) conv_type: returning: 4
+config.c(277) config_property_set_value: p->dest: 0x55b3edb37bc4, p->flags: 0
+config.c(285) config_property_set_value: p->dest: 0x55b3edb37bc4, type: DATA_TYPE_BOOL, ISNUMBER: 1
+config.c(311) config_property_set_value: p->dest: 0x55b3edb37bc4, p->dsize: 3
+conv.c(2389) conv_type: dt: 8(DATA_TYPE_BOOL)
+conv.c(2424) conv_type: returning: 4
+config.c(317) config_property_set_value: ==> trigger: 1, p->dest: 0x55b3edb37bc4, p->trigger: (nil)
+config.c(323) config_property_set_value: old_dest: 0x55b3edb35450
+config.c(325) config_property_set_value: destroying old_dest...
+config.c(468) config_section_add_property: cp: 0x55b3edb38280, s: 0x55b3edb384b0, p: 0x7fff958c57a8
+config.c(471) config_section_add_property: cp->triggers: 1, NOTRIG: 0
+config.c(475) config_section_add_property: p->name: mqtt_uri, flags: 0, trig: 1
+config.c(134) config_section_get_property: section: cellmon, name: mqtt_uri
+config.c(148) config_section_get_property: NOT found
+config.c(480) config_section_add_property: p: 0x7fff958c57a8, pp: (nil)
+config.c(500) config_section_add_property: mqtt_uri: dest: 0x55b3edb37bc8, def: tcp://localhost:1883, flags: 0
+config.c(258) config_property_set_value: ***************************************
+config.c(259) config_property_set_value: p->name: mqtt_uri, trigger: 1
+config.c(232) _destdup: type: DATA_TYPE_STRING
+config.c(247) _destdup: dest: 0x55b3edb35450
+conv.c(147) conv_type: src: 
+conv.c(2389) conv_type: dt: 4(DATA_TYPE_STRING)
+conv.c(2392) conv_type: string: 
+conv.c(2424) conv_type: returning: 0
+config.c(277) config_property_set_value: p->dest: 0x55b3edb37bc8, p->flags: 0
+config.c(285) config_property_set_value: p->dest: 0x55b3edb37bc8, type: DATA_TYPE_STRING, ISNUMBER: 0
+config.c(311) config_property_set_value: p->dest: 0x55b3edb37bc8, p->dsize: 127
+conv.c(147) conv_type: src: tcp://localhost:1883
+conv.c(2389) conv_type: dt: 4(DATA_TYPE_STRING)
+conv.c(2392) conv_type: string: tcp://localhost:1883
+conv.c(2424) conv_type: returning: 20
+config.c(317) config_property_set_value: ==> trigger: 1, p->dest: 0x55b3edb37bc8, p->trigger: 0x55b3d3eb5a32
+config.c(319) config_property_set_value: calling trigger!
+mqtt.c(677) mqtt_set_uri: set_uri: new: tcp://localhost:1883, old: 
+mqtt.c(680) mqtt_set_uri: ptr: 0x55b3edb37bcb
+mqtt.c(692) mqtt_set_uri: connected: 0
+config.c(323) config_property_set_value: old_dest: 0x55b3edb35450
+config.c(325) config_property_set_value: destroying old_dest...
+config.c(468) config_section_add_property: cp: 0x55b3edb38280, s: 0x55b3edb384b0, p: 0x7fff958c5830
+config.c(471) config_section_add_property: cp->triggers: 1, NOTRIG: 0
+config.c(475) config_section_add_property: p->name: mqtt_clientid, flags: 0, trig: 1
+config.c(134) config_section_get_property: section: cellmon, name: mqtt_clientid
+config.c(148) config_section_get_property: NOT found
+config.c(480) config_section_add_property: p: 0x7fff958c5830, pp: (nil)
+config.c(500) config_section_add_property: mqtt_clientid: dest: 0x55b3edb37c48, def: , flags: 0
+config.c(258) config_property_set_value: ***************************************
+config.c(259) config_property_set_value: p->name: mqtt_clientid, trigger: 1
+config.c(232) _destdup: type: DATA_TYPE_STRING
+config.c(247) _destdup: dest: 0x55b3edb35450
+conv.c(147) conv_type: src: 
+conv.c(2389) conv_type: dt: 4(DATA_TYPE_STRING)
+conv.c(2392) conv_type: string: 
+conv.c(2424) conv_type: returning: 0
+config.c(277) config_property_set_value: p->dest: 0x55b3edb37c48, p->flags: 0
+config.c(285) config_property_set_value: p->dest: 0x55b3edb37c48, type: DATA_TYPE_STRING, ISNUMBER: 0
+config.c(311) config_property_set_value: p->dest: 0x55b3edb37c48, p->dsize: 63
+conv.c(147) conv_type: src: 
+conv.c(2389) conv_type: dt: 4(DATA_TYPE_STRING)
+conv.c(2392) conv_type: string: 
+conv.c(2424) conv_type: returning: 0
+config.c(317) config_property_set_value: ==> trigger: 1, p->dest: 0x55b3edb37c48, p->trigger: (nil)
+config.c(323) config_property_set_value: old_dest: 0x55b3edb35450
+config.c(325) config_property_set_value: destroying old_dest...
+config.c(468) config_section_add_property: cp: 0x55b3edb38280, s: 0x55b3edb384b0, p: 0x7fff958c58b8
+config.c(471) config_section_add_property: cp->triggers: 1, NOTRIG: 0
+config.c(475) config_section_add_property: p->name: mqtt_username, flags: 0, trig: 1
+config.c(134) config_section_get_property: section: cellmon, name: mqtt_username
+config.c(148) config_section_get_property: NOT found
+config.c(480) config_section_add_property: p: 0x7fff958c58b8, pp: (nil)
+config.c(500) config_section_add_property: mqtt_username: dest: 0x55b3edb37c88, def: , flags: 0
+config.c(258) config_property_set_value: ***************************************
+config.c(259) config_property_set_value: p->name: mqtt_username, trigger: 1
+config.c(232) _destdup: type: DATA_TYPE_STRING
+config.c(247) _destdup: dest: 0x55b3edb35450
+conv.c(147) conv_type: src: 
+conv.c(2389) conv_type: dt: 4(DATA_TYPE_STRING)
+conv.c(2392) conv_type: string: 
+conv.c(2424) conv_type: returning: 0
+config.c(277) config_property_set_value: p->dest: 0x55b3edb37c88, p->flags: 0
+config.c(285) config_property_set_value: p->dest: 0x55b3edb37c88, type: DATA_TYPE_STRING, ISNUMBER: 0
+config.c(311) config_property_set_value: p->dest: 0x55b3edb37c88, p->dsize: 511
+conv.c(147) conv_type: src: 
+conv.c(2389) conv_type: dt: 4(DATA_TYPE_STRING)
+conv.c(2392) conv_type: string: 
+conv.c(2424) conv_type: returning: 0
+config.c(317) config_property_set_value: ==> trigger: 1, p->dest: 0x55b3edb37c88, p->trigger: (nil)
+config.c(323) config_property_set_value: old_dest: 0x55b3edb35450
+config.c(325) config_property_set_value: destroying old_dest...
+config.c(468) config_section_add_property: cp: 0x55b3edb38280, s: 0x55b3edb384b0, p: 0x7fff958c5940
+config.c(471) config_section_add_property: cp->triggers: 1, NOTRIG: 0
+config.c(475) config_section_add_property: p->name: mqtt_password, flags: 0, trig: 1
+config.c(134) config_section_get_property: section: cellmon, name: mqtt_password
+config.c(148) config_section_get_property: NOT found
+config.c(480) config_section_add_property: p: 0x7fff958c5940, pp: (nil)
+config.c(500) config_section_add_property: mqtt_password: dest: 0x55b3edb37e88, def: , flags: 0
+config.c(258) config_property_set_value: ***************************************
+config.c(259) config_property_set_value: p->name: mqtt_password, trigger: 1
+config.c(232) _destdup: type: DATA_TYPE_STRING
+config.c(247) _destdup: dest: 0x55b3edb35450
+conv.c(147) conv_type: src: 
+conv.c(2389) conv_type: dt: 4(DATA_TYPE_STRING)
+conv.c(2392) conv_type: string: 
+conv.c(2424) conv_type: returning: 0
+config.c(277) config_property_set_value: p->dest: 0x55b3edb37e88, p->flags: 0
+config.c(285) config_property_set_value: p->dest: 0x55b3edb37e88, type: DATA_TYPE_STRING, ISNUMBER: 0
+config.c(311) config_property_set_value: p->dest: 0x55b3edb37e88, p->dsize: 511
+conv.c(147) conv_type: src: 
+conv.c(2389) conv_type: dt: 4(DATA_TYPE_STRING)
+conv.c(2392) conv_type: string: 
+conv.c(2424) conv_type: returning: 0
+config.c(317) config_property_set_value: ==> trigger: 1, p->dest: 0x55b3edb37e88, p->trigger: (nil)
+config.c(323) config_property_set_value: old_dest: 0x55b3edb35450
+config.c(325) config_property_set_value: destroying old_dest...
+common.c(359) common_read_config: conf: /opt/sd/etc/common.conf
+common.c(361) common_read_config: fp1: 0x55b3edb336b0
+common.c(368) common_read_config: tempfile: /tmp/_sdctmp981261.conf
+common.c(370) common_read_config: fp2: 0x55b3edb39820
+config.c(1311) config_set_filename: cp: 0x55b3edb38280, filename: /tmp/_sdctmp981261.conf, format: 0
+config.c(1255) _set_rw: format: 0
+config.c(1255) _set_rw: format: 1
+config.c(1233) config_set_reader: cp: 0x55b3edb38280
+config.c(1236) config_set_reader: func: 0x55b3d3ec8c4b, ctx: 0x55b3edb38280
+config.c(1244) config_set_writer: cp: 0x55b3edb38280
+config.c(1247) config_set_writer: func: 0x55b3d3ec9f3f, ctx: 0x55b3edb38280
+config.c(1290) config_read: cp: 0x55b3edb38280
+config.c(1293) config_read: reader: 0x55b3d3ec8c4b
+config.c(822) config_read_ini: cp: 0x55b3edb38280
+config.c(825) config_read_ini: filename: /tmp/_sdctmp981261.conf
+cfg.c(415) cfg_read: filename: /tmp/_sdctmp981261.conf
+cfg.c(435) cfg_read: line: [cellmon]
+cfg.c(530) cfg_get_section: looking for section: CELLMON
+cfg.c(533) cfg_get_section: name: 
+cfg.c(435) cfg_read: line: mqtt_uri=tcp://localhost:1883
+cfg.c(121) cfg_section_get_item: looking for keyword: MQTT_URI
+cfg.c(130) cfg_section_get_item: not found
+cfg.c(506) cfg_read: keyword: MQTT_URI, value: tcp://localhost:1883
+cfg.c(435) cfg_read: line: influx_endpoint=localhost:8086
+cfg.c(121) cfg_section_get_item: looking for keyword: INFLUX_ENDPOINT
+cfg.c(124) cfg_section_get_item: item->keyword: MQTT_URI
+cfg.c(130) cfg_section_get_item: not found
+cfg.c(506) cfg_read: keyword: INFLUX_ENDPOINT, value: localhost:8086
+cfg.c(435) cfg_read: line: 
+config.c(827) config_read_ini: cfg: 0x55b3edb39a00
+config.c(834) config_read_ini: cfgsec->name: 
+config.c(557) config_get_section: looking for section: 
+config.c(560) config_get_section: name: cellmon
+config.c(567) config_get_section: NOT found!
+config.c(594) config_create_section: name: , flags: 10
+config.c(834) config_read_ini: cfgsec->name: CELLMON
+config.c(557) config_get_section: looking for section: CELLMON
+config.c(560) config_get_section: name: cellmon
+config.c(562) config_get_section: found
+config.c(839) config_read_ini: item->keyword: MQTT_URI
+config.c(134) config_section_get_property: section: cellmon, name: MQTT_URI
+config.c(142) config_section_get_property: found: 0x55b3edb39550
+config.c(841) config_read_ini: p: 0x55b3edb39550
+config.c(843) config_read_ini: value: tcp://localhost:1883
+conv.c(147) conv_type: src: tcp://localhost:1883
+conv.c(2389) conv_type: dt: 4(DATA_TYPE_STRING)
+conv.c(2392) conv_type: string: tcp://localhost:1883
+conv.c(2424) conv_type: returning: 20
+config.c(839) config_read_ini: item->keyword: INFLUX_ENDPOINT
+config.c(134) config_section_get_property: section: cellmon, name: INFLUX_ENDPOINT
+config.c(148) config_section_get_property: NOT found
+config.c(841) config_read_ini: p: (nil)
+config.c(409) config_new_property: cp: 0x55b3edb38280, name: INFLUX_ENDPOINT, type: 4, dest: 0x55b3edb39f50, dsize: 15, len: 14, def: (null), flags: 58, scope: (null), values: (null), labels: (null), units: (null), scale: 0.000000, precision: 0
+config.c(413) config_new_property: newp: 0x55b3edb3a0e0
+config.c(424) config_new_property: type: DATA_TYPE_STRING, dest: 0x55b3edb39f50, size: 15
+conv.c(147) conv_type: src: localhost:8086
+conv.c(2389) conv_type: dt: 4(DATA_TYPE_STRING)
+conv.c(2392) conv_type: string: localhost:8086
+conv.c(2424) conv_type: returning: 14
+config.c(426) config_new_property: INFLUX_ENDPOINT value: localhost:8086
+config.c(258) config_property_set_value: ***************************************
+config.c(259) config_property_set_value: p->name: INFLUX_ENDPOINT, trigger: 1
+config.c(277) config_property_set_value: p->dest: (nil), p->flags: 20
+config.c(285) config_property_set_value: p->dest: (nil), type: DATA_TYPE_STRING, ISNUMBER: 0
+config.c(288) config_property_set_value: allocating dest...
+config.c(289) config_property_set_value: p->type: DATA_TYPE_STRING, type: DATA_TYPE_STRING
+config.c(295) config_property_set_value: p->dsize: 16, size: 16
+config.c(307) config_property_set_value: p->dest: 0x55b3edb3a190
+config.c(311) config_property_set_value: p->dest: 0x55b3edb3a190, p->dsize: 16
+conv.c(147) conv_type: src: localhost:8086
+conv.c(2389) conv_type: dt: 4(DATA_TYPE_STRING)
+conv.c(2392) conv_type: string: localhost:8086
+conv.c(2424) conv_type: returning: 14
+config.c(317) config_property_set_value: ==> trigger: 1, p->dest: 0x55b3edb3a190, p->trigger: (nil)
+config.c(323) config_property_set_value: old_dest: (nil)
+config.c(468) config_section_add_property: cp: 0x55b3edb38280, s: 0x55b3edb384b0, p: 0x55b3edb3a0e0
+config.c(471) config_section_add_property: cp->triggers: 1, NOTRIG: 0
+config.c(475) config_section_add_property: p->name: INFLUX_ENDPOINT, flags: 0, trig: 1
+config.c(134) config_section_get_property: section: cellmon, name: INFLUX_ENDPOINT
+config.c(148) config_section_get_property: NOT found
+config.c(480) config_section_add_property: p: 0x55b3edb3a0e0, pp: (nil)
+config.c(500) config_section_add_property: INFLUX_ENDPOINT: dest: 0x55b3edb3a190, def: (null), flags: 4178
+config.c(853) config_read_ini: building map...
+config.c(523) config_build_propmap: cp->map: (nil)
+config.c(526) config_build_propmap: cp->id: 15, size: 120
+config.c(528) config_build_propmap: cp->map: 0x55b3edb338b0
+config.c(546) config_build_propmap: map count: 15
+cfg.c(103) cfg_destroy: item->keyword: MQTT_URI
+cfg.c(103) cfg_destroy: item->keyword: INFLUX_ENDPOINT
+common.c(465) solard_common_startup: config_from_mqtt: 0
+common.c(481) solard_common_startup: configfile: /opt/sd/etc/cellmon.conf
+config.c(1311) config_set_filename: cp: 0x55b3edb38280, filename: /opt/sd/etc/cellmon.conf, format: 0
+config.c(1255) _set_rw: format: 0
+config.c(1255) _set_rw: format: 1
+config.c(1233) config_set_reader: cp: 0x55b3edb38280
+config.c(1236) config_set_reader: func: 0x55b3d3ec8c4b, ctx: 0x55b3edb38280
+config.c(1244) config_set_writer: cp: 0x55b3edb38280
+config.c(1247) config_set_writer: func: 0x55b3d3ec9f3f, ctx: 0x55b3edb38280
+config.c(1290) config_read: cp: 0x55b3edb38280
+config.c(1293) config_read: reader: 0x55b3d3ec8c4b
+config.c(822) config_read_ini: cp: 0x55b3edb38280
+config.c(825) config_read_ini: filename: /opt/sd/etc/cellmon.conf
+cfg.c(415) cfg_read: filename: /opt/sd/etc/cellmon.conf
+cfg.c(435) cfg_read: line: [cellmon]
+cfg.c(530) cfg_get_section: looking for section: CELLMON
+cfg.c(533) cfg_get_section: name: 
+cfg.c(435) cfg_read: line: average=yes
+cfg.c(121) cfg_section_get_item: looking for keyword: AVERAGE
+cfg.c(130) cfg_section_get_item: not found
+cfg.c(506) cfg_read: keyword: AVERAGE, value: yes
+cfg.c(435) cfg_read: line: minmax=yes
+cfg.c(121) cfg_section_get_item: looking for keyword: MINMAX
+cfg.c(124) cfg_section_get_item: item->keyword: AVERAGE
+cfg.c(130) cfg_section_get_item: not found
+cfg.c(506) cfg_read: keyword: MINMAX, value: yes
+cfg.c(435) cfg_read: line: mqtt_uri=solardirector
+cfg.c(121) cfg_section_get_item: looking for keyword: MQTT_URI
+cfg.c(124) cfg_section_get_item: item->keyword: AVERAGE
+cfg.c(124) cfg_section_get_item: item->keyword: MINMAX
+cfg.c(130) cfg_section_get_item: not found
+cfg.c(506) cfg_read: keyword: MQTT_URI, value: solardirector
+cfg.c(435) cfg_read: line: 
+config.c(827) config_read_ini: cfg: 0x55b3edb3a1e0
+config.c(834) config_read_ini: cfgsec->name: 
+config.c(557) config_get_section: looking for section: 
+config.c(560) config_get_section: name: cellmon
+config.c(560) config_get_section: name: 
+config.c(562) config_get_section: found
+config.c(834) config_read_ini: cfgsec->name: CELLMON
+config.c(557) config_get_section: looking for section: CELLMON
+config.c(560) config_get_section: name: cellmon
+config.c(562) config_get_section: found
+config.c(839) config_read_ini: item->keyword: AVERAGE
+config.c(134) config_section_get_property: section: cellmon, name: AVERAGE
+config.c(142) config_section_get_property: found: 0x55b3edb38550
+config.c(841) config_read_ini: p: 0x55b3edb38550
+config.c(843) config_read_ini: value: yes
+conv.c(2389) conv_type: dt: 8(DATA_TYPE_BOOL)
+conv.c(2424) conv_type: returning: 4
+config.c(839) config_read_ini: item->keyword: MINMAX
+config.c(134) config_section_get_property: section: cellmon, name: MINMAX
+config.c(142) config_section_get_property: found: 0x55b3edb38610
+config.c(841) config_read_ini: p: 0x55b3edb38610
+config.c(843) config_read_ini: value: yes
+conv.c(2389) conv_type: dt: 8(DATA_TYPE_BOOL)
+conv.c(2424) conv_type: returning: 4
+config.c(839) config_read_ini: item->keyword: MQTT_URI
+config.c(134) config_section_get_property: section: cellmon, name: MQTT_URI
+config.c(142) config_section_get_property: found: 0x55b3edb39550
+config.c(841) config_read_ini: p: 0x55b3edb39550
+config.c(843) config_read_ini: value: solardirector
+conv.c(147) conv_type: src: solardirector
+conv.c(2389) conv_type: dt: 4(DATA_TYPE_STRING)
+conv.c(2392) conv_type: string: solardirector
+conv.c(2424) conv_type: returning: 13
+config.c(853) config_read_ini: building map...
+config.c(523) config_build_propmap: cp->map: 0x55b3edb338b0
+config.c(526) config_build_propmap: cp->id: 15, size: 120
+config.c(528) config_build_propmap: cp->map: 0x55b3edb338b0
+config.c(546) config_build_propmap: map count: 15
+cfg.c(103) cfg_destroy: item->keyword: AVERAGE
+cfg.c(103) cfg_destroy: item->keyword: MINMAX
+cfg.c(103) cfg_destroy: item->keyword: MQTT_URI
+mqtt.c(49) mqtt_init: s: 0x55b3edb37bc0
+mqtt.c(171) mqtt_newclient: gen'ing MQTT ClientID...
+mqtt.c(173) mqtt_newclient: unparsing uuid...
+mqtt.c(175) mqtt_newclient: clientid: a3733bb9-8e0c-498a-9b2e-fab3d6fea83e
+mqtt.c(179) mqtt_newclient: uri: solardirector
+mqtt.c(181) mqtt_newclient: create rc: 0
+mqtt.c(188) mqtt_newclient: setting callbacks...
+mqtt.c(190) mqtt_newclient: setcb rc: 0
+mqtt.c(256) mqtt_connect: s: 0x55b3edb37bc0, interval: 20
+mqtt.c(259) mqtt_connect: enabled: 1
+mqtt.c(262) mqtt_connect: interval: 20
+mqtt.c(264) mqtt_connect: lwt: 
+mqtt.c(272) mqtt_connect: uri: solardirector
+mqtt.c(299) mqtt_connect: connectv5
+mqtt.c(317) mqtt_connect: rc: 0, SUCCESS: 0
+mqtt.c(330) mqtt_connect: count: 0
+mqtt.c(576) mqtt_sub: s: 0x55b3edb37bc0
+mqtt.c(578) mqtt_sub: enabled: 1
+mqtt.c(587) mqtt_sub: topic: SolarD/Clients/a3733bb9-8e0c-498a-9b2e-fab3d6fea83e/#
+mqtt.c(596) mqtt_sub: rc: 0
+mqtt.c(559) mqtt_addsub: topic: SolarD/Clients/a3733bb9-8e0c-498a-9b2e-fab3d6fea83e/#
+mqtt.c(567) mqtt_addsub: adding!
+config.c(633) config_add_props: cp: 0x55b3edb38280, props: 0x7fff958c5cd0, flags: 6
+config.c(557) config_get_section: looking for section: client
+config.c(560) config_get_section: name: cellmon
+config.c(560) config_get_section: name: 
+config.c(567) config_get_section: NOT found!
+config.c(637) config_add_props: section: (nil)
+config.c(594) config_create_section: name: client, flags: 06
+config.c(639) config_add_props: section: 0x55b3edb5b970
+client.c(323) client_init: returning: 0x55b3edb37b20
+mqtt.c(576) mqtt_sub: s: 0x55b3edb37bc0
+mqtt.c(578) mqtt_sub: enabled: 1
+mqtt.c(587) mqtt_sub: topic: SolarD/Agents/#
+mqtt.c(124) mqtt_getmsg: payloadlen: 6
+mqtt.c(127) mqtt_getmsg: topicLen: 0
+mqtt.c(134) mqtt_getmsg: len: 24
+mqtt.c(137) mqtt_getmsg: topic: SolarD/Agents/jbd/Status
+mqtt.c(143) mqtt_getmsg: hasProperty UP: 1
+mqtt.c(153) mqtt_getmsg: cb: 0x55b3d3eb6070
+client.c(49) client_getmsg: addmq: 1
+message.c(55) solard_getmsg: topic: SolarD/Agents/jbd/Status, msglen: 6, replyto: 4800c1bc-c247-48a3-86be-936f60c7d801
+message.c(62) solard_getmsg: root: SolarD
+message.c(68) solard_getmsg: type: Agents
+mqtt.c(159) mqtt_getmsg: returning...
+mqtt.c(124) mqtt_getmsg: payloadlen: 26051
+mqtt.c(127) mqtt_getmsg: topicLen: 0
+mqtt.c(134) mqtt_getmsg: len: 22
+mqtt.c(137) mqtt_getmsg: topic: SolarD/Agents/jbd/Info
+mqtt.c(143) mqtt_getmsg: hasProperty UP: 1
+mqtt.c(153) mqtt_getmsg: cb: 0x55b3d3eb6070
+client.c(49) client_getmsg: addmq: 1
+message.c(55) solard_getmsg: topic: SolarD/Agents/jbd/Info, msglen: 26051, replyto: 53b2e594-4cc0-46ff-8e28-7ba90fe7a25c
+message.c(62) solard_getmsg: root: SolarD
+message.c(68) solard_getmsg: type: Agents
+mqtt.c(159) mqtt_getmsg: returning...
+mqtt.c(124) mqtt_getmsg: payloadlen: 2
+mqtt.c(127) mqtt_getmsg: topicLen: 0
+mqtt.c(134) mqtt_getmsg: len: 24
+mqtt.c(137) mqtt_getmsg: topic: SolarD/Agents/jbd/Config
+mqtt.c(143) mqtt_getmsg: hasProperty UP: 1
+mqtt.c(153) mqtt_getmsg: cb: 0x55b3d3eb6070
+client.c(49) client_getmsg: addmq: 1
+message.c(55) solard_getmsg: topic: SolarD/Agents/jbd/Config, msglen: 2, replyto: 53b2e594-4cc0-46ff-8e28-7ba90fe7a25c
+message.c(62) solard_getmsg: root: SolarD
+message.c(68) solard_getmsg: type: Agents
+mqtt.c(159) mqtt_getmsg: returning...
+mqtt.c(124) mqtt_getmsg: payloadlen: 26330
+mqtt.c(127) mqtt_getmsg: topicLen: 0
+mqtt.c(134) mqtt_getmsg: len: 26
+mqtt.c(137) mqtt_getmsg: topic: SolarD/Agents/pack_01/Info
+mqtt.c(143) mqtt_getmsg: hasProperty UP: 1
+mqtt.c(153) mqtt_getmsg: cb: 0x55b3d3eb6070
+client.c(49) client_getmsg: addmq: 1
+message.c(55) solard_getmsg: topic: SolarD/Agents/pack_01/Info, msglen: 26330, replyto: 20fbdafc-0c06-4539-9ff1-e9cdc53e9c52
+message.c(62) solard_getmsg: root: SolarD
+message.c(68) solard_getmsg: type: Agents
+mqtt.c(159) mqtt_getmsg: returning...
+mqtt.c(124) mqtt_getmsg: payloadlen: 192
+mqtt.c(127) mqtt_getmsg: topicLen: 0
+mqtt.c(134) mqtt_getmsg: len: 28
+mqtt.c(137) mqtt_getmsg: topic: SolarD/Agents/pack_01/Config
+mqtt.c(143) mqtt_getmsg: hasProperty UP: 1
+mqtt.c(153) mqtt_getmsg: cb: 0x55b3d3eb6070
+client.c(49) client_getmsg: addmq: 1
+message.c(55) solard_getmsg: topic: SolarD/Agents/pack_01/Config, msglen: 192, replyto: 20fbdafc-0c06-4539-9ff1-e9cdc53e9c52
+message.c(62) solard_getmsg: root: SolarD
+message.c(68) solard_getmsg: type: Agents
+mqtt.c(159) mqtt_getmsg: returning...
+mqtt.c(124) mqtt_getmsg: payloadlen: 6
+mqtt.c(127) mqtt_getmsg: topicLen: 0
+mqtt.c(134) mqtt_getmsg: len: 28
+mqtt.c(137) mqtt_getmsg: topic: SolarD/Agents/pack_01/Status
+mqtt.c(143) mqtt_getmsg: hasProperty UP: 1
+mqtt.c(153) mqtt_getmsg: cb: 0x55b3d3eb6070
+client.c(49) client_getmsg: addmq: 1
+message.c(55) solard_getmsg: topic: SolarD/Agents/pack_01/Status, msglen: 6, replyto: 20fbdafc-0c06-4539-9ff1-e9cdc53e9c52
+message.c(62) solard_getmsg: root: SolarD
+message.c(68) solard_getmsg: type: Agents
+mqtt.c(159) mqtt_getmsg: returning...
+mqtt.c(124) mqtt_getmsg: payloadlen: 6
+mqtt.c(127) mqtt_getmsg: topicLen: 0
+mqtt.c(134) mqtt_getmsg: len: 23
+mqtt.c(137) mqtt_getmsg: topic: SolarD/Agents/si/Status
+mqtt.c(143) mqtt_getmsg: hasProperty UP: 1
+mqtt.c(153) mqtt_getmsg: cb: 0x55b3d3eb6070
+client.c(49) client_getmsg: addmq: 1
+message.c(55) solard_getmsg: topic: SolarD/Agents/si/Status, msglen: 6, replyto: 6556d231-da94-4753-a605-a850768a1f6b
+message.c(62) solard_getmsg: root: SolarD
+message.c(68) solard_getmsg: type: Agents
+mqtt.c(159) mqtt_getmsg: returning...
+mqtt.c(596) mqtt_sub: rc: 0
+mqtt.c(559) mqtt_addsub: topic: SolarD/Agents/#
+mqtt.c(567) mqtt_addsub: adding!
+main.c(44) process_messages: mq.length: 7
+main.c(69) process_messages: added agent: jbd
+main.c(69) process_messages: added agent: pack_01
+main.c(189) display: npacks: 0
+mqtt.c(124) mqtt_getmsg: payloadlen: 75374
+mqtt.c(127) mqtt_getmsg: topicLen: 0
+mqtt.c(134) mqtt_getmsg: len: 21
+mqtt.c(137) mqtt_getmsg: topic: SolarD/Agents/si/Info
+mqtt.c(143) mqtt_getmsg: hasProperty UP: 1
+mqtt.c(153) mqtt_getmsg: cb: 0x55b3d3eb6070
+client.c(49) client_getmsg: addmq: 1
+message.c(55) solard_getmsg: topic: SolarD/Agents/si/Info, msglen: 75374, replyto: 6556d231-da94-4753-a605-a850768a1f6b
+message.c(62) solard_getmsg: root: SolarD
+message.c(68) solard_getmsg: type: Agents
+mqtt.c(159) mqtt_getmsg: returning...
+mqtt.c(124) mqtt_getmsg: payloadlen: 1614
+mqtt.c(127) mqtt_getmsg: topicLen: 0
+mqtt.c(134) mqtt_getmsg: len: 23
+mqtt.c(137) mqtt_getmsg: topic: SolarD/Agents/si/Config
+mqtt.c(143) mqtt_getmsg: hasProperty UP: 1
+mqtt.c(153) mqtt_getmsg: cb: 0x55b3d3eb6070
+client.c(49) client_getmsg: addmq: 1
+message.c(55) solard_getmsg: topic: SolarD/Agents/si/Config, msglen: 1614, replyto: 6556d231-da94-4753-a605-a850768a1f6b
+message.c(62) solard_getmsg: root: SolarD
+message.c(68) solard_getmsg: type: Agents
+mqtt.c(159) mqtt_getmsg: returning...
+mqtt.c(124) mqtt_getmsg: payloadlen: 6
+mqtt.c(127) mqtt_getmsg: topicLen: 0
+mqtt.c(134) mqtt_getmsg: len: 23
+mqtt.c(137) mqtt_getmsg: topic: SolarD/Agents/sb/Status
+mqtt.c(143) mqtt_getmsg: hasProperty UP: 1
+mqtt.c(153) mqtt_getmsg: cb: 0x55b3d3eb6070
+client.c(49) client_getmsg: addmq: 1
+message.c(55) solard_getmsg: topic: SolarD/Agents/sb/Status, msglen: 6, replyto: 5848fc59-09c1-402b-9d2d-f6e61ce530d5
+message.c(62) solard_getmsg: root: SolarD
+message.c(68) solard_getmsg: type: Agents
+mqtt.c(159) mqtt_getmsg: returning...
+mqtt.c(124) mqtt_getmsg: payloadlen: 229
+mqtt.c(127) mqtt_getmsg: topicLen: 0
+mqtt.c(134) mqtt_getmsg: len: 24
+mqtt.c(137) mqtt_getmsg: topic: SolarD/Agents/sb1/Config
+mqtt.c(143) mqtt_getmsg: hasProperty UP: 1
+mqtt.c(153) mqtt_getmsg: cb: 0x55b3d3eb6070
+client.c(49) client_getmsg: addmq: 1
+message.c(55) solard_getmsg: topic: SolarD/Agents/sb1/Config, msglen: 229, replyto: a9b4519e-a61c-4405-8b37-abb403c1eb22
+message.c(62) solard_getmsg: root: SolarD
+message.c(68) solard_getmsg: type: Agents
+mqtt.c(159) mqtt_getmsg: returning...
+mqtt.c(124) mqtt_getmsg: payloadlen: 6
+mqtt.c(127) mqtt_getmsg: topicLen: 0
+mqtt.c(134) mqtt_getmsg: len: 24
+mqtt.c(137) mqtt_getmsg: topic: SolarD/Agents/sb1/Status
+mqtt.c(143) mqtt_getmsg: hasProperty UP: 1
+mqtt.c(153) mqtt_getmsg: cb: 0x55b3d3eb6070
+client.c(49) client_getmsg: addmq: 1
+message.c(55) solard_getmsg: topic: SolarD/Agents/sb1/Status, msglen: 6, replyto: a9b4519e-a61c-4405-8b37-abb403c1eb22
+message.c(62) solard_getmsg: root: SolarD
+message.c(68) solard_getmsg: type: Agents
+mqtt.c(159) mqtt_getmsg: returning...
+mqtt.c(124) mqtt_getmsg: payloadlen: 8250
+mqtt.c(127) mqtt_getmsg: topicLen: 0
+mqtt.c(134) mqtt_getmsg: len: 22
+mqtt.c(137) mqtt_getmsg: topic: SolarD/Agents/sb1/Info
+mqtt.c(143) mqtt_getmsg: hasProperty UP: 1
+mqtt.c(153) mqtt_getmsg: cb: 0x55b3d3eb6070
+client.c(49) client_getmsg: addmq: 1
+message.c(55) solard_getmsg: topic: SolarD/Agents/sb1/Info, msglen: 8250, replyto: a9b4519e-a61c-4405-8b37-abb403c1eb22
+message.c(62) solard_getmsg: root: SolarD
+message.c(68) solard_getmsg: type: Agents
+mqtt.c(159) mqtt_getmsg: returning...
+mqtt.c(124) mqtt_getmsg: payloadlen: 6
+mqtt.c(127) mqtt_getmsg: topicLen: 0
+mqtt.c(134) mqtt_getmsg: len: 24
+mqtt.c(137) mqtt_getmsg: topic: SolarD/Agents/sb2/Status
+mqtt.c(143) mqtt_getmsg: hasProperty UP: 1
+mqtt.c(153) mqtt_getmsg: cb: 0x55b3d3eb6070
+client.c(49) client_getmsg: addmq: 1
+message.c(55) solard_getmsg: topic: SolarD/Agents/sb2/Status, msglen: 6, replyto: 6ebf7a9c-66e4-4b68-a037-38c9b1472416
+message.c(62) solard_getmsg: root: SolarD
+message.c(68) solard_getmsg: type: Agents
+mqtt.c(159) mqtt_getmsg: returning...
+mqtt.c(124) mqtt_getmsg: payloadlen: 229
+mqtt.c(127) mqtt_getmsg: topicLen: 0
+mqtt.c(134) mqtt_getmsg: len: 24
+mqtt.c(137) mqtt_getmsg: topic: SolarD/Agents/sb2/Config
+mqtt.c(143) mqtt_getmsg: hasProperty UP: 1
+mqtt.c(153) mqtt_getmsg: cb: 0x55b3d3eb6070
+client.c(49) client_getmsg: addmq: 1
+message.c(55) solard_getmsg: topic: SolarD/Agents/sb2/Config, msglen: 229, replyto: 6ebf7a9c-66e4-4b68-a037-38c9b1472416
+message.c(62) solard_getmsg: root: SolarD
+message.c(68) solard_getmsg: type: Agents
+mqtt.c(159) mqtt_getmsg: returning...
+mqtt.c(124) mqtt_getmsg: payloadlen: 8250
+mqtt.c(127) mqtt_getmsg: topicLen: 0
+mqtt.c(134) mqtt_getmsg: len: 22
+mqtt.c(137) mqtt_getmsg: topic: SolarD/Agents/sb2/Info
+mqtt.c(143) mqtt_getmsg: hasProperty UP: 1
+mqtt.c(153) mqtt_getmsg: cb: 0x55b3d3eb6070
+client.c(49) client_getmsg: addmq: 1
+message.c(55) solard_getmsg: topic: SolarD/Agents/sb2/Info, msglen: 8250, replyto: 6ebf7a9c-66e4-4b68-a037-38c9b1472416
+message.c(62) solard_getmsg: root: SolarD
+message.c(68) solard_getmsg: type: Agents
+mqtt.c(159) mqtt_getmsg: returning...
+mqtt.c(124) mqtt_getmsg: payloadlen: 6
+mqtt.c(127) mqtt_getmsg: topicLen: 0
+mqtt.c(134) mqtt_getmsg: len: 24
+mqtt.c(137) mqtt_getmsg: topic: SolarD/Agents/sb3/Status
+mqtt.c(143) mqtt_getmsg: hasProperty UP: 1
+mqtt.c(153) mqtt_getmsg: cb: 0x55b3d3eb6070
+client.c(49) client_getmsg: addmq: 1
+message.c(55) solard_getmsg: topic: SolarD/Agents/sb3/Status, msglen: 6, replyto: e767fc33-20c8-49c9-972a-8f3d617407c5
+message.c(62) solard_getmsg: root: SolarD
+message.c(68) solard_getmsg: type: Agents
+mqtt.c(159) mqtt_getmsg: returning...
+mqtt.c(124) mqtt_getmsg: payloadlen: 8250
+mqtt.c(127) mqtt_getmsg: topicLen: 0
+mqtt.c(134) mqtt_getmsg: len: 22
+mqtt.c(137) mqtt_getmsg: topic: SolarD/Agents/sb3/Info
+mqtt.c(143) mqtt_getmsg: hasProperty UP: 1
+mqtt.c(153) mqtt_getmsg: cb: 0x55b3d3eb6070
+client.c(49) client_getmsg: addmq: 1
+message.c(55) solard_getmsg: topic: SolarD/Agents/sb3/Info, msglen: 8250, replyto: e767fc33-20c8-49c9-972a-8f3d617407c5
+message.c(62) solard_getmsg: root: SolarD
+message.c(68) solard_getmsg: type: Agents
+mqtt.c(159) mqtt_getmsg: returning...
+mqtt.c(124) mqtt_getmsg: payloadlen: 229
+mqtt.c(127) mqtt_getmsg: topicLen: 0
+mqtt.c(134) mqtt_getmsg: len: 24
+mqtt.c(137) mqtt_getmsg: topic: SolarD/Agents/sb3/Config
+mqtt.c(143) mqtt_getmsg: hasProperty UP: 1
+mqtt.c(153) mqtt_getmsg: cb: 0x55b3d3eb6070
+client.c(49) client_getmsg: addmq: 1
+message.c(55) solard_getmsg: topic: SolarD/Agents/sb3/Config, msglen: 229, replyto: e767fc33-20c8-49c9-972a-8f3d617407c5
+message.c(62) solard_getmsg: root: SolarD
+message.c(68) solard_getmsg: type: Agents
+mqtt.c(159) mqtt_getmsg: returning...
+mqtt.c(124) mqtt_getmsg: payloadlen: 6
+mqtt.c(127) mqtt_getmsg: topicLen: 0
+mqtt.c(134) mqtt_getmsg: len: 28
+mqtt.c(137) mqtt_getmsg: topic: SolarD/Agents/pack_02/Status
+mqtt.c(143) mqtt_getmsg: hasProperty UP: 1
+mqtt.c(153) mqtt_getmsg: cb: 0x55b3d3eb6070
+client.c(49) client_getmsg: addmq: 1
+message.c(55) solard_getmsg: topic: SolarD/Agents/pack_02/Status, msglen: 6, replyto: 9a08318f-6a5d-4da5-adee-b9c0a91b1bd4
+message.c(62) solard_getmsg: root: SolarD
+message.c(68) solard_getmsg: type: Agents
+mqtt.c(159) mqtt_getmsg: returning...
+mqtt.c(124) mqtt_getmsg: payloadlen: 26330
+mqtt.c(127) mqtt_getmsg: topicLen: 0
+mqtt.c(134) mqtt_getmsg: len: 26
+mqtt.c(137) mqtt_getmsg: topic: SolarD/Agents/pack_02/Info
+mqtt.c(143) mqtt_getmsg: hasProperty UP: 1
+mqtt.c(153) mqtt_getmsg: cb: 0x55b3d3eb6070
+client.c(49) client_getmsg: addmq: 1
+message.c(55) solard_getmsg: topic: SolarD/Agents/pack_02/Info, msglen: 26330, replyto: 9a08318f-6a5d-4da5-adee-b9c0a91b1bd4
+message.c(62) solard_getmsg: root: SolarD
+message.c(68) solard_getmsg: type: Agents
+mqtt.c(159) mqtt_getmsg: returning...
+mqtt.c(124) mqtt_getmsg: payloadlen: 168
+mqtt.c(127) mqtt_getmsg: topicLen: 0
+mqtt.c(134) mqtt_getmsg: len: 28
+mqtt.c(137) mqtt_getmsg: topic: SolarD/Agents/pack_02/Config
+mqtt.c(143) mqtt_getmsg: hasProperty UP: 1
+mqtt.c(153) mqtt_getmsg: cb: 0x55b3d3eb6070
+client.c(49) client_getmsg: addmq: 1
+message.c(55) solard_getmsg: topic: SolarD/Agents/pack_02/Config, msglen: 168, replyto: 9a08318f-6a5d-4da5-adee-b9c0a91b1bd4
+message.c(62) solard_getmsg: root: SolarD
+message.c(68) solard_getmsg: type: Agents
+mqtt.c(159) mqtt_getmsg: returning...
+mqtt.c(124) mqtt_getmsg: payloadlen: 6
+mqtt.c(127) mqtt_getmsg: topicLen: 0
+mqtt.c(134) mqtt_getmsg: len: 28
+mqtt.c(137) mqtt_getmsg: topic: SolarD/Agents/pack_03/Status
+mqtt.c(143) mqtt_getmsg: hasProperty UP: 1
+mqtt.c(153) mqtt_getmsg: cb: 0x55b3d3eb6070
+client.c(49) client_getmsg: addmq: 1
+message.c(55) solard_getmsg: topic: SolarD/Agents/pack_03/Status, msglen: 6, replyto: 7a95cbf6-605d-4bdb-8b2b-00fbf1e9c29f
+message.c(62) solard_getmsg: root: SolarD
+message.c(68) solard_getmsg: type: Agents
+mqtt.c(159) mqtt_getmsg: returning...
+mqtt.c(124) mqtt_getmsg: payloadlen: 26330
+mqtt.c(127) mqtt_getmsg: topicLen: 0
+mqtt.c(134) mqtt_getmsg: len: 26
+mqtt.c(137) mqtt_getmsg: topic: SolarD/Agents/pack_03/Info
+mqtt.c(143) mqtt_getmsg: hasProperty UP: 1
+mqtt.c(153) mqtt_getmsg: cb: 0x55b3d3eb6070
+client.c(49) client_getmsg: addmq: 1
+message.c(55) solard_getmsg: topic: SolarD/Agents/pack_03/Info, msglen: 26330, replyto: 7a95cbf6-605d-4bdb-8b2b-00fbf1e9c29f
+message.c(62) solard_getmsg: root: SolarD
+message.c(68) solard_getmsg: type: Agents
+mqtt.c(159) mqtt_getmsg: returning...
+mqtt.c(124) mqtt_getmsg: payloadlen: 168
+mqtt.c(127) mqtt_getmsg: topicLen: 0
+mqtt.c(134) mqtt_getmsg: len: 28
+mqtt.c(137) mqtt_getmsg: topic: SolarD/Agents/pack_03/Config
+mqtt.c(143) mqtt_getmsg: hasProperty UP: 1
+mqtt.c(153) mqtt_getmsg: cb: 0x55b3d3eb6070
+client.c(49) client_getmsg: addmq: 1
+message.c(55) solard_getmsg: topic: SolarD/Agents/pack_03/Config, msglen: 168, replyto: 7a95cbf6-605d-4bdb-8b2b-00fbf1e9c29f
+message.c(62) solard_getmsg: root: SolarD
+message.c(68) solard_getmsg: type: Agents
+mqtt.c(159) mqtt_getmsg: returning...
+mqtt.c(124) mqtt_getmsg: payloadlen: 6
+mqtt.c(127) mqtt_getmsg: topicLen: 0
+mqtt.c(134) mqtt_getmsg: len: 28
+mqtt.c(137) mqtt_getmsg: topic: SolarD/Agents/pack_04/Status
+mqtt.c(143) mqtt_getmsg: hasProperty UP: 1
+mqtt.c(153) mqtt_getmsg: cb: 0x55b3d3eb6070
+client.c(49) client_getmsg: addmq: 1
+message.c(55) solard_getmsg: topic: SolarD/Agents/pack_04/Status, msglen: 6, replyto: 51c308f2-0612-4a2d-aa63-fe128df7ef6e
+message.c(62) solard_getmsg: root: SolarD
+message.c(68) solard_getmsg: type: Agents
+mqtt.c(159) mqtt_getmsg: returning...
+mqtt.c(124) mqtt_getmsg: payloadlen: 26330
+mqtt.c(127) mqtt_getmsg: topicLen: 0
+mqtt.c(134) mqtt_getmsg: len: 26
+mqtt.c(137) mqtt_getmsg: topic: SolarD/Agents/pack_04/Info
+mqtt.c(143) mqtt_getmsg: hasProperty UP: 1
+mqtt.c(153) mqtt_getmsg: cb: 0x55b3d3eb6070
+client.c(49) client_getmsg: addmq: 1
+message.c(55) solard_getmsg: topic: SolarD/Agents/pack_04/Info, msglen: 26330, replyto: 51c308f2-0612-4a2d-aa63-fe128df7ef6e
+message.c(62) solard_getmsg: root: SolarD
+message.c(68) solard_getmsg: type: Agents
+mqtt.c(159) mqtt_getmsg: returning...
+mqtt.c(124) mqtt_getmsg: payloadlen: 168
+mqtt.c(127) mqtt_getmsg: topicLen: 0
+mqtt.c(134) mqtt_getmsg: len: 28
+mqtt.c(137) mqtt_getmsg: topic: SolarD/Agents/pack_04/Config
+mqtt.c(143) mqtt_getmsg: hasProperty UP: 1
+mqtt.c(153) mqtt_getmsg: cb: 0x55b3d3eb6070
+client.c(49) client_getmsg: addmq: 1
+message.c(55) solard_getmsg: topic: SolarD/Agents/pack_04/Config, msglen: 168, replyto: 51c308f2-0612-4a2d-aa63-fe128df7ef6e
+message.c(62) solard_getmsg: root: SolarD
+message.c(68) solard_getmsg: type: Agents
+mqtt.c(159) mqtt_getmsg: returning...
+mqtt.c(124) mqtt_getmsg: payloadlen: 6
+mqtt.c(127) mqtt_getmsg: topicLen: 0
+mqtt.c(134) mqtt_getmsg: len: 28
+mqtt.c(137) mqtt_getmsg: topic: SolarD/Agents/pack_05/Status
+mqtt.c(143) mqtt_getmsg: hasProperty UP: 1
+mqtt.c(153) mqtt_getmsg: cb: 0x55b3d3eb6070
+client.c(49) client_getmsg: addmq: 1
+message.c(55) solard_getmsg: topic: SolarD/Agents/pack_05/Status, msglen: 6, replyto: 083b078e-00a2-4fd4-b957-466eb36b1085
+message.c(62) solard_getmsg: root: SolarD
+message.c(68) solard_getmsg: type: Agents
+mqtt.c(159) mqtt_getmsg: returning...
+mqtt.c(124) mqtt_getmsg: payloadlen: 26330
+mqtt.c(127) mqtt_getmsg: topicLen: 0
+mqtt.c(134) mqtt_getmsg: len: 26
+mqtt.c(137) mqtt_getmsg: topic: SolarD/Agents/pack_05/Info
+mqtt.c(143) mqtt_getmsg: hasProperty UP: 1
+mqtt.c(153) mqtt_getmsg: cb: 0x55b3d3eb6070
+client.c(49) client_getmsg: addmq: 1
+message.c(55) solard_getmsg: topic: SolarD/Agents/pack_05/Info, msglen: 26330, replyto: 083b078e-00a2-4fd4-b957-466eb36b1085
+message.c(62) solard_getmsg: root: SolarD
+message.c(68) solard_getmsg: type: Agents
+mqtt.c(159) mqtt_getmsg: returning...
+mqtt.c(124) mqtt_getmsg: payloadlen: 168
+mqtt.c(127) mqtt_getmsg: topicLen: 0
+mqtt.c(134) mqtt_getmsg: len: 28
+mqtt.c(137) mqtt_getmsg: topic: SolarD/Agents/pack_05/Config
+mqtt.c(143) mqtt_getmsg: hasProperty UP: 1
+mqtt.c(153) mqtt_getmsg: cb: 0x55b3d3eb6070
+client.c(49) client_getmsg: addmq: 1
+message.c(55) solard_getmsg: topic: SolarD/Agents/pack_05/Config, msglen: 168, replyto: 083b078e-00a2-4fd4-b957-466eb36b1085
+message.c(62) solard_getmsg: root: SolarD
+message.c(68) solard_getmsg: type: Agents
+mqtt.c(159) mqtt_getmsg: returning...
+mqtt.c(124) mqtt_getmsg: payloadlen: 6
+mqtt.c(127) mqtt_getmsg: topicLen: 0
+mqtt.c(134) mqtt_getmsg: len: 28
+mqtt.c(137) mqtt_getmsg: topic: SolarD/Agents/pack_12/Status
+mqtt.c(143) mqtt_getmsg: hasProperty UP: 1
+mqtt.c(153) mqtt_getmsg: cb: 0x55b3d3eb6070
+client.c(49) client_getmsg: addmq: 1
+message.c(55) solard_getmsg: topic: SolarD/Agents/pack_12/Status, msglen: 6, replyto: f72d3b3b-b042-40ca-99a3-7b5ae0544bb9
+message.c(62) solard_getmsg: root: SolarD
+message.c(68) solard_getmsg: type: Agents
+mqtt.c(159) mqtt_getmsg: returning...
+mqtt.c(124) mqtt_getmsg: payloadlen: 26330
+mqtt.c(127) mqtt_getmsg: topicLen: 0
+mqtt.c(134) mqtt_getmsg: len: 26
+mqtt.c(137) mqtt_getmsg: topic: SolarD/Agents/pack_12/Info
+mqtt.c(143) mqtt_getmsg: hasProperty UP: 1
+mqtt.c(153) mqtt_getmsg: cb: 0x55b3d3eb6070
+client.c(49) client_getmsg: addmq: 1
+message.c(55) solard_getmsg: topic: SolarD/Agents/pack_12/Info, msglen: 26330, replyto: f72d3b3b-b042-40ca-99a3-7b5ae0544bb9
+message.c(62) solard_getmsg: root: SolarD
+message.c(68) solard_getmsg: type: Agents
+mqtt.c(159) mqtt_getmsg: returning...
+mqtt.c(124) mqtt_getmsg: payloadlen: 168
+mqtt.c(127) mqtt_getmsg: topicLen: 0
+mqtt.c(134) mqtt_getmsg: len: 28
+mqtt.c(137) mqtt_getmsg: topic: SolarD/Agents/pack_12/Config
+mqtt.c(143) mqtt_getmsg: hasProperty UP: 1
+mqtt.c(153) mqtt_getmsg: cb: 0x55b3d3eb6070
+client.c(49) client_getmsg: addmq: 1
+message.c(55) solard_getmsg: topic: SolarD/Agents/pack_12/Config, msglen: 168, replyto: f72d3b3b-b042-40ca-99a3-7b5ae0544bb9
+message.c(62) solard_getmsg: root: SolarD
+message.c(68) solard_getmsg: type: Agents
+mqtt.c(159) mqtt_getmsg: returning...
+mqtt.c(124) mqtt_getmsg: payloadlen: 6
+mqtt.c(127) mqtt_getmsg: topicLen: 0
+mqtt.c(134) mqtt_getmsg: len: 28
+mqtt.c(137) mqtt_getmsg: topic: SolarD/Agents/pack_06/Status
+mqtt.c(143) mqtt_getmsg: hasProperty UP: 1
+mqtt.c(153) mqtt_getmsg: cb: 0x55b3d3eb6070
+client.c(49) client_getmsg: addmq: 1
+message.c(55) solard_getmsg: topic: SolarD/Agents/pack_06/Status, msglen: 6, replyto: 3eaa7923-5491-44d2-9676-29934014699e
+message.c(62) solard_getmsg: root: SolarD
+message.c(68) solard_getmsg: type: Agents
+mqtt.c(159) mqtt_getmsg: returning...
+mqtt.c(124) mqtt_getmsg: payloadlen: 26330
+mqtt.c(127) mqtt_getmsg: topicLen: 0
+mqtt.c(134) mqtt_getmsg: len: 26
+mqtt.c(137) mqtt_getmsg: topic: SolarD/Agents/pack_06/Info
+mqtt.c(143) mqtt_getmsg: hasProperty UP: 1
+mqtt.c(153) mqtt_getmsg: cb: 0x55b3d3eb6070
+client.c(49) client_getmsg: addmq: 1
+message.c(55) solard_getmsg: topic: SolarD/Agents/pack_06/Info, msglen: 26330, replyto: 3eaa7923-5491-44d2-9676-29934014699e
+message.c(62) solard_getmsg: root: SolarD
+message.c(68) solard_getmsg: type: Agents
+mqtt.c(159) mqtt_getmsg: returning...
+mqtt.c(124) mqtt_getmsg: payloadlen: 168
+mqtt.c(127) mqtt_getmsg: topicLen: 0
+mqtt.c(134) mqtt_getmsg: len: 28
+mqtt.c(137) mqtt_getmsg: topic: SolarD/Agents/pack_06/Config
+mqtt.c(143) mqtt_getmsg: hasProperty UP: 1
+mqtt.c(153) mqtt_getmsg: cb: 0x55b3d3eb6070
+client.c(49) client_getmsg: addmq: 1
+message.c(55) solard_getmsg: topic: SolarD/Agents/pack_06/Config, msglen: 168, replyto: 3eaa7923-5491-44d2-9676-29934014699e
+message.c(62) solard_getmsg: root: SolarD
+message.c(68) solard_getmsg: type: Agents
+mqtt.c(159) mqtt_getmsg: returning...
+mqtt.c(124) mqtt_getmsg: payloadlen: 6
+mqtt.c(127) mqtt_getmsg: topicLen: 0
+mqtt.c(134) mqtt_getmsg: len: 28
+mqtt.c(137) mqtt_getmsg: topic: SolarD/Agents/pack_07/Status
+mqtt.c(143) mqtt_getmsg: hasProperty UP: 1
+mqtt.c(153) mqtt_getmsg: cb: 0x55b3d3eb6070
+client.c(49) client_getmsg: addmq: 1
+message.c(55) solard_getmsg: topic: SolarD/Agents/pack_07/Status, msglen: 6, replyto: 2632d72d-bbd6-4dcf-adc6-83384c006f8c
+message.c(62) solard_getmsg: root: SolarD
+message.c(68) solard_getmsg: type: Agents
+mqtt.c(159) mqtt_getmsg: returning...
+mqtt.c(124) mqtt_getmsg: payloadlen: 26330
+mqtt.c(127) mqtt_getmsg: topicLen: 0
+mqtt.c(134) mqtt_getmsg: len: 26
+mqtt.c(137) mqtt_getmsg: topic: SolarD/Agents/pack_07/Info
+mqtt.c(143) mqtt_getmsg: hasProperty UP: 1
+mqtt.c(153) mqtt_getmsg: cb: 0x55b3d3eb6070
+client.c(49) client_getmsg: addmq: 1
+message.c(55) solard_getmsg: topic: SolarD/Agents/pack_07/Info, msglen: 26330, replyto: c08ee1d7-c8e5-4b87-b215-6d32176ca79e
+message.c(62) solard_getmsg: root: SolarD
+message.c(68) solard_getmsg: type: Agents
+mqtt.c(159) mqtt_getmsg: returning...
+mqtt.c(124) mqtt_getmsg: payloadlen: 168
+mqtt.c(127) mqtt_getmsg: topicLen: 0
+mqtt.c(134) mqtt_getmsg: len: 28
+mqtt.c(137) mqtt_getmsg: topic: SolarD/Agents/pack_07/Config
+mqtt.c(143) mqtt_getmsg: hasProperty UP: 1
+mqtt.c(153) mqtt_getmsg: cb: 0x55b3d3eb6070
+client.c(49) client_getmsg: addmq: 1
+message.c(55) solard_getmsg: topic: SolarD/Agents/pack_07/Config, msglen: 168, replyto: c08ee1d7-c8e5-4b87-b215-6d32176ca79e
+message.c(62) solard_getmsg: root: SolarD
+message.c(68) solard_getmsg: type: Agents
+mqtt.c(159) mqtt_getmsg: returning...
+mqtt.c(124) mqtt_getmsg: payloadlen: 6
+mqtt.c(127) mqtt_getmsg: topicLen: 0
+mqtt.c(134) mqtt_getmsg: len: 28
+mqtt.c(137) mqtt_getmsg: topic: SolarD/Agents/pack_14/Status
+mqtt.c(143) mqtt_getmsg: hasProperty UP: 1
+mqtt.c(153) mqtt_getmsg: cb: 0x55b3d3eb6070
+client.c(49) client_getmsg: addmq: 1
+message.c(55) solard_getmsg: topic: SolarD/Agents/pack_14/Status, msglen: 6, replyto: 4800c1bc-c247-48a3-86be-936f60c7d801
+message.c(62) solard_getmsg: root: SolarD
+message.c(68) solard_getmsg: type: Agents
+mqtt.c(159) mqtt_getmsg: returning...
+mqtt.c(124) mqtt_getmsg: payloadlen: 26330
+mqtt.c(127) mqtt_getmsg: topicLen: 0
+mqtt.c(134) mqtt_getmsg: len: 26
+mqtt.c(137) mqtt_getmsg: topic: SolarD/Agents/pack_14/Info
+mqtt.c(143) mqtt_getmsg: hasProperty UP: 1
+mqtt.c(153) mqtt_getmsg: cb: 0x55b3d3eb6070
+client.c(49) client_getmsg: addmq: 1
+message.c(55) solard_getmsg: topic: SolarD/Agents/pack_14/Info, msglen: 26330, replyto: 4800c1bc-c247-48a3-86be-936f60c7d801
+message.c(62) solard_getmsg: root: SolarD
+message.c(68) solard_getmsg: type: Agents
+mqtt.c(159) mqtt_getmsg: returning...
+mqtt.c(124) mqtt_getmsg: payloadlen: 168
+mqtt.c(127) mqtt_getmsg: topicLen: 0
+mqtt.c(134) mqtt_getmsg: len: 28
+mqtt.c(137) mqtt_getmsg: topic: SolarD/Agents/pack_14/Config
+mqtt.c(143) mqtt_getmsg: hasProperty UP: 1
+mqtt.c(153) mqtt_getmsg: cb: 0x55b3d3eb6070
+client.c(49) client_getmsg: addmq: 1
+message.c(55) solard_getmsg: topic: SolarD/Agents/pack_14/Config, msglen: 168, replyto: 4800c1bc-c247-48a3-86be-936f60c7d801
+message.c(62) solard_getmsg: root: SolarD
+message.c(68) solard_getmsg: type: Agents
+mqtt.c(159) mqtt_getmsg: returning...
+mqtt.c(124) mqtt_getmsg: payloadlen: 6
+mqtt.c(127) mqtt_getmsg: topicLen: 0
+mqtt.c(134) mqtt_getmsg: len: 28
+mqtt.c(137) mqtt_getmsg: topic: SolarD/Agents/pack_08/Status
+mqtt.c(143) mqtt_getmsg: hasProperty UP: 1
+mqtt.c(153) mqtt_getmsg: cb: 0x55b3d3eb6070
+client.c(49) client_getmsg: addmq: 1
+message.c(55) solard_getmsg: topic: SolarD/Agents/pack_08/Status, msglen: 6, replyto: a651d445-e560-4a62-aef6-759f6ca65d85
+message.c(62) solard_getmsg: root: SolarD
+message.c(68) solard_getmsg: type: Agents
+mqtt.c(159) mqtt_getmsg: returning...
+mqtt.c(124) mqtt_getmsg: payloadlen: 26330
+mqtt.c(127) mqtt_getmsg: topicLen: 0
+mqtt.c(134) mqtt_getmsg: len: 26
+mqtt.c(137) mqtt_getmsg: topic: SolarD/Agents/pack_08/Info
+mqtt.c(143) mqtt_getmsg: hasProperty UP: 1
+mqtt.c(153) mqtt_getmsg: cb: 0x55b3d3eb6070
+client.c(49) client_getmsg: addmq: 1
+message.c(55) solard_getmsg: topic: SolarD/Agents/pack_08/Info, msglen: 26330, replyto: a651d445-e560-4a62-aef6-759f6ca65d85
+message.c(62) solard_getmsg: root: SolarD
+message.c(68) solard_getmsg: type: Agents
+mqtt.c(159) mqtt_getmsg: returning...
+mqtt.c(124) mqtt_getmsg: payloadlen: 168
+mqtt.c(127) mqtt_getmsg: topicLen: 0
+mqtt.c(134) mqtt_getmsg: len: 28
+mqtt.c(137) mqtt_getmsg: topic: SolarD/Agents/pack_08/Config
+mqtt.c(143) mqtt_getmsg: hasProperty UP: 1
+mqtt.c(153) mqtt_getmsg: cb: 0x55b3d3eb6070
+client.c(49) client_getmsg: addmq: 1
+message.c(55) solard_getmsg: topic: SolarD/Agents/pack_08/Config, msglen: 168, replyto: a651d445-e560-4a62-aef6-759f6ca65d85
+message.c(62) solard_getmsg: root: SolarD
+message.c(68) solard_getmsg: type: Agents
+mqtt.c(159) mqtt_getmsg: returning...
+mqtt.c(124) mqtt_getmsg: payloadlen: 6
+mqtt.c(127) mqtt_getmsg: topicLen: 0
+mqtt.c(134) mqtt_getmsg: len: 28
+mqtt.c(137) mqtt_getmsg: topic: SolarD/Agents/pack_09/Status
+mqtt.c(143) mqtt_getmsg: hasProperty UP: 1
+mqtt.c(153) mqtt_getmsg: cb: 0x55b3d3eb6070
+client.c(49) client_getmsg: addmq: 1
+message.c(55) solard_getmsg: topic: SolarD/Agents/pack_09/Status, msglen: 6, replyto: a0399c40-0358-445e-806c-ff6e868c99ef
+message.c(62) solard_getmsg: root: SolarD
+message.c(68) solard_getmsg: type: Agents
+mqtt.c(159) mqtt_getmsg: returning...
+mqtt.c(124) mqtt_getmsg: payloadlen: 26330
+mqtt.c(127) mqtt_getmsg: topicLen: 0
+mqtt.c(134) mqtt_getmsg: len: 26
+mqtt.c(137) mqtt_getmsg: topic: SolarD/Agents/pack_09/Info
+mqtt.c(143) mqtt_getmsg: hasProperty UP: 1
+mqtt.c(153) mqtt_getmsg: cb: 0x55b3d3eb6070
+client.c(49) client_getmsg: addmq: 1
+message.c(55) solard_getmsg: topic: SolarD/Agents/pack_09/Info, msglen: 26330, replyto: a0399c40-0358-445e-806c-ff6e868c99ef
+message.c(62) solard_getmsg: root: SolarD
+message.c(68) solard_getmsg: type: Agents
+mqtt.c(159) mqtt_getmsg: returning...
+mqtt.c(124) mqtt_getmsg: payloadlen: 168
+mqtt.c(127) mqtt_getmsg: topicLen: 0
+mqtt.c(134) mqtt_getmsg: len: 28
+mqtt.c(137) mqtt_getmsg: topic: SolarD/Agents/pack_09/Config
+mqtt.c(143) mqtt_getmsg: hasProperty UP: 1
+mqtt.c(153) mqtt_getmsg: cb: 0x55b3d3eb6070
+client.c(49) client_getmsg: addmq: 1
+message.c(55) solard_getmsg: topic: SolarD/Agents/pack_09/Config, msglen: 168, replyto: a0399c40-0358-445e-806c-ff6e868c99ef
+message.c(62) solard_getmsg: root: SolarD
+message.c(68) solard_getmsg: type: Agents
+mqtt.c(159) mqtt_getmsg: returning...
+mqtt.c(124) mqtt_getmsg: payloadlen: 6
+mqtt.c(127) mqtt_getmsg: topicLen: 0
+mqtt.c(134) mqtt_getmsg: len: 28
+mqtt.c(137) mqtt_getmsg: topic: SolarD/Agents/pack_10/Status
+mqtt.c(143) mqtt_getmsg: hasProperty UP: 1
+mqtt.c(153) mqtt_getmsg: cb: 0x55b3d3eb6070
+client.c(49) client_getmsg: addmq: 1
+message.c(55) solard_getmsg: topic: SolarD/Agents/pack_10/Status, msglen: 6, replyto: d44db790-8a20-413f-b2c5-96395c8f6978
+message.c(62) solard_getmsg: root: SolarD
+message.c(68) solard_getmsg: type: Agents
+mqtt.c(159) mqtt_getmsg: returning...
+mqtt.c(124) mqtt_getmsg: payloadlen: 26330
+mqtt.c(127) mqtt_getmsg: topicLen: 0
+mqtt.c(134) mqtt_getmsg: len: 26
+mqtt.c(137) mqtt_getmsg: topic: SolarD/Agents/pack_10/Info
+mqtt.c(143) mqtt_getmsg: hasProperty UP: 1
+mqtt.c(153) mqtt_getmsg: cb: 0x55b3d3eb6070
+client.c(49) client_getmsg: addmq: 1
+message.c(55) solard_getmsg: topic: SolarD/Agents/pack_10/Info, msglen: 26330, replyto: d44db790-8a20-413f-b2c5-96395c8f6978
+message.c(62) solard_getmsg: root: SolarD
+message.c(68) solard_getmsg: type: Agents
+mqtt.c(159) mqtt_getmsg: returning...
+mqtt.c(124) mqtt_getmsg: payloadlen: 168
+mqtt.c(127) mqtt_getmsg: topicLen: 0
+mqtt.c(134) mqtt_getmsg: len: 28
+mqtt.c(137) mqtt_getmsg: topic: SolarD/Agents/pack_10/Config
+mqtt.c(143) mqtt_getmsg: hasProperty UP: 1
+mqtt.c(153) mqtt_getmsg: cb: 0x55b3d3eb6070
+client.c(49) client_getmsg: addmq: 1
+message.c(55) solard_getmsg: topic: SolarD/Agents/pack_10/Config, msglen: 168, replyto: d44db790-8a20-413f-b2c5-96395c8f6978
+message.c(62) solard_getmsg: root: SolarD
+message.c(68) solard_getmsg: type: Agents
+mqtt.c(159) mqtt_getmsg: returning...
+mqtt.c(124) mqtt_getmsg: payloadlen: 6
+mqtt.c(127) mqtt_getmsg: topicLen: 0
+mqtt.c(134) mqtt_getmsg: len: 28
+mqtt.c(137) mqtt_getmsg: topic: SolarD/Agents/pack_11/Status
+mqtt.c(143) mqtt_getmsg: hasProperty UP: 1
+mqtt.c(153) mqtt_getmsg: cb: 0x55b3d3eb6070
+client.c(49) client_getmsg: addmq: 1
+message.c(55) solard_getmsg: topic: SolarD/Agents/pack_11/Status, msglen: 6, replyto: 759cf3d3-6de9-454b-aa30-81d9a0b2f997
+message.c(62) solard_getmsg: root: SolarD
+message.c(68) solard_getmsg: type: Agents
+mqtt.c(159) mqtt_getmsg: returning...
+mqtt.c(124) mqtt_getmsg: payloadlen: 26330
+mqtt.c(127) mqtt_getmsg: topicLen: 0
+mqtt.c(134) mqtt_getmsg: len: 26
+mqtt.c(137) mqtt_getmsg: topic: SolarD/Agents/pack_11/Info
+mqtt.c(143) mqtt_getmsg: hasProperty UP: 1
+mqtt.c(153) mqtt_getmsg: cb: 0x55b3d3eb6070
+client.c(49) client_getmsg: addmq: 1
+message.c(55) solard_getmsg: topic: SolarD/Agents/pack_11/Info, msglen: 26330, replyto: 759cf3d3-6de9-454b-aa30-81d9a0b2f997
+message.c(62) solard_getmsg: root: SolarD
+message.c(68) solard_getmsg: type: Agents
+mqtt.c(159) mqtt_getmsg: returning...
+mqtt.c(124) mqtt_getmsg: payloadlen: 168
+mqtt.c(127) mqtt_getmsg: topicLen: 0
+mqtt.c(134) mqtt_getmsg: len: 28
+mqtt.c(137) mqtt_getmsg: topic: SolarD/Agents/pack_11/Config
+mqtt.c(143) mqtt_getmsg: hasProperty UP: 1
+mqtt.c(153) mqtt_getmsg: cb: 0x55b3d3eb6070
+client.c(49) client_getmsg: addmq: 1
+message.c(55) solard_getmsg: topic: SolarD/Agents/pack_11/Config, msglen: 168, replyto: 759cf3d3-6de9-454b-aa30-81d9a0b2f997
+message.c(62) solard_getmsg: root: SolarD
+message.c(68) solard_getmsg: type: Agents
+mqtt.c(159) mqtt_getmsg: returning...
+mqtt.c(124) mqtt_getmsg: payloadlen: 6
+mqtt.c(127) mqtt_getmsg: topicLen: 0
+mqtt.c(134) mqtt_getmsg: len: 28
+mqtt.c(137) mqtt_getmsg: topic: SolarD/Agents/pack_13/Status
+mqtt.c(143) mqtt_getmsg: hasProperty UP: 1
+mqtt.c(153) mqtt_getmsg: cb: 0x55b3d3eb6070
+client.c(49) client_getmsg: addmq: 1
+message.c(55) solard_getmsg: topic: SolarD/Agents/pack_13/Status, msglen: 6, replyto: 8f3e3e19-4deb-430a-8e92-29d0ea1a6916
+message.c(62) solard_getmsg: root: SolarD
+message.c(68) solard_getmsg: type: Agents
+mqtt.c(159) mqtt_getmsg: returning...
+mqtt.c(124) mqtt_getmsg: payloadlen: 26330
+mqtt.c(127) mqtt_getmsg: topicLen: 0
+mqtt.c(134) mqtt_getmsg: len: 26
+mqtt.c(137) mqtt_getmsg: topic: SolarD/Agents/pack_13/Info
+mqtt.c(143) mqtt_getmsg: hasProperty UP: 1
+mqtt.c(153) mqtt_getmsg: cb: 0x55b3d3eb6070
+client.c(49) client_getmsg: addmq: 1
+message.c(55) solard_getmsg: topic: SolarD/Agents/pack_13/Info, msglen: 26330, replyto: 8f3e3e19-4deb-430a-8e92-29d0ea1a6916
+message.c(62) solard_getmsg: root: SolarD
+message.c(68) solard_getmsg: type: Agents
+mqtt.c(159) mqtt_getmsg: returning...
+mqtt.c(124) mqtt_getmsg: payloadlen: 168
+mqtt.c(127) mqtt_getmsg: topicLen: 0
+mqtt.c(134) mqtt_getmsg: len: 28
+mqtt.c(137) mqtt_getmsg: topic: SolarD/Agents/pack_13/Config
+mqtt.c(143) mqtt_getmsg: hasProperty UP: 1
+mqtt.c(153) mqtt_getmsg: cb: 0x55b3d3eb6070
+client.c(49) client_getmsg: addmq: 1
+message.c(55) solard_getmsg: topic: SolarD/Agents/pack_13/Config, msglen: 168, replyto: 8f3e3e19-4deb-430a-8e92-29d0ea1a6916
+message.c(62) solard_getmsg: root: SolarD
+message.c(68) solard_getmsg: type: Agents
+mqtt.c(159) mqtt_getmsg: returning...
+mqtt.c(124) mqtt_getmsg: payloadlen: 6
+mqtt.c(127) mqtt_getmsg: topicLen: 0
+mqtt.c(134) mqtt_getmsg: len: 24
+mqtt.c(137) mqtt_getmsg: topic: SolarD/Agents/pvc/Status
+mqtt.c(143) mqtt_getmsg: hasProperty UP: 1
+mqtt.c(153) mqtt_getmsg: cb: 0x55b3d3eb6070
+client.c(49) client_getmsg: addmq: 1
+message.c(55) solard_getmsg: topic: SolarD/Agents/pvc/Status, msglen: 6, replyto: f32ca73b-b553-40d4-b48b-80423e057ba8
+message.c(62) solard_getmsg: root: SolarD
+message.c(68) solard_getmsg: type: Agents
+mqtt.c(159) mqtt_getmsg: returning...
+mqtt.c(124) mqtt_getmsg: payloadlen: 129
+mqtt.c(127) mqtt_getmsg: topicLen: 0
+mqtt.c(134) mqtt_getmsg: len: 24
+mqtt.c(137) mqtt_getmsg: topic: SolarD/Agents/pvc/Config
+mqtt.c(143) mqtt_getmsg: hasProperty UP: 1
+mqtt.c(153) mqtt_getmsg: cb: 0x55b3d3eb6070
+client.c(49) client_getmsg: addmq: 1
+message.c(55) solard_getmsg: topic: SolarD/Agents/pvc/Config, msglen: 129, replyto: f32ca73b-b553-40d4-b48b-80423e057ba8
+message.c(62) solard_getmsg: root: SolarD
+message.c(68) solard_getmsg: type: Agents
+mqtt.c(159) mqtt_getmsg: returning...
+mqtt.c(124) mqtt_getmsg: payloadlen: 7059
+mqtt.c(127) mqtt_getmsg: topicLen: 0
+mqtt.c(134) mqtt_getmsg: len: 22
+mqtt.c(137) mqtt_getmsg: topic: SolarD/Agents/pvc/Info
+mqtt.c(143) mqtt_getmsg: hasProperty UP: 1
+mqtt.c(153) mqtt_getmsg: cb: 0x55b3d3eb6070
+client.c(49) client_getmsg: addmq: 1
+message.c(55) solard_getmsg: topic: SolarD/Agents/pvc/Info, msglen: 7059, replyto: f32ca73b-b553-40d4-b48b-80423e057ba8
+message.c(62) solard_getmsg: root: SolarD
+message.c(68) solard_getmsg: type: Agents
+mqtt.c(159) mqtt_getmsg: returning...
+mqtt.c(124) mqtt_getmsg: payloadlen: 6
+mqtt.c(127) mqtt_getmsg: topicLen: 0
+mqtt.c(134) mqtt_getmsg: len: 24
+mqtt.c(137) mqtt_getmsg: topic: SolarD/Agents/btc/Status
+mqtt.c(143) mqtt_getmsg: hasProperty UP: 1
+mqtt.c(153) mqtt_getmsg: cb: 0x55b3d3eb6070
+client.c(49) client_getmsg: addmq: 1
+message.c(55) solard_getmsg: topic: SolarD/Agents/btc/Status, msglen: 6, replyto: 166aec12-a222-4d69-b480-10d2da88973f
+message.c(62) solard_getmsg: root: SolarD
+message.c(68) solard_getmsg: type: Agents
+mqtt.c(159) mqtt_getmsg: returning...
+mqtt.c(124) mqtt_getmsg: payloadlen: 5095
+mqtt.c(127) mqtt_getmsg: topicLen: 0
+mqtt.c(134) mqtt_getmsg: len: 22
+mqtt.c(137) mqtt_getmsg: topic: SolarD/Agents/btc/Info
+mqtt.c(143) mqtt_getmsg: hasProperty UP: 1
+mqtt.c(153) mqtt_getmsg: cb: 0x55b3d3eb6070
+client.c(49) client_getmsg: addmq: 1
+message.c(55) solard_getmsg: topic: SolarD/Agents/btc/Info, msglen: 5095, replyto: 166aec12-a222-4d69-b480-10d2da88973f
+message.c(62) solard_getmsg: root: SolarD
+message.c(68) solard_getmsg: type: Agents
+mqtt.c(159) mqtt_getmsg: returning...
+mqtt.c(124) mqtt_getmsg: payloadlen: 108
+mqtt.c(127) mqtt_getmsg: topicLen: 0
+mqtt.c(134) mqtt_getmsg: len: 24
+mqtt.c(137) mqtt_getmsg: topic: SolarD/Agents/btc/Config
+mqtt.c(143) mqtt_getmsg: hasProperty UP: 1
+mqtt.c(153) mqtt_getmsg: cb: 0x55b3d3eb6070
+client.c(49) client_getmsg: addmq: 1
+message.c(55) solard_getmsg: topic: SolarD/Agents/btc/Config, msglen: 108, replyto: 166aec12-a222-4d69-b480-10d2da88973f
+message.c(62) solard_getmsg: root: SolarD
+message.c(68) solard_getmsg: type: Agents
+mqtt.c(159) mqtt_getmsg: returning...
+mqtt.c(124) mqtt_getmsg: payloadlen: 6
+mqtt.c(127) mqtt_getmsg: topicLen: 0
+mqtt.c(134) mqtt_getmsg: len: 24
+mqtt.c(137) mqtt_getmsg: topic: SolarD/Agents/sb4/Status
+mqtt.c(143) mqtt_getmsg: hasProperty UP: 1
+mqtt.c(153) mqtt_getmsg: cb: 0x55b3d3eb6070
+client.c(49) client_getmsg: addmq: 1
+message.c(55) solard_getmsg: topic: SolarD/Agents/sb4/Status, msglen: 6, replyto: 5848fc59-09c1-402b-9d2d-f6e61ce530d5
+message.c(62) solard_getmsg: root: SolarD
+message.c(68) solard_getmsg: type: Agents
+mqtt.c(159) mqtt_getmsg: returning...
+mqtt.c(124) mqtt_getmsg: payloadlen: 8247
+mqtt.c(127) mqtt_getmsg: topicLen: 0
+mqtt.c(134) mqtt_getmsg: len: 22
+mqtt.c(137) mqtt_getmsg: topic: SolarD/Agents/sb4/Info
+mqtt.c(143) mqtt_getmsg: hasProperty UP: 1
+mqtt.c(153) mqtt_getmsg: cb: 0x55b3d3eb6070
+client.c(49) client_getmsg: addmq: 1
+message.c(55) solard_getmsg: topic: SolarD/Agents/sb4/Info, msglen: 8247, replyto: 5848fc59-09c1-402b-9d2d-f6e61ce530d5
+message.c(62) solard_getmsg: root: SolarD
+message.c(68) solard_getmsg: type: Agents
+mqtt.c(159) mqtt_getmsg: returning...
+mqtt.c(124) mqtt_getmsg: payloadlen: 228
+mqtt.c(127) mqtt_getmsg: topicLen: 0
+mqtt.c(134) mqtt_getmsg: len: 24
+mqtt.c(137) mqtt_getmsg: topic: SolarD/Agents/sb4/Config
+mqtt.c(143) mqtt_getmsg: hasProperty UP: 1
+mqtt.c(153) mqtt_getmsg: cb: 0x55b3d3eb6070
+client.c(49) client_getmsg: addmq: 1
+message.c(55) solard_getmsg: topic: SolarD/Agents/sb4/Config, msglen: 228, replyto: 5848fc59-09c1-402b-9d2d-f6e61ce530d5
+message.c(62) solard_getmsg: root: SolarD
+message.c(68) solard_getmsg: type: Agents
+mqtt.c(159) mqtt_getmsg: returning...
+mqtt.c(124) mqtt_getmsg: payloadlen: 6
+mqtt.c(127) mqtt_getmsg: topicLen: 0
+mqtt.c(134) mqtt_getmsg: len: 25
+mqtt.c(137) mqtt_getmsg: topic: SolarD/Agents/sdjs/Status
+mqtt.c(143) mqtt_getmsg: hasProperty UP: 1
+mqtt.c(153) mqtt_getmsg: cb: 0x55b3d3eb6070
+client.c(49) client_getmsg: addmq: 1
+message.c(55) solard_getmsg: topic: SolarD/Agents/sdjs/Status, msglen: 6, replyto: 72213599-57a3-4686-aab0-6b63b3826844
+message.c(62) solard_getmsg: root: SolarD
+message.c(68) solard_getmsg: type: Agents
+mqtt.c(159) mqtt_getmsg: returning...
+mqtt.c(124) mqtt_getmsg: payloadlen: 6653
+mqtt.c(127) mqtt_getmsg: topicLen: 0
+mqtt.c(134) mqtt_getmsg: len: 23
+mqtt.c(137) mqtt_getmsg: topic: SolarD/Agents/sdjs/Info
+mqtt.c(143) mqtt_getmsg: hasProperty UP: 1
+mqtt.c(153) mqtt_getmsg: cb: 0x55b3d3eb6070
+client.c(49) client_getmsg: addmq: 1
+message.c(55) solard_getmsg: topic: SolarD/Agents/sdjs/Info, msglen: 6653, replyto: 72213599-57a3-4686-aab0-6b63b3826844
+message.c(62) solard_getmsg: root: SolarD
+message.c(68) solard_getmsg: type: Agents
+mqtt.c(159) mqtt_getmsg: returning...
+mqtt.c(124) mqtt_getmsg: payloadlen: 155
+mqtt.c(127) mqtt_getmsg: topicLen: 0
+mqtt.c(134) mqtt_getmsg: len: 25
+mqtt.c(137) mqtt_getmsg: topic: SolarD/Agents/sdjs/Config
+mqtt.c(143) mqtt_getmsg: hasProperty UP: 1
+mqtt.c(153) mqtt_getmsg: cb: 0x55b3d3eb6070
+client.c(49) client_getmsg: addmq: 1
+message.c(55) solard_getmsg: topic: SolarD/Agents/sdjs/Config, msglen: 155, replyto: 72213599-57a3-4686-aab0-6b63b3826844
+message.c(62) solard_getmsg: root: SolarD
+message.c(68) solard_getmsg: type: Agents
+mqtt.c(159) mqtt_getmsg: returning...
+mqtt.c(124) mqtt_getmsg: payloadlen: 6
+mqtt.c(127) mqtt_getmsg: topicLen: 0
+mqtt.c(134) mqtt_getmsg: len: 23
+mqtt.c(137) mqtt_getmsg: topic: SolarD/Agents/ac/Status
+mqtt.c(143) mqtt_getmsg: hasProperty UP: 1
+mqtt.c(153) mqtt_getmsg: cb: 0x55b3d3eb6070
+client.c(49) client_getmsg: addmq: 1
+message.c(55) solard_getmsg: topic: SolarD/Agents/ac/Status, msglen: 6, replyto: a09c7faf-b4f5-445a-b949-16bcad9ab3d3
+message.c(62) solard_getmsg: root: SolarD
+message.c(68) solard_getmsg: type: Agents
+mqtt.c(159) mqtt_getmsg: returning...
+mqtt.c(124) mqtt_getmsg: payloadlen: 14824
+mqtt.c(127) mqtt_getmsg: topicLen: 0
+mqtt.c(134) mqtt_getmsg: len: 21
+mqtt.c(137) mqtt_getmsg: topic: SolarD/Agents/ac/Info
+mqtt.c(143) mqtt_getmsg: hasProperty UP: 1
+mqtt.c(153) mqtt_getmsg: cb: 0x55b3d3eb6070
+client.c(49) client_getmsg: addmq: 1
+message.c(55) solard_getmsg: topic: SolarD/Agents/ac/Info, msglen: 14824, replyto: a09c7faf-b4f5-445a-b949-16bcad9ab3d3
+message.c(62) solard_getmsg: root: SolarD
+message.c(68) solard_getmsg: type: Agents
+mqtt.c(159) mqtt_getmsg: returning...
+mqtt.c(124) mqtt_getmsg: payloadlen: 530
+mqtt.c(127) mqtt_getmsg: topicLen: 0
+mqtt.c(134) mqtt_getmsg: len: 23
+mqtt.c(137) mqtt_getmsg: topic: SolarD/Agents/ac/Config
+mqtt.c(143) mqtt_getmsg: hasProperty UP: 1
+mqtt.c(153) mqtt_getmsg: cb: 0x55b3d3eb6070
+client.c(49) client_getmsg: addmq: 1
+message.c(55) solard_getmsg: topic: SolarD/Agents/ac/Config, msglen: 530, replyto: a09c7faf-b4f5-445a-b949-16bcad9ab3d3
+message.c(62) solard_getmsg: root: SolarD
+message.c(68) solard_getmsg: type: Agents
+mqtt.c(159) mqtt_getmsg: returning...
+mqtt.c(124) mqtt_getmsg: payloadlen: 6
+mqtt.c(127) mqtt_getmsg: topicLen: 0
+mqtt.c(134) mqtt_getmsg: len: 23
+mqtt.c(137) mqtt_getmsg: topic: SolarD/Agents/ah/Status
+mqtt.c(143) mqtt_getmsg: hasProperty UP: 1
+mqtt.c(153) mqtt_getmsg: cb: 0x55b3d3eb6070
+client.c(49) client_getmsg: addmq: 1
+message.c(55) solard_getmsg: topic: SolarD/Agents/ah/Status, msglen: 6, replyto: 7e07cba5-2146-4a0e-bf6d-bf0d95f3a9bc
+message.c(62) solard_getmsg: root: SolarD
+message.c(68) solard_getmsg: type: Agents
+mqtt.c(159) mqtt_getmsg: returning...
+mqtt.c(124) mqtt_getmsg: payloadlen: 6
+mqtt.c(127) mqtt_getmsg: topicLen: 0
+mqtt.c(134) mqtt_getmsg: len: 24
+mqtt.c(137) mqtt_getmsg: topic: SolarD/Agents/ah1/Status
+mqtt.c(143) mqtt_getmsg: hasProperty UP: 1
+mqtt.c(153) mqtt_getmsg: cb: 0x55b3d3eb6070
+client.c(49) client_getmsg: addmq: 1
+message.c(55) solard_getmsg: topic: SolarD/Agents/ah1/Status, msglen: 6, replyto: 7e07cba5-2146-4a0e-bf6d-bf0d95f3a9bc
+message.c(62) solard_getmsg: root: SolarD
+message.c(68) solard_getmsg: type: Agents
+mqtt.c(159) mqtt_getmsg: returning...
+mqtt.c(124) mqtt_getmsg: payloadlen: 11346
+mqtt.c(127) mqtt_getmsg: topicLen: 0
+mqtt.c(134) mqtt_getmsg: len: 22
+mqtt.c(137) mqtt_getmsg: topic: SolarD/Agents/ah1/Info
+mqtt.c(143) mqtt_getmsg: hasProperty UP: 1
+mqtt.c(153) mqtt_getmsg: cb: 0x55b3d3eb6070
+client.c(49) client_getmsg: addmq: 1
+message.c(55) solard_getmsg: topic: SolarD/Agents/ah1/Info, msglen: 11346, replyto: 7e07cba5-2146-4a0e-bf6d-bf0d95f3a9bc
+message.c(62) solard_getmsg: root: SolarD
+message.c(68) solard_getmsg: type: Agents
+mqtt.c(159) mqtt_getmsg: returning...
+mqtt.c(124) mqtt_getmsg: payloadlen: 402
+mqtt.c(127) mqtt_getmsg: topicLen: 0
+mqtt.c(134) mqtt_getmsg: len: 24
+mqtt.c(137) mqtt_getmsg: topic: SolarD/Agents/ah1/Config
+mqtt.c(143) mqtt_getmsg: hasProperty UP: 1
+mqtt.c(153) mqtt_getmsg: cb: 0x55b3d3eb6070
+client.c(49) client_getmsg: addmq: 1
+message.c(55) solard_getmsg: topic: SolarD/Agents/ah1/Config, msglen: 402, replyto: 7e07cba5-2146-4a0e-bf6d-bf0d95f3a9bc
+message.c(62) solard_getmsg: root: SolarD
+message.c(68) solard_getmsg: type: Agents
+mqtt.c(159) mqtt_getmsg: returning...
+mqtt.c(124) mqtt_getmsg: payloadlen: 6
+mqtt.c(127) mqtt_getmsg: topicLen: 0
+mqtt.c(134) mqtt_getmsg: len: 24
+mqtt.c(137) mqtt_getmsg: topic: SolarD/Agents/ah2/Status
+mqtt.c(143) mqtt_getmsg: hasProperty UP: 1
+mqtt.c(153) mqtt_getmsg: cb: 0x55b3d3eb6070
+client.c(49) client_getmsg: addmq: 1
+message.c(55) solard_getmsg: topic: SolarD/Agents/ah2/Status, msglen: 6, replyto: 1753a3f0-d1e4-4ea1-b2bd-63f92853356d
+message.c(62) solard_getmsg: root: SolarD
+message.c(68) solard_getmsg: type: Agents
+mqtt.c(159) mqtt_getmsg: returning...
+mqtt.c(124) mqtt_getmsg: payloadlen: 11346
+mqtt.c(127) mqtt_getmsg: topicLen: 0
+mqtt.c(134) mqtt_getmsg: len: 22
+mqtt.c(137) mqtt_getmsg: topic: SolarD/Agents/ah2/Info
+mqtt.c(143) mqtt_getmsg: hasProperty UP: 1
+mqtt.c(153) mqtt_getmsg: cb: 0x55b3d3eb6070
+client.c(49) client_getmsg: addmq: 1
+message.c(55) solard_getmsg: topic: SolarD/Agents/ah2/Info, msglen: 11346, replyto: 1753a3f0-d1e4-4ea1-b2bd-63f92853356d
+message.c(62) solard_getmsg: root: SolarD
+message.c(68) solard_getmsg: type: Agents
+mqtt.c(159) mqtt_getmsg: returning...
+mqtt.c(124) mqtt_getmsg: payloadlen: 402
+mqtt.c(127) mqtt_getmsg: topicLen: 0
+mqtt.c(134) mqtt_getmsg: len: 24
+mqtt.c(137) mqtt_getmsg: topic: SolarD/Agents/ah2/Config
+mqtt.c(143) mqtt_getmsg: hasProperty UP: 1
+mqtt.c(153) mqtt_getmsg: cb: 0x55b3d3eb6070
+client.c(49) client_getmsg: addmq: 1
+message.c(55) solard_getmsg: topic: SolarD/Agents/ah2/Config, msglen: 402, replyto: 1753a3f0-d1e4-4ea1-b2bd-63f92853356d
+message.c(62) solard_getmsg: root: SolarD
+message.c(68) solard_getmsg: type: Agents
+mqtt.c(159) mqtt_getmsg: returning...
+mqtt.c(124) mqtt_getmsg: payloadlen: 6
+mqtt.c(127) mqtt_getmsg: topicLen: 0
+mqtt.c(134) mqtt_getmsg: len: 23
+mqtt.c(137) mqtt_getmsg: topic: SolarD/Agents/pa/Status
+mqtt.c(143) mqtt_getmsg: hasProperty UP: 1
+mqtt.c(153) mqtt_getmsg: cb: 0x55b3d3eb6070
+client.c(49) client_getmsg: addmq: 1
+message.c(55) solard_getmsg: topic: SolarD/Agents/pa/Status, msglen: 6, replyto: 9e5459fc-4054-4d47-905f-bf07f5a8e85d
+message.c(62) solard_getmsg: root: SolarD
+message.c(68) solard_getmsg: type: Agents
+mqtt.c(159) mqtt_getmsg: returning...
+mqtt.c(124) mqtt_getmsg: payloadlen: 12899
+mqtt.c(127) mqtt_getmsg: topicLen: 0
+mqtt.c(134) mqtt_getmsg: len: 21
+mqtt.c(137) mqtt_getmsg: topic: SolarD/Agents/pa/Info
+mqtt.c(143) mqtt_getmsg: hasProperty UP: 1
+mqtt.c(153) mqtt_getmsg: cb: 0x55b3d3eb6070
+client.c(49) client_getmsg: addmq: 1
+message.c(55) solard_getmsg: topic: SolarD/Agents/pa/Info, msglen: 12899, replyto: 9e5459fc-4054-4d47-905f-bf07f5a8e85d
+message.c(62) solard_getmsg: root: SolarD
+message.c(68) solard_getmsg: type: Agents
+mqtt.c(159) mqtt_getmsg: returning...
+mqtt.c(124) mqtt_getmsg: payloadlen: 176
+mqtt.c(127) mqtt_getmsg: topicLen: 0
+mqtt.c(134) mqtt_getmsg: len: 23
+mqtt.c(137) mqtt_getmsg: topic: SolarD/Agents/pa/Config
+mqtt.c(143) mqtt_getmsg: hasProperty UP: 1
+mqtt.c(153) mqtt_getmsg: cb: 0x55b3d3eb6070
+client.c(49) client_getmsg: addmq: 1
+message.c(55) solard_getmsg: topic: SolarD/Agents/pa/Config, msglen: 176, replyto: 9e5459fc-4054-4d47-905f-bf07f5a8e85d
+message.c(62) solard_getmsg: root: SolarD
+message.c(68) solard_getmsg: type: Agents
+mqtt.c(159) mqtt_getmsg: returning...
+mqtt.c(124) mqtt_getmsg: payloadlen: 1002
+mqtt.c(127) mqtt_getmsg: topicLen: 0
+mqtt.c(134) mqtt_getmsg: len: 21
+mqtt.c(137) mqtt_getmsg: topic: SolarD/Agents/ac/Data
+mqtt.c(143) mqtt_getmsg: hasProperty UP: 1
+mqtt.c(153) mqtt_getmsg: cb: 0x55b3d3eb6070
+client.c(49) client_getmsg: addmq: 1
+message.c(55) solard_getmsg: topic: SolarD/Agents/ac/Data, msglen: 1002, replyto: a09c7faf-b4f5-445a-b949-16bcad9ab3d3
+message.c(62) solard_getmsg: root: SolarD
+message.c(68) solard_getmsg: type: Agents
+mqtt.c(159) mqtt_getmsg: returning...
+mqtt.c(124) mqtt_getmsg: payloadlen: 979
+mqtt.c(127) mqtt_getmsg: topicLen: 0
+mqtt.c(134) mqtt_getmsg: len: 26
+mqtt.c(137) mqtt_getmsg: topic: SolarD/Agents/pack_05/Data
+mqtt.c(143) mqtt_getmsg: hasProperty UP: 1
+mqtt.c(153) mqtt_getmsg: cb: 0x55b3d3eb6070
+client.c(49) client_getmsg: addmq: 1
+message.c(55) solard_getmsg: topic: SolarD/Agents/pack_05/Data, msglen: 979, replyto: 083b078e-00a2-4fd4-b957-466eb36b1085
+message.c(62) solard_getmsg: root: SolarD
+message.c(68) solard_getmsg: type: Agents
+mqtt.c(159) mqtt_getmsg: returning...

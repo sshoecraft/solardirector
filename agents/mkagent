@@ -18,10 +18,13 @@ do
 		-e "s:template_:${name}_:g" \
 		-e "s:TEMPLATE_:${ucname}_:g" \
 		-e "s:\"template\":\"${name}\":g" \
+		-e "s:template:${name}:g" \
 		$f
 done
 if test -n "$desc"; then
 	sed -i -e "s:+DESC+:$desc:" Makefile
 else
-	sed -i -e '/+DESC+/d' Makefile
+	sed -i -e '/+DESC+/d' Makefile info.c
 fi
+sed -i -e '/^all:/d' Makefile
+sed -i -e 's:^#PROG:PROG:' Makefile

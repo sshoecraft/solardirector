@@ -47,7 +47,7 @@ static JSBool sb_object_getprop(JSContext *cx, JSObject *obj, jsval id, jsval *r
 
 				for(i=0; i < 8; i++) { if (!o->hier[i]) break; }
 				count = i;
-				arr = JS_NewArrayObject(cx, count, NULL);
+				arr = JS_NewArrayObject(cx, 0, NULL);
 				for(i=0; i < count; i++) {
 					element = type_to_jsval(cx,DATA_TYPE_STRING,o->hier[i],strlen(o->hier[i]));
 					JS_SetElement(cx, arr, i, &element);
@@ -154,7 +154,7 @@ static JSBool sb_results_getprop(JSContext *cx, JSObject *obj, jsval id, jsval *
 				char value[1024];
 				int i;
 
-				arr = JS_NewArrayObject(cx, list_count(res->values), NULL);
+				arr = JS_NewArrayObject(cx, 0, NULL);
 				i = 0;
 				list_reset(res->values);
 				while((vp = list_get_next(res->values)) != 0) {
@@ -260,7 +260,7 @@ static JSBool sb_setprop(JSContext *cx, JSObject *obj, jsval id, jsval *rval) {
 	int ok;
 
 	s = JS_GetPrivate(cx,obj);
-	ok = js_config_common_setprop(cx, obj, id, rval, s->ap->cp, s->props);
+	ok = js_config_common_setprop(cx, obj, id, rval, s->ap->cp, 0);
 	return ok;
 }
 
@@ -349,7 +349,8 @@ static JSBool js_sb_mkfields(JSContext *cx, uintN argc, jsval *vp) {
 		return JS_FALSE;
 	}
 	/* string array dest must be freed */
-	for(i=0; i < len; i++) free(keys[i]);
+//	for(i=0; i < len; i++) free(keys[i]);
+	for(i=0; i < len; i++) JS_free(cx,keys[i]);
 	free(keys);
 	*vp = STRING_TO_JSVAL(JS_NewStringCopyZ(cx,fields));
 	free(fields);
@@ -388,7 +389,7 @@ static JSBool js_sb_request(JSContext *cx, uintN argc, jsval *vp) {
 
 		results = sb_get_results(s, v);
 		count = list_count(results);
-		arr = JS_NewArrayObject(cx, count, NULL);
+		arr = JS_NewArrayObject(cx, 0, NULL);
 		if (!arr) {
 			JS_ReportError(cx, "unable to allocate results array");
 			return JS_FALSE;

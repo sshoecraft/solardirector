@@ -1,4 +1,0 @@
-
-//include("../core/funcs.js")
-
-print("mqtt.host: "+mqtt.host);

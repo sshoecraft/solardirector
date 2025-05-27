@@ -19,7 +19,7 @@ LICENSE file in the root directory of this source tree.
 	Func (Config/Data/etc)
 */
 
-#define SOLARD_MAX_PAYLOAD_SIZE 262144
+#define SOLARD_MAX_PAYLOAD_SIZE 131072
 
 struct solard_message {
 	char topic[SOLARD_TOPIC_SIZE];			/* orig topic */

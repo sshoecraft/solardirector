@@ -44,7 +44,6 @@ int main(int argc, char **argv) {
 
 #if TESTING
 	char *args[] = { "si", "-d", STRINGIFY(TESTLVL), "-c", "sitest.json" };
-//	char *args[] = { "si", "-d", STRINGIFY(TESTLVL), "-c", "sitest.json", "-X", "none" };
 	argc = (sizeof(args)/sizeof(char *));
 	argv = args;
 #endif
@@ -53,9 +52,13 @@ int main(int argc, char **argv) {
 
 	/* Init the SI driver */
 	s = si_driver.new(0,0);
+	dprintf(dlevel,"s: %p\n", s);
 	if (!s) return 1;
 
-	if (si_agent_init(argc,argv,si_opts,s)) goto si_done;
+	if (si_agent_init(argc,argv,si_opts,s)) {
+		log_error("error: agent_init failed!\n");
+		goto si_done;
+	}
 
 	/* -t takes precedence over config */
 	dprintf(1,"cantpinfo: %s\n", cantpinfo);

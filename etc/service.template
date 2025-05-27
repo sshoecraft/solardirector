@@ -5,7 +5,7 @@ After=network-online.target network.target +AFTER+
 [Service]
 Type=simple
 EnvironmentFile=/etc/sd.env
-ExecStart=+BINDIR+/+PROG+ -c +ETCDIR+/+NAME+.json -l +LOGDIR+/+NAME+.log +APPEND+
+ExecStart=+BINDIR+/+PROG++ARGS+ -c +ETCDIR+/+NAME+.json -l +LOGDIR+/+NAME+.log +APPEND+
 Restart=on-failure
 
 [Install]

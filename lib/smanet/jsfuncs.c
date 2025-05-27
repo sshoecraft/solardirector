@@ -198,10 +198,10 @@ static jsval _mr_to_array(JSContext *cx, smanet_multreq_t *mr, int count) {
 
 //	obj = js_NewObject(cx, &js_mr_class, NULL, NULL, 0);
 
-	arr = JS_NewArrayObject(cx, count, NULL);
+	arr = JS_NewArrayObject(cx, 0, NULL);
 	for(i=0; i < count; i++) {
 		/* Create a sub array of [ name, value ] */
-		ea = JS_NewArrayObject(cx, 2, NULL);
+		ea = JS_NewArrayObject(cx, 0, NULL);
 		dprintf(dlevel,"mr[%d]: value: %f, text: %s\n", i, mr[i].value, mr[i].text);
 		ne = type_to_jsval(cx,DATA_TYPE_STRING,mr[i].name,strlen(mr[i].name));
 		JS_SetElement(cx, ea, 0, &ne);

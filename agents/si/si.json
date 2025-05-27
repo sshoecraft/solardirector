@@ -1,0 +1,26 @@
+{
+    "si": {
+        "script_dir": ".",
+        "charge_mode": 1,
+        "min_voltage": 41,
+        "max_voltage": 58.100000000000001,
+        "interval": 10,
+        "influx_database": "power",
+        "charge_efficiency": 1.0600000000000001,
+        "location": "31.809158,-95.144338",
+        "mirror": 1,
+        "mirror_source": "mqtt,solardirector.localdomain,si",
+        "charge_feed": 1,
+        "cv_time": 240,
+        "cv_cutoff": 0,
+        "charge_start_level": 24,
+        "charge_end_level": 88,
+        "dynfeed": 0,
+        "feed_timeout": 900,
+        "dyngrid": 0,
+        "dyngen": 0,
+        "discharge_efficiency": 0.8091645649224658,
+        "charge_factor": 0.98655996008575086,
+        "battery_capacity": 1050
+    }
+}

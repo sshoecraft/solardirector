@@ -1,0 +1,1 @@
+pump: "temp_in_sensor":"func,get_influx_value,solardirector|hvac|last(water_temp) as value",

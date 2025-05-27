@@ -222,7 +222,7 @@ static int si_set_value(void *ctx, list args, char *errmsg, json_object_t *resul
 			}
 		}
 #endif
-		log_info("siconfig: Setting %s.%s to %s\n", (p->sp ? p->sp->name : ""), p->name, value);
+		log_verbose("siconfig: Setting %s.%s to %s\n", (p->sp ? p->sp->name : ""), p->name, value);
 		if (config_property_set_value(p,DATA_TYPE_STRING,value,strlen(value)+1,true,true)) return 1;
 		config_write(s->ap->cp);
 		agent_pubconfig(s->ap);
@@ -423,6 +423,7 @@ int si_agent_init(int argc, char **argv, opt_proctab_t *si_opts, si_session_t *s
 			"range", STRINGIFY(SI_VOLTAGE_MIN)STRINGIFY(SI_VOLTAGE_MAX)".1", "Min Battery Voltage", "V" },
 		{ "max_voltage", DATA_TYPE_DOUBLE, &s->max_voltage, 0, 0, 0,
 			"range", STRINGIFY(SI_VOLTAGE_MIN)STRINGIFY(SI_VOLTAGE_MAX)".1", "Max Battery Voltage", "V" },
+		{ "spread", DATA_TYPE_DOUBLE, &s->spread, 0, 0, CONFIG_FLAG_PRIVATE },
 		{ "min_charge_amps", DATA_TYPE_DOUBLE, &s->min_charge_amps, 0, 0, 0,
 			"range", "0, 5000, .1",  "Minimum charge amps", "A", 1, 0 },
 		{ "max_charge_amps", DATA_TYPE_DOUBLE, &s->max_charge_amps, 0, "560", 0,
@@ -486,6 +487,7 @@ int si_agent_init(int argc, char **argv, opt_proctab_t *si_opts, si_session_t *s
 		dprintf(dlevel,"max voltage > si maximum, setting to: %.1f\n", SI_VOLTAGE_MAX);
 		s->max_voltage = SI_VOLTAGE_MAX;
 	}
+	if (!s->spread) s->spread = s->max_voltage - s->min_voltage;
 
 	si_smanet_config(s);
 

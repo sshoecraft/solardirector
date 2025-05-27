@@ -27,6 +27,7 @@ typedef long long myquad_t;
 #include "cfg.h"
 
 /* util funcs */
+void clear_screen(void);
 void bindump(char *label,void *bptr,int len);
 void _bindump(long offset,void *bptr,int len);
 char *trim(char *);
@@ -43,6 +44,8 @@ int find_config_file(char *,char *,int);
 int solard_exec(char *, char *[], char *,int);
 int solard_wait(int);
 int solard_checkpid(int pid, int *status);
+int solard_pidofname(char *name);
+int solard_pidofpath(char *path);
 int solard_kill(int);
 void solard_notify_list(char *,list);
 void solard_notify(char *,char *,...);
@@ -67,10 +70,19 @@ int double_equals(double a, double b);
 int double_isint(double z);
 double pround(double val, int places);
 double *get_location(bool);
+char *get_tzname(char *tz, size_t tzSize);
 
 #ifndef DEBUG_MEM
 size_t mem_used(void);
 #endif
 size_t sys_mem_used(void);
+
+float heat_index(float,float);
+float wind_chill(float,float);
+float wet_bulb(float,float);
+
+#ifdef JS
+int js_utils_init(JSContext *cx, JSObject *parent, void *priv);
+#endif
 
 #endif

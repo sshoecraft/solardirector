@@ -1,0 +1,3 @@
+jsobj.h: * when obj->map->freeslot can be inconsistent with slots.
+jspubtd.h: * host objects have a JSObjectMap at obj->map, which may be shared among a
+jspubtd.h: * or any obj-bearing ops before dropping *propp.

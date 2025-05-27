@@ -8,6 +8,7 @@ all:
 
 install release::
 	for d in *; do if test -f $$d/Makefile; then $(MAKE) -C $$d $@; fi; done
+	systemctl daemon-reload
 
 clean:
 	for d in *; do if test -f $$d/Makefile; then $(MAKE) -C $$d $@; fi; done

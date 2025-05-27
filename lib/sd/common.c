@@ -7,7 +7,7 @@ This source code is licensed under the BSD-style license found in the
 LICENSE file in the root directory of this source tree.
 */
 
-#define dlevel 2
+#define dlevel 6
 #include "debug.h"
 
 #if DEBUG_COMMON_INIT
@@ -19,14 +19,14 @@ LICENSE file in the root directory of this source tree.
 #include <stdlib.h>
 #include <dirent.h>
 #include <string.h>
+#include <fcntl.h>
 #include "common.h"
 #include "driver.h"
 #include "config.h"
 #include "mqtt.h"
 #include "influx.h"
-#include "transports.h"
+#include "event.h"
 #include "battery.h"
-#include "inverter.h"
 #ifdef __WIN32
 #include <winsock2.h>
 #endif
@@ -42,6 +42,9 @@ char SOLARD_BINDIR[SOLARD_PATH_MAX];
 char SOLARD_ETCDIR[SOLARD_PATH_MAX];
 char SOLARD_LIBDIR[SOLARD_PATH_MAX];
 char SOLARD_LOGDIR[SOLARD_PATH_MAX];
+char SOLARD_TEMPDIR[SOLARD_PATH_MAX];
+char SOLARD_TZ[16];
+char SOLARD_TZNAME[128];
 
 #if defined(__WIN32) && !defined(__WIN64)
 #include <windows.h>
@@ -150,13 +153,42 @@ static int solard_get_dirs(cfg_info_t *cfg, char *section_name, char *home, int 
 	_getpath(cfg,section_name,home,SOLARD_LIBDIR,"lib",ow);
 	_getpath(cfg,section_name,home,SOLARD_LOGDIR,"log",ow);
 
+	/* Get the temp dir */
+#ifdef __WIN32
+	p = getenv("TEMP");
+	if (!p) p = getenv("TMP");
+	if (!p) p = "c:\\sd";
+	strncpy(SOLARD_TEMPDIR,tempdir,sizeof(SOLARD_TEMPDIR)-1);
+#else
+	tmpdir(SOLARD_TEMPDIR,sizeof(SOLARD_TEMPDIR));
+#endif
+
 	_setp("SOLARD_BINDIR",SOLARD_BINDIR);
 	_setp("SOLARD_ETCDIR",SOLARD_ETCDIR);
 	_setp("SOLARD_LIBDIR",SOLARD_LIBDIR);
 	_setp("SOLARD_LOGDIR",SOLARD_LOGDIR);
-	dprintf(dlevel-1,"BINDIR: %s, ETCDIR: %s, LIBDIR: %s, LOGDIR: %s\n", SOLARD_BINDIR, SOLARD_ETCDIR, SOLARD_LIBDIR, SOLARD_LOGDIR);
+	_setp("SOLARD_TEMPDIR",SOLARD_TEMPDIR);
+	dprintf(dlevel-1,"BINDIR: %s, ETCDIR: %s, LIBDIR: %s, LOGDIR: %s, TEMPDIR: %s\n", SOLARD_BINDIR, SOLARD_ETCDIR, SOLARD_LIBDIR, SOLARD_LOGDIR, SOLARD_TEMPDIR);
 
 	return 0;
+}
+
+static void solard_get_tz(void) {
+	struct tm *tm;
+	time_t t;
+	char *p;
+
+	time(&t);
+	tm = localtime(&t);
+//	dprintf(-1,"isdst: %d\n", tm->tm_isdst);
+
+	tzset();
+	p = (tm->tm_isdst ? tzname[1] : tzname[0]);
+//	dprintf(-1,"p: %s\n", p);
+	strncpy(SOLARD_TZ,p,sizeof(SOLARD_TZ)-1);
+	*SOLARD_TZNAME = 0;
+	get_tzname(SOLARD_TZNAME,sizeof(SOLARD_TZNAME)-1);
+//	dprintf(-1,"tzname: %s\n", SOLARD_TZNAME);
 }
 
 int solard_common_init(int argc,char **argv,char *version,opt_proctab_t *add_opts,int start_opts) {
@@ -189,18 +221,13 @@ int solard_common_init(int argc,char **argv,char *version,opt_proctab_t *add_opt
 	int iResult;
 #endif
 
-
 	append_flag = back_flag = verb_flag = help_flag = err_flag = 0;
 
 	if (!_common_first_init) _common_init();
 
         /* Open the startup log */
 	ident = "startup";
-	log_opts = start_opts;
-	if (log_opts & LOG_WX) {
-		if (argv) ident = argv[argc+1];
-		else log_opts &= ~LOG_WX;
-	}
+	log_opts = LOG_INFO|LOG_WARNING|LOG_ERROR|LOG_SYSERR | start_opts;
 	log_open(ident,0,log_opts);
 
 	log_debug("common_init: argc: %d, argv: %p, add_opts: %p, log_opts: %x\n", argc, argv, add_opts, log_opts);
@@ -245,29 +272,16 @@ int solard_common_init(int argc,char **argv,char *version,opt_proctab_t *add_opt
 	}
 
 	/* If add_opts, free malloc'd opts */
+	log_debug("common_init: freeing opts...\n");
 	free(opts);
+	log_debug("common_init: error: %d\n", error);
 	if (error) return 1;
 
-	/* Set the requested flags */
-	log_opts &= ~(LOG_DEBUG|LOG_DEBUG2|LOG_DEBUG3|LOG_DEBUG4);
-#ifdef DEBUG
-	dprintf(dlevel,"debug: %d\n", debug);
-	switch(debug) {
-		case 4:
-		default:
-			log_opts |= LOG_DEBUG4;
-			/* Fall-through */
-		case 3:
-			log_opts |= LOG_DEBUG3;
-			/* Fall-through */
-		case 2:
-			log_opts |= LOG_DEBUG2;
-			/* Fall-through */
-		case 1:
-			log_opts |= LOG_DEBUG;
-			break;
-	}
+#if defined(DEBUG) && DEBUG > 0
+	if (debug > 0) log_opts |= LOG_DEBUG;
 #endif
+
+	/* **** switch to dprintf **** */
 	dprintf(dlevel,"verb_flag: %d, err_flag: %d, append_flag: %d, log_opts: %x\n",verb_flag,err_flag,append_flag,log_opts);
 	if (verb_flag) log_opts |= LOG_VERBOSE;
 	if (err_flag) log_opts |= LOG_STDERR;
@@ -289,7 +303,7 @@ int solard_common_init(int argc,char **argv,char *version,opt_proctab_t *add_opt
 //		if (!log_lock_id) return 1;
 		log_opts |= LOG_TIME;
 		file = logfile;
-		log_opts &= ~LOG_WX;
+//		log_opts &= ~LOG_WX;
 		ident = "logfile";
 	} else {
 		file = 0;
@@ -300,7 +314,7 @@ int solard_common_init(int argc,char **argv,char *version,opt_proctab_t *add_opt
 	log_open(ident,file,log_opts);
 
 	/* Get paths */
-	*SOLARD_BINDIR = *SOLARD_ETCDIR = *SOLARD_LIBDIR = *SOLARD_LOGDIR = 0;
+	*SOLARD_BINDIR = *SOLARD_ETCDIR = *SOLARD_LIBDIR = *SOLARD_LOGDIR = *SOLARD_TEMPDIR = 0;
 
 	/* Look for configfile in ~/.sd.conf, and /etc/sd.conf, /usr/local/etc/sd.conf */
 	*configfile = 0;
@@ -326,12 +340,44 @@ int solard_common_init(int argc,char **argv,char *version,opt_proctab_t *add_opt
 	if (debug_flag != 0xDEADBEEF) debug = debug_flag;
 #endif
 	solard_get_dirs(cfg,"",home,1);
+	solard_get_tz();
 
 	dprintf(dlevel,"cfg: %p\n", cfg);
 	if (cfg) cfg_destroy(cfg);
 
 	dprintf(dlevel,"done!\n");
 	return 0;
+}
+
+void common_read_config(config_t *cp, char *sname) {
+	char conf[1024];
+	FILE *fp1;
+
+	/* See if common.conf exists in ETCDIR */
+	snprintf(conf,sizeof(conf)-1,"%s/common.conf",SOLARD_ETCDIR);
+	dprintf(dlevel,"conf: %s\n", conf);
+	fp1 = fopen(conf,"r");
+	dprintf(dlevel,"fp1: %p\n", fp1);
+	if (fp1) {
+		char tempfile[292],tempdir[256];
+		FILE *fp2;
+
+		tmpdir(tempdir,sizeof(tempdir));
+		sprintf(tempfile,"%s/_sdctmp%d.conf",tempdir,getpid());
+		dprintf(dlevel,"tempfile: %s\n", tempfile);
+		fp2 = fopen(tempfile,"w+");
+		dprintf(dlevel,"fp2: %p\n", fp2);
+		if (fp2) {
+			char line[1024];
+
+			fprintf(fp2,"[%s]\n",sname);
+			while(fgets(line,sizeof(line),fp1)) fputs(line,fp2);
+			fclose(fp2);
+			config_read_file(cp,tempfile);
+		}
+		unlink(tempfile);
+		fclose(fp1);
+	}
 }
 
 #ifdef MQTT
@@ -360,10 +406,11 @@ int solard_common_startup(config_t **cp, char *sname, char *configfile, config_p
 #endif
 
 	dprintf(dlevel,"Starting up...\n");
-//	{ char *p  = 0; if (_rc++ > 0) *p = 0; };
 
 #ifdef MQTT
+	dprintf(dlevel,"m: %p\n", m);
 	if (m) {
+		open(".",0);
 
 		/* Create MQTT session */
 		*m = mqtt_new(false, getmsg, mctx);
@@ -378,6 +425,7 @@ int solard_common_startup(config_t **cp, char *sname, char *configfile, config_p
 	}
 #endif
 #ifdef INFLUX
+	dprintf(dlevel,"i: %p\n", i);
 	if (i) {
 		/* Create InfluxDB session */
 		*i = influx_new();
@@ -392,19 +440,24 @@ int solard_common_startup(config_t **cp, char *sname, char *configfile, config_p
 #endif
 
 	/* New event session */
+	dprintf(dlevel,"e: %p\n", e);
 	if (e) *e = event_init();
 
 	/* Init the config */
 	dprintf(dlevel,"sname: %s\n", sname);
 	*cp = config_init(sname, props, funcs);
+	dprintf(dlevel,"cp: %p\n", cp);
 	if (!*cp) return 0;
 	common_add_props(*cp, sname);
+//	debug_add_props(*cp, sname);
 #ifdef MQTT
 	if (m) mqtt_add_props(*m, *cp, sname);
 #endif
 #ifdef INFLUX
 	if (i) influx_add_props(*i, *cp, sname);
 #endif
+
+	common_read_config(*cp,sname);
 
 #ifdef MQTT
 	if (m) {
@@ -423,6 +476,7 @@ int solard_common_startup(config_t **cp, char *sname, char *configfile, config_p
 		}
 	}
 #endif
+
 	dprintf(dlevel,"configfile: %s\n", configfile);
 	if (strlen(configfile)) {
 		if (config_read_file(*cp,configfile)) {
@@ -493,6 +547,7 @@ void common_add_props(config_t *cp, char *name) {
 		{ "ETCDIR", DATA_TYPE_STRING, SOLARD_ETCDIR, sizeof(SOLARD_ETCDIR)-1, 0 },
 		{ "LIBDIR", DATA_TYPE_STRING, SOLARD_LIBDIR, sizeof(SOLARD_LIBDIR)-1, 0 },
 		{ "LOGDIR", DATA_TYPE_STRING, SOLARD_LOGDIR, sizeof(SOLARD_LOGDIR)-1, 0 },
+		{ "TEMPDIR", DATA_TYPE_STRING, SOLARD_TEMPDIR, sizeof(SOLARD_TEMPDIR)-1, 0 },
 		{ "debug", DATA_TYPE_INT, &debug, 0, 0, CONFIG_FLAG_PRIVATE, "range", "0,99,1", "debug level", 0, 1, 0 },
 		{ 0 }
 	};
@@ -520,6 +575,9 @@ enum COMMON_PROPERTY_ID {
 	COMMON_PROPERTY_ID_ETCDIR,
 	COMMON_PROPERTY_ID_LIBDIR,
 	COMMON_PROPERTY_ID_LOGDIR,
+	COMMON_PROPERTY_ID_TEMPDIR,
+	COMMON_PROPERTY_ID_TZ,
+	COMMON_PROPERTY_ID_TZNAME,
 };
 
 static JSBool common_getprop(JSContext *cx, JSObject *obj, jsval id, jsval *rval) {
@@ -542,8 +600,17 @@ static JSBool common_getprop(JSContext *cx, JSObject *obj, jsval id, jsval *rval
 		case COMMON_PROPERTY_ID_LOGDIR:
 			*rval = type_to_jsval(cx,DATA_TYPE_STRING,SOLARD_LOGDIR,strlen(SOLARD_LOGDIR));
 			break;
+		case COMMON_PROPERTY_ID_TEMPDIR:
+			*rval = type_to_jsval(cx,DATA_TYPE_STRING,SOLARD_TEMPDIR,strlen(SOLARD_TEMPDIR));
+			break;
+		case COMMON_PROPERTY_ID_TZ:
+			*rval = type_to_jsval(cx,DATA_TYPE_STRING,SOLARD_TZ,strlen(SOLARD_TZ));
+			break;
+		case COMMON_PROPERTY_ID_TZNAME:
+			*rval = type_to_jsval(cx,DATA_TYPE_STRING,SOLARD_TZNAME,strlen(SOLARD_TZNAME));
+			break;
 		default:
-			dprintf(1,"not found\n");
+			dprintf(dlevel,"not found\n");
 			JS_ReportError(cx, "property not found");
 			return JS_FALSE;
 			break;
@@ -572,8 +639,17 @@ static JSBool common_setprop(JSContext *cx, JSObject *obj, jsval id, jsval *vp) 
 		case COMMON_PROPERTY_ID_LOGDIR:
 			jsval_to_type(DATA_TYPE_STRING,SOLARD_LOGDIR,SOLARD_PATH_MAX,cx,*vp);
 			break;
+		case COMMON_PROPERTY_ID_TEMPDIR:
+			jsval_to_type(DATA_TYPE_STRING,SOLARD_TEMPDIR,SOLARD_PATH_MAX,cx,*vp);
+			break;
+		case COMMON_PROPERTY_ID_TZ:
+			jsval_to_type(DATA_TYPE_STRING,SOLARD_TZ,sizeof(SOLARD_TZ),cx,*vp);
+			break;
+		case COMMON_PROPERTY_ID_TZNAME:
+			jsval_to_type(DATA_TYPE_STRING,SOLARD_TZNAME,sizeof(SOLARD_TZNAME),cx,*vp);
+			break;
 		default:
-			dprintf(1,"not found\n");
+			dprintf(dlevel,"not found\n");
 			JS_ReportError(cx, "property not found");
 			return JS_FALSE;
 			break;
@@ -624,6 +700,9 @@ static int js_common_init(JSContext *cx, JSObject *parent, void *priv) {
 		{ "SOLARD_ETCDIR", COMMON_PROPERTY_ID_ETCDIR, COMMON_FLAGS, common_getprop, common_setprop },
 		{ "SOLARD_LIBDIR", COMMON_PROPERTY_ID_LIBDIR, COMMON_FLAGS, common_getprop, common_setprop },
 		{ "SOLARD_LOGDIR", COMMON_PROPERTY_ID_LOGDIR, COMMON_FLAGS, common_getprop, common_setprop },
+		{ "SOLARD_TEMPDIR", COMMON_PROPERTY_ID_TEMPDIR, COMMON_FLAGS, common_getprop, common_setprop },
+		{ "SOLARD_TZ", COMMON_PROPERTY_ID_TZ, COMMON_FLAGS, common_getprop, common_setprop },
+		{ "SOLARD_TZNAME", COMMON_PROPERTY_ID_TZNAME, COMMON_FLAGS, common_getprop, common_setprop },
 		{0}
 	};
 	JSFunctionSpec common_funcs[] = {
@@ -634,13 +713,27 @@ static int js_common_init(JSContext *cx, JSObject *parent, void *priv) {
 	};
 
 	JSConstantSpec common_consts[] = {
+/* XXX cant be consts if we want to be able to override them */
+#if 0
+		JS_STRCONST(SOLARD_BINDIR),
+		JS_STRCONST(SOLARD_ETCDIR),
+		JS_STRCONST(SOLARD_LIBDIR),
+		JS_STRCONST(SOLARD_LOGDIR),
+		JS_STRCONST(SOLARD_TEMPDIR),
+#endif
 		JS_STRCONST(SOLARD_TOPIC_ROOT),
 		JS_STRCONST(SOLARD_TOPIC_AGENTS),
 		JS_STRCONST(SOLARD_TOPIC_CLIENTS),
+
 		JS_STRCONST(SOLARD_ROLE_CONTROLLER),
 		JS_STRCONST(SOLARD_ROLE_STORAGE),
 		JS_STRCONST(SOLARD_ROLE_BATTERY),
 		JS_STRCONST(SOLARD_ROLE_INVERTER),
+		JS_STRCONST(SOLARD_ROLE_PVINVERTER),
+		JS_STRCONST(SOLARD_ROLE_UTILITY),
+		JS_STRCONST(SOLARD_ROLE_SENSOR),
+		JS_STRCONST(SOLARD_ROLE_DEVICE),
+
 		JS_STRCONST(SOLARD_FUNC_STATUS),
 		JS_STRCONST(SOLARD_FUNC_INFO),
 		JS_STRCONST(SOLARD_FUNC_CONFIG),
@@ -659,18 +752,18 @@ static int js_common_init(JSContext *cx, JSObject *parent, void *priv) {
 		{0}
 	};
 
-	dprintf(1,"Defining common properties...\n");
+	dprintf(dlevel,"Defining common properties...\n");
 	if(!JS_DefineProperties(cx, parent, common_props)) {
-		dprintf(1,"error defining common properties\n");
+		dprintf(dlevel,"error defining common properties\n");
 		return 1;
 	}
-	dprintf(1,"Defining common functions...\n");
+	dprintf(dlevel,"Defining common functions...\n");
 	if(!JS_DefineFunctions(cx, parent, common_funcs)) {
-		dprintf(1,"error defining common functions\n");
+		dprintf(dlevel,"error defining common functions\n");
 		return 1;
 	}
 	if(!JS_DefineConstants(cx, parent, common_consts)) {
-		dprintf(1,"error defining common constants\n");
+		dprintf(dlevel,"error defining common constants\n");
 		return 1;
 	}
 	return 0;
@@ -682,6 +775,7 @@ JSEngine *common_jsinit(int rtsize, int stksize, js_outputfunc_t *jsout) {
 	/* Init engine */
 	dprintf(2,"calling JS_EngineInit...\n");
 	e = JS_EngineInit(rtsize, stksize, jsout);
+	dprintf(dlevel,"e: %p\n", e);
 	if (!e) {
 		log_error("unable to initialize JS Engine!\n");
 		return 0;
@@ -691,10 +785,9 @@ JSEngine *common_jsinit(int rtsize, int stksize, js_outputfunc_t *jsout) {
 	JS_EngineAddInitFunc(e, "js_common_init", js_common_init, 0);
 	JS_EngineAddInitFunc(e, "js_types_init", js_types_init, 0);
 	JS_EngineAddInitFunc(e, "js_log_init", js_log_init, 0);
-//	JS_EngineAddInitFunc(e, "js_json_init", js_json_init, 0);
+	JS_EngineAddInitFunc(e, "js_utils_init", js_utils_init, 0);
 
 	if (config_jsinit(e)) return 0;
-//	if (transports_jsinit(e)) return 0;
 
 	/* Add Init classes */
 	JS_EngineAddInitClass(e, "js_InitmyJSONClass", js_InitmyJSONClass);
@@ -708,8 +801,10 @@ JSEngine *common_jsinit(int rtsize, int stksize, js_outputfunc_t *jsout) {
 #ifdef INFLUX
 	if (influx_jsinit(e)) return 0;
 #endif
+	JS_EngineAddInitClass(e, "js_InitEventClass", js_InitEventClass);
 	JS_EngineAddInitClass(e, "js_InitBatteryClass", js_InitBatteryClass);
 //	JS_EngineAddInitClass(e, "js_InitInverterClass", js_InitInverterClass);
+	dprintf(2,"returning: %p\n", e);
 	return e;
 }
 #endif

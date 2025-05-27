@@ -1,10 +1,13 @@
 
-PROGNAME=$(shell basename $(shell pwd))
+NAME=$(shell basename $(shell pwd))
+
+PROGNAME=$(NAME)
 SRCS=main.c driver.c
 
-SERVICE_NAME=pvc
-SERVICE_DESC=PV Combiner
+SERVICE_NAME=$(NAME)
 
-JS=yes
+JS=no
+MQTT=yes
+INFLUX=yes
 
 include ../../Makefile.sd

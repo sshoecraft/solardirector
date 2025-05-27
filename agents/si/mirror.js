@@ -20,7 +20,10 @@ function mirror_get_data() {
 	let dlevel = 1;
 
 	dprintf(dlevel,"mirror_info: %s\n", si.mirror_info);
-	if (!si.mirror_info) return 1;
+	if (!si.mirror_info) {
+		printf("mirror_get_data: mirror_info is not defined!\n");
+		return 1;
+	}
 	info = si.mirror_info;
 //	dumpobj(info);
 
@@ -73,7 +76,9 @@ function mirror_get_data() {
 	dprintf(dlevel,"inverter: %s\n", inverter);
 	if (!inverter) {
 		dprintf(dlevel,"diff: %d, timeout: %d\n", time() - info.last_inverter_time, si.mirror_timeout);
-		if (time() - info.last_inverter_time > si.mirror_timeout) return 1;
+		if (time() - info.last_inverter_time > si.mirror_timeout) {
+			return 0;
+		}
 		inverter = info.last_inverter;
 	} else {
 		info.last_inverter = inverter;
@@ -145,8 +150,8 @@ function mirror_source_trigger() {
 	info = si.mirror_info;
 
 	// Source,conx,name
-	// influx,192.168.1.142,power
-	// mqtt,192.168.1.4,si
+	// influx,myinfluxdb,power
+	// mqtt,mymqtt,si
 	let tf = si.mirror_source.split(",");
 	info.type = tf[0];
 	dprintf(dlevel,"type: %s\n", info.type);
@@ -183,7 +188,7 @@ function mirror_init() {
 		[ "mirror_timeout", DATA_TYPE_INT, 30, 0 ],
 	];
 
-	config.add_props(si,mirror_props);
+	config.add_props(si,mirror_props,si.driver_name);
 	if (si.mirror_info) {
 		si.mirror_info.last_inverter = undefined;
 		si.mirror_info.last_inverter_time = 0;

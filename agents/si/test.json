@@ -1,0 +1,22 @@
+{
+    "si": {
+        "charge_mode": 1,
+        "min_voltage": 41,
+        "max_voltage": 58.100000000000001,
+        "name": "sitest",
+        "interval": 10,
+        "script_dir": ".",
+        "location": "31.809158,-95.144338",
+        "mirror": 1,
+        "mirror_source": "mqtt,192.168.1.142,si",
+        "charge_feed": 1,
+        "charge_start_level": 24,
+        "charge_end_level": 88,
+        "dynfeed": 1,
+        "dyngrid": 0,
+        "dyngen": 0,
+        "discharge_efficiency": 0.83850135157871097,
+        "charge_factor": 1.0243066435561174,
+        "battery_capacity": 1050
+    }
+}

@@ -1,10 +1,13 @@
 
-PROGNAME=$(shell basename $(shell pwd))
+NAME=$(shell basename $(shell pwd))
+
+PROGNAME=$(NAME)
 SRCS=main.c driver.c
 
-SERVICE_NAME=btc
-SERVICE_DESC=Battery Combiner
+SERVICE_NAME=$(NAME)
 
 JS=no
+MQTT=yes
+INFLUX=yes
 
 include ../../Makefile.sd

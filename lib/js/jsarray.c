@@ -2838,6 +2838,20 @@ array_every(JSContext *cx, uintN argc, jsval *vp)
 }
 #endif
 
+static JSBool array_isarray(JSContext *cx, uintN argc, jsval *vp) {
+        JSObject *obj;
+
+        if (argc) {
+                jsval *argv = JS_ARGV(cx,vp);
+                obj = JSVAL_TO_OBJECT(argv[0]);
+        } else {
+                obj = JS_THIS_OBJECT(cx, vp);
+                if (!obj) return JS_FALSE;
+        }
+        *vp = BOOLEAN_TO_JSVAL(OBJ_IS_ARRAY(cx,obj) || OBJ_IS_DENSE_ARRAY(cx, obj));
+        return JS_TRUE;
+}
+
 static JSPropertySpec array_props[] = {
     {js_length_str,   -1,   JSPROP_SHARED | JSPROP_PERMANENT,
                             array_length_getter,    array_length_setter},
@@ -2876,6 +2890,8 @@ static JSFunctionSpec array_methods[] = {
     JS_FN("some",               array_some,         1,1,JSFUN_GENERIC_NATIVE),
     JS_FN("every",              array_every,        1,1,JSFUN_GENERIC_NATIVE),
 #endif
+
+	JS_FN("isArray",                   array_isarray,              1,1,0),
 
     JS_FS_END
 };

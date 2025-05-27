@@ -1,3 +1,0 @@
-#./sdconfig sitest set configfile sit1.json
-./sdconfig sitest load "$(cat newsi.json)"
-#./sdconfig sitest set run_scripts yes

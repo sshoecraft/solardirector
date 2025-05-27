@@ -232,7 +232,7 @@ int main(int argc, char **argv) {
 
 	*configfile = *cantpinfo = *smatpinfo = 0;
 	if (solard_common_init(argc,argv,siutil_version,opts,logopts)) return 1;
-	if (debug >= 0) logopts |= LOG_DEBUG|LOG_DEBUG2;
+	if (debug >= 0) logopts |= LOG_DEBUG;
 	log_open("siutil",0,logopts);
 
 	argc -= optind;

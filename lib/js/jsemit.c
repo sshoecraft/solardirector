@@ -2386,7 +2386,9 @@ EmitPropOp(JSContext *cx, JSParseNode *pn, JSOp op, JSCodeGenerator *cg,
         return JS_FALSE;
     }
     if (!pn->pn_atom) {
+#if JS_HAS_EXPORT_IMPORT
         JS_ASSERT(op == JSOP_IMPORTALL);
+#endif
         if (js_Emit1(cx, cg, op) < 0)
             return JS_FALSE;
     } else {
@@ -2406,7 +2408,9 @@ EmitElemOp(JSContext *cx, JSParseNode *pn, JSOp op, JSCodeGenerator *cg)
     top = CG_OFFSET(cg);
     if (pn->pn_arity == PN_LIST) {
         /* Left-associative operator chain to avoid too much recursion. */
+#if JS_HAS_EXPORT_IMPORT
         JS_ASSERT(pn->pn_op == JSOP_GETELEM || pn->pn_op == JSOP_IMPORTELEM);
+#endif
         JS_ASSERT(pn->pn_count >= 3);
         left = pn->pn_head;
         right = PN_LAST(pn);

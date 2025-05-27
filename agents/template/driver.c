@@ -161,8 +161,10 @@ static int template_open(void *handle) {
 	r = 0;
 	dprintf(3,"state: %d\n", check_state(s,TEMPLATE_STATE_OPEN));
 	if (!check_state(s,TEMPLATE_STATE_OPEN)) {
-		if (s->tp && s->tp->open(s->tp_handle) == 0)
-			set_state(s,TEMPLATE_STATE_OPEN);
+		if (!s->tp || !s->tp_handle)
+			set_state(s,PVC_STATE_OPEN);
+		else if (s->tp && s->tp->open(s->tp_handle) == 0)
+			set_state(s,PVC_STATE_OPEN);
 		else
 			r = 1;
 	}

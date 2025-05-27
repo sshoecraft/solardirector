@@ -1,0 +1,9 @@
+{
+    "si": {
+        "charge_mode": 2,
+        "name": "sitest",
+        "script_dir": ".",
+        "mirror": 1,
+        "mirror_source": "mqtt,solardirector.localdomain,si"
+    }
+}

@@ -228,6 +228,7 @@ struct si_session {
 	/* Charging */
 	double max_voltage;		/* Dont go above this voltage */
 	double min_voltage;		/* Dont go below this voltage */
+	double spread;			/* max - min */
 	int charge_mode;
 	double charge_voltage;		/* RO|NOSAVE, charge_voltage */
 	double grid_charge_amps;	

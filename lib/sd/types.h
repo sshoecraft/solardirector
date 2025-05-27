@@ -14,6 +14,47 @@ LICENSE file in the root directory of this source tree.
 #include <sys/types.h>
 #include "osendian.h"
 
+#define TYPES_NEW_METHOD 1
+#if TYPES_NEW_METHOD
+enum DATA_TYPES {
+	DATA_TYPE_UNKNOWN,
+	DATA_TYPE_NULL,
+	DATA_TYPE_VOIDP,
+	DATA_TYPE_MLIST,
+	DATA_TYPE_STRING,
+	DATA_TYPE_STRINGP,
+	DATA_TYPE_STRING_LIST,
+	DATA_TYPE_STRING_ARRAY,
+	DATA_TYPE_BOOL,
+	DATA_TYPE_BOOL_ARRAY,
+	DATA_TYPE_S8,
+	DATA_TYPE_S8_ARRAY,
+	DATA_TYPE_S16,
+	DATA_TYPE_S16_ARRAY,
+	DATA_TYPE_S32,
+	DATA_TYPE_S32_ARRAY,
+	DATA_TYPE_S64,
+	DATA_TYPE_S64_ARRAY,
+	DATA_TYPE_U8,
+	DATA_TYPE_U8_ARRAY,
+	DATA_TYPE_U16,
+	DATA_TYPE_U16_ARRAY,
+	DATA_TYPE_U32,
+	DATA_TYPE_U32_ARRAY,
+	DATA_TYPE_U64,
+	DATA_TYPE_U64_ARRAY,
+	DATA_TYPE_F32,
+	DATA_TYPE_F32_ARRAY,
+	DATA_TYPE_F64,
+	DATA_TYPE_F64_ARRAY,
+	DATA_TYPE_F128,
+	DATA_TYPE_MAX
+};
+
+#define DATA_TYPE_ISNUMBER(t) (t >= DATA_TYPE_BOOL && t <= DATA_TYPE_F128)
+
+#else
+
 #define DATA_TYPE_NUMBER	0x01000000
 #define DATA_TYPE_ARRAY		0x02000000
 #define DATA_TYPE_MLIST		0x04000000
@@ -33,7 +74,8 @@ LICENSE file in the root directory of this source tree.
 #define DATA_TYPE_F32	(DATA_TYPE_NUMBER | 0x00000100)	/* 32 bit floating point (float) */
 #define DATA_TYPE_F64	(DATA_TYPE_NUMBER | 0x00000200)	/* 64 bit floating point (double) */
 #define DATA_TYPE_F128	(DATA_TYPE_NUMBER | 0x00000400)	/* 128 bit floating point (long double) */
-#define DATA_TYPE_BOOL	(DATA_TYPE_NUMBER | 0x00008000)	/* 32 bit signed int */
+#define DATA_TYPE_BOOL	(DATA_TYPE_NUMBER | 0x00000800)	/* 32 bit signed int */
+#define DATA_TYPE_NUMBER_MASK               0x00000FFF
 
 #define DATA_TYPE_STRINGP (DATA_ATTR_PTR | DATA_TYPE_STRING)
 #define DATA_TYPE_VOIDP (DATA_ATTR_PTR | DATA_TYPE_NULL)
@@ -71,10 +113,10 @@ LICENSE file in the root directory of this source tree.
 #define DATA_TYPE_ISNUMBER(t) ((t & DATA_TYPE_NUMBER) != 0)
 #define DATA_TYPE_ISARRAY(t) ((t & DATA_TYPE_ARRAY) != 0)
 #define DATA_TYPE_ISLIST(t) ((t & DATA_TYPE_MLIST) != 0)
+#endif
 
 /* Aliases */
 #define NULLCH '\0'
-#define DATA_TYPE_UNKNOWN DATA_TYPE_NULL
 #define DATA_TYPE_VOID DATA_TYPE_NULL
 #define DATA_TYPE_BYTE DATA_TYPE_S8
 #define DATA_TYPE_BYTE_ARRAY DATA_TYPE_S8_ARRAY
@@ -163,12 +205,12 @@ static inline float _getf64(unsigned char *v) {
 //#define si_putlong(p,v) { *((p+3)) = ((int)(v) >> 24); *((p)+2) = ((int)(v) >> 16); *((p+1)) = ((int)(v) >> 8); *((p)) = ((int)(v) & 0x0F); }
 #define _puts8(p,v) *((int8_t *)(p)) = (v)
 #define _puts16(p,v) { float t; *((p+1)) = ((short)(t = v) >> 8); *((p)) = (short)(t = v); }
-#define _puts32(p,v) { float t; *((p+1)) = ((long)(t = v) >> 24); *((p+1)) = ((long)(t = v) >> 16); *((p+1)) = ((long)(t = v) >> 8); *((p)) = (long)(t = v); }
-#define _puts64(p,v) { double t; *((p+1)) = ((long long)(t = v) >> 56); *((p+1)) = ((long long)(t = v) >> 48); *((p+1)) = ((long long)(t = v) >> 40); *((p+1)) = ((long long)(t = v) >> 32); *((p+1)) = ((long long)(t = v) >> 24); *((p+1)) = ((long long)(t = v) >> 16); *((p+1)) = ((long long)(t = v) >> 8); *((p)) = (long long)(t = v); }
+#define _puts32(p,v) { float t; *((p+3)) = ((long)(t = v) >> 24); *((p+2)) = ((long)(t = v) >> 16); *((p+1)) = ((long)(t = v) >> 8); *((p)) = (long)(t = v); }
+#define _puts64(p,v) { double t; *((p+7)) = ((long long)(t = v) >> 56); *((p+6)) = ((long long)(t = v) >> 48); *((p+5)) = ((long long)(t = v) >> 40); *((p+4)) = ((long long)(t = v) >> 32); *((p+3)) = ((long long)(t = v) >> 24); *((p+2)) = ((long long)(t = v) >> 16); *((p+1)) = ((long long)(t = v) >> 8); *((p)) = (long long)(t = v); }
 #define _putu8(p,v) *((uint8_t *)(p)) = (v)
 #define _putu16(p,v) { float t; *((p+1)) = ((uint16_t)(t = v) >> 8); *((p)) = (uint16_t)(t = v); }
-#define _putu32(p,v) { float t; *((p+1)) = ((uint32_t)(t = v) >> 24); *((p+1)) = ((uint32_t)(t = v) >> 16); *((p+1)) = ((uint32_t)(t = v) >> 8); *((p)) = (uint32_t)(t = v); }
-#define _putu64(p,v) { double t; *((p+1)) = ((unsigned long long)(t = v) >> 56); *((p+1)) = ((unsigned long long)(t = v) >> 48); *((p+1)) = ((unsigned long long)(t = v) >> 40); *((p+1)) = ((unsigned long long)(t = v) >> 32); *((p+1)) = ((unsigned long long)(t = v) >> 24); *((p+1)) = ((unsigned long long)(t = v) >> 16); *((p+1)) = ((unsigned long long)(t = v) >> 8); *((p)) = (unsigned long long)(t = v); }
+#define _putu32(p,v) { float t; *((p+3)) = ((uint32_t)(t = v) >> 24); *((p+2)) = ((uint32_t)(t = v) >> 16); *((p+1)) = ((uint32_t)(t = v) >> 8); *((p)) = (uint32_t)(t = v); }
+#define _putu64(p,v) { double t; *((p+7)) = ((unsigned long long)(t = v) >> 56); *((p+6)) = ((unsigned long long)(t = v) >> 48); *((p+5)) = ((unsigned long long)(t = v) >> 40); *((p+4)) = ((unsigned long long)(t = v) >> 32); *((p+3)) = ((unsigned long long)(t = v) >> 24); *((p+2)) = ((unsigned long long)(t = v) >> 16); *((p+1)) = ((unsigned long long)(t = v) >> 8); *((p)) = (unsigned long long)(t = v); }
 #define _putf32(p,v) _putu32(p,v)
 #define _putf64(p,v) _putu64(p,v)
 

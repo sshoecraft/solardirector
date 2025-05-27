@@ -12,8 +12,12 @@ LICENSE file in the root directory of this source tree.
 
 #include "ah.h"
 
+#define AD_BASE 120
 #define GAIN 1
 static float gainvolts[] = { 6.144, 4.096, 2.048, 1.024, 0.512, 0.256 };
+
+extern char *ah_version_string;
+extern bool ignore_wpi;
 
 static void *ah_new(void *transport, void *transport_handle) {
 	ah_session_t *s;
@@ -40,11 +44,12 @@ static int ah_free(void *handle) {
 }
 
 static int getval(ah_session_t *s, int ch) {
-	int t,i;
+	int v,t,i;
 
 	for(i=t=0; i < s->count; i++) {
-		t += analogRead(AD_BASE+ch);
+		v = analogRead(AD_BASE+ch);
 		usleep(10);
+		t += v;
 	}
 	return (int)(t/s->count);
 	
@@ -79,24 +84,38 @@ static float get_temp(ah_session_t *s, int ch) {
 	return f;
 }
 
-int ah_read(void *handle, uint32_t *what, void *buf, int buflen) {
+static int ah_read(void *handle, uint32_t *what, void *buf, int buflen) {
+	ah_session_t *s = handle;
+	char out[128];
+
+	s->air_in = get_temp(s,s->air_in_ch);
+	s->air_out = get_temp(s,s->air_out_ch);
+	sprintf(out,"fan: %d, cool: %d, heat: %d, air: in: %3.1f, out: %3.1f", s->fan_state, s->cool_state, s->heat_state, s->air_in, s->air_out);
+	if (strcmp(out,s->last_out) != 0) {
+		log_info("%s\n", out);
+		strcpy(s->last_out,out);
+	}
+	return 0;
+}
+
+static int ah_write(void *handle, uint32_t *what, void *buf, int buflen) {
 	ah_session_t *s = handle;
 	json_object_t *o;
 	json_value_t *v;
 
-	s->air_in = get_temp(s,s->air_in_ch);
-	s->air_out = get_temp(s,s->air_out_ch);
-	s->water_in = get_temp(s,s->water_in_ch);
-	s->water_out = get_temp(s,s->water_out_ch);
-
 	o = json_create_object();
 	json_object_set_string(o,"name",s->ap->instance_name);
-        json_object_set_number(o,"air_in",s->air_in);
-        json_object_set_number(o,"air_out",s->air_out);
-        json_object_set_number(o,"water_in",s->water_in);
-        json_object_set_number(o,"water_out",s->water_out);
+	json_object_set_string(o,"fan_state",s->fan_state ? "on" : "off");
+	json_object_set_string(o,"cool_state",s->cool_state ? "on" : "off");
+	json_object_set_string(o,"heat_state",s->heat_state ? "on" : "off");
+	json_object_set_number(o,"air_in",s->air_in);
+	json_object_set_number(o,"air_out",s->air_out);
 	v = json_object_value(o);
+//	j = json_dumps(v, 1);
+//	printf("j: %s\n", j);
 #ifdef MQTT
+	dprintf(dlevel,"mqtt_connected: %d\n", mqtt_connected(s->ap->m));
+	if (!mqtt_connected(s->ap->m)) mqtt_reconnect(s->ap->m);
 	if (mqtt_connected(s->ap->m)) agent_pubdata(s->ap, v);
 #endif
 #ifdef INFLUX
@@ -105,19 +124,74 @@ int ah_read(void *handle, uint32_t *what, void *buf, int buflen) {
 		influx_connect(s->ap->i);
 		dprintf(dlevel,"influx_connected: %d\n", influx_connected(s->ap->i));
 	}
+	dprintf(dlevel,"influx_connected: %d\n", influx_connected(s->ap->i));
 	if (influx_connected(s->ap->i)) influx_write_json(s->ap->i, "air_handler", v);
 #endif
 	json_destroy_value(v);
+
 	return 0;
+}
+
+static json_value_t *ah_get_info(ah_session_t *s) {
+	json_object_t *o;
+
+	dprintf(dlevel,"creating info...\n");
+
+	o = json_create_object();
+	if (!o) return 0;
+	json_object_set_string(o,"agent_name",ah_driver.name);
+	json_object_set_string(o,"agent_role",SOLARD_ROLE_UTILITY);
+	json_object_set_string(o,"agent_version",ah_version_string);
+	json_object_set_string(o,"agent_author","Stephen P. Shoecraft");
+
+	config_add_info(s->ap->cp, o);
+
+	dprintf(dlevel,"returning: %p\n", json_object_value(o));
+	return json_object_value(o);
+}
+
+static int ah_config(void *h, int req, ...) {
+	ah_session_t *s = h;
+	va_list va;
+	int r;
+
+	va_start(va,req);
+	dprintf(dlevel,"req: %d\n", req);
+	r = 1;
+	switch(req) {
+	case SOLARD_CONFIG_INIT:
+		s->ap = va_arg(va,solard_agent_t *);
+		dprintf(dlevel,"s->ap->e: %p\n", s->ap->js.e);
+#ifdef JS
+		r = wpi_init(s->ap->js.e);
+#else
+		r = wpi_init();
+#endif
+		if (r && ignore_wpi) r = 0;
+		if (r) log_error("wpi_init failed\n");
+		else ads1115Setup(AD_BASE,0x48);
+		break;
+	case SOLARD_CONFIG_GET_INFO:
+		{
+			json_value_t **vp = va_arg(va,json_value_t **);
+			dprintf(dlevel,"vp: %p\n", vp);
+			if (vp) {
+				*vp = ah_get_info(s);
+				r = 0;
+			}
+		}
+		break;
+	}
+	return r;
 }
 
 solard_driver_t ah_driver = {
 	AGENT_NAME,
 	ah_new,			/* New */
-	ah_free,			/* Free */
+	ah_free,		/* Free */
 	0,			/* Open */
 	0,			/* Close */
-	ah_read,			/* Read */
-	0,			/* Write */
-	ah_config			/* Config */
+	ah_read,		/* Read */
+	ah_write,		/* Write */
+	ah_config		/* Config */
 };

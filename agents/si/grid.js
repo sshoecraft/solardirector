@@ -5,7 +5,7 @@ function grid_init() {
 		[ "grid_max_power", DATA_TYPE_FLOAT, "300", 0 ],
 	];
 
-	config.add_props(si,grid_props);
+	config.add_props(si,grid_props,si.driver_name);
 }
 
 // dynamically modify charge amps to keep grid under max power

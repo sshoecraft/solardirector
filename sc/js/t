@@ -1,2 +1,0 @@
-r = run("agents.js","agents_init");
-printf("r: %d\n", r);

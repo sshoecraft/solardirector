@@ -59,10 +59,10 @@ function feed_init() {
 		[ "feed_timeout_after", DATA_TYPE_STRING, null, 0, set_feed_timeout_after_date ],
 	];
 
-	config.add_props(si,feed_props);
+	config.add_props(si,feed_props,si.driver_name);
 	si.feed_timeout_start = 0;
 
-	agent.event_handler(feed_event_handler,"si","Location","Set");
+	event.handler(feed_event_handler,"si","Location","Set");
 }
 
 function feed_start(force) {
@@ -85,7 +85,7 @@ function feed_start(force) {
 		return 1;
 	}
 
-	agent.event("Feed","Start");
+	si.signal("Feed","Start");
 
 	if (si_smanet_set_value("GdMod","GridFeed",2)) {
 		si.errmsg = "error setting GdMod to GridFeed";
@@ -111,7 +111,7 @@ function feed_stop(force) {
 	dprintf(dlevel,"feed_enabled: %s, force: %s\n", si.feed_enabled, lforce);
 	if (!si.feed_enabled && !lforce) return 0;
 
-	agent.event("Feed","Stop");
+	si.signal("Feed","Stop");
 
 	if (si_smanet_set_value("GdMod","GridCharge",2)) {
 		si.errmsg = "error setting GdMod to GridCharge";

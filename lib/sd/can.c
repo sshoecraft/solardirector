@@ -510,11 +510,12 @@ static int do_get_nl_link(int fd, __u8 acquire, const char *name, void *res) {
 			if (type != RTM_NEWLINK)
 				continue;
 
-			struct ifinfomsg *ifi = NLMSG_DATA(nl_msg);
+			struct ifinfomsg *ifi;
 			struct rtattr *tb[IFLA_MAX + 1];
 
-			len =
-				nl_msg->nlmsg_len - NLMSG_LENGTH(sizeof(struct ifaddrmsg));
+ 			ifi = NLMSG_DATA(nl_msg);
+			len = nl_msg->nlmsg_len - NLMSG_LENGTH(sizeof(struct ifaddrmsg));
+			memset(tb,0,sizeof(tb));
 			parse_rtattr(tb, IFLA_MAX, IFLA_RTA(ifi), len);
 
 			/* Finish process if the reply message is matched */
@@ -1002,12 +1003,15 @@ static int can_open(void *handle) {
 #endif
 		up_down_up(s->fd,s->interface);
 	} else {
+		bt.bitrate = s->bitrate;
+#if 0
 		/* Get the current timing */
 		if (can_get_bittiming(s->interface,&bt) < 0) {
 //			log_error("can_open: unable to get bittiming");
 //			goto can_open_error;
 			bt.bitrate = s->bitrate;
 		}
+#endif
 
 		/* Check the bitrate */
 		dprintf(dlevel,"current bitrate: %d, wanted bitrate: %d\n", bt.bitrate, s->bitrate);
@@ -1039,6 +1043,7 @@ static int can_open(void *handle) {
 	}
 
 	/* Bind the socket */
+	memset(&addr,0,sizeof(addr));
 	addr.can_family = AF_CAN;
 	addr.can_ifindex = ifr.ifr_ifindex;
 	if (bind(s->fd, (struct sockaddr *)&addr, sizeof(addr)) < 0) {

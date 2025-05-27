@@ -87,6 +87,16 @@ ifeq ($(BLUETOOTH),yes)
 	endif
 endif
 
+ifeq ($(WPI),yes)
+	CFLAGS+=-I$(SRC_ROOT)/lib/wpi
+	ifneq ("$(wildcard //usr/local/include/wiringPi.h)","")
+		CFLAGS+=-DWPI
+		LIBS+=-L$(SRC_ROOT)/lib/wpi -lwpi$(_NJ) -lwiringPi -lwiringPiDev
+		DEPS+=$(SRC_ROOT)/lib/wpi/libwpi$(_NJ)$(LIBEXT)
+	endif
+endif
+
+
 ifeq ($(NEED_LIBSD),yes)
 	LIBS+=-L$(SRC_ROOT)/lib/sd -l$(LIBSDNAME)$(LIBSUFFIX)
 endif

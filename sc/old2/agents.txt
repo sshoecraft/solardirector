@@ -1,5 +1,0 @@
-scheduler
-
-sunrise, sunset
-run once/every hours/mins/days
-notify once, every X hours/mins/days

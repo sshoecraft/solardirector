@@ -1,0 +1,12 @@
+#!/bin/bash
+find . -name "*.service" > /tmp/sdsvcs
+svcs=""
+while read n
+do
+	b=$(basename $n)
+	s=$(echo $b | awk -F. '{ print $1 }')
+	svcs="$svcs $s"
+done < /tmp/sdsvcs
+rm -f /tmp/sdsvcs
+echo systemctl stop $svcs > s
+echo systemctl disable $svcs >> s

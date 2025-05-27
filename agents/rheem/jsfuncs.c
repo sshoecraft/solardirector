@@ -70,7 +70,7 @@ static JSBool rheem_device_getprop(JSContext *cx, JSObject *obj, jsval id, jsval
 				jsval val;
 				int i;
 
-				rows = JS_NewArrayObject(cx, d->modecount, NULL);
+				rows = JS_NewArrayObject(cx, 0, NULL);
 				if (!rows) return JS_FALSE;
 				for(i=0; i < d->modecount; i++) {
 					val = type_to_jsval(cx, DATA_TYPE_STRING, d->modes[i], strlen(d->modes[i]));
@@ -282,7 +282,7 @@ static JSBool rheem_getprop(JSContext *cx, JSObject *obj, jsval id, jsval *rval)
 				jsval val;
 				int i;
 
-				rows = JS_NewArrayObject(cx, s->devcount, NULL);
+				rows = JS_NewArrayObject(cx, 0, NULL);
 				if (!rows) return JS_FALSE;
 				for(i=0; i < s->devcount; i++) {
 					dobj = js_rheem_device_new(cx, rows, &s->devices[i]);

@@ -356,7 +356,7 @@ else
 endif
 
 _doinstall: $(PROG) $(_SERVICE)
-	mkdir -p $(BINDIR)
+	mkdir -p $(BINDIR) $(LOGDIR)
 	$(INSTALL) -m 755 $(INSTALL_USER) $(PROG) $(BINDIR)/$(PROG)
 ifneq ("$(wildcard $(PROGCONF))","")
 	mkdir -p $(ETCDIR)
@@ -382,7 +382,7 @@ ifneq ("$(wildcard $(_SERVICE))","")
 	systemctl stop $(SERVICE)
 	systemctl disable $(SERVICE)
 	rm -f $(_SERVICE)
-	systemctl daemon-reload
+#	systemctl daemon-reload
 endif
 	rm -f $(BINDIR)/$(PROG)
 
@@ -393,10 +393,10 @@ ifeq ($(SERVICE_DESC),)
 else
 	_DESC=$(SERVICE_DESC)
 endif
-ifeq ($(SERVICE_APPEND),yes)
-	_APPEND=-a
+ifneq ($(SERVICE_ARGS),)
+	_ARGS=$(SERVICE_ARGS)
 else
-	_APPEND=
+	_ARGS=
 endif
 ifeq ($(MQTT),yes)
         AFTER+=mosquitto.service
@@ -417,6 +417,7 @@ $(SERVICE): $(SERVICE_T)
 		-e "s:+NAME+:$(SERVICE_NAME):g" \
 		-e "s:+DESC+:$(_DESC):g" \
 		-e "s:+APPEND+:$(_APPEND):g" \
+		-e "s:+ARGS+: $(_ARGS):g" \
 		-e "s:+AFTER+:$(AFTER):g" \
 		> $@
 endif
@@ -424,7 +425,7 @@ endif
 $(_SERVICE): $(SERVICE)
 ifeq ($(UID),0)
 	$(INSTALL) -m 644 $(INSTALL_USER) $< $@
-	systemctl daemon-reload
+#	systemctl daemon-reload
 #	systemctl enable $(SERVICE)
 endif
 

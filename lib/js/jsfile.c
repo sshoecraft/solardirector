@@ -306,14 +306,14 @@ PRFileDesc *PR_Open(const char *name, int mask, int mode) {
 
 	fd = malloc(sizeof(*fd));
 	if (!fd) {
-		log_syserror("PR_Open: malloc(%d)", sizeof(*fd));
+//		log_syserror("PR_Open: malloc(%d)", sizeof(*fd));
 		return 0;
 	}
 	memset(fd,0,sizeof(*fd));
 	dprintf(dlevel,"name: %s, flags: %x, mode: %o\n", name, flags, mode);
 	fd->fd = open(name,flags,mode);
 	if (fd->fd < 0) {
-		log_syserror("PR_Open: open(%s,%x,%o)", name, flags, mode);
+//		log_syserror("PR_Open: open(%s,%x,%o)", name, flags, mode);
 		free(fd);
 		return 0;
 	}

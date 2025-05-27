@@ -120,7 +120,7 @@ function setcleanval(name,value,format) {
 
 	dprintf(dlevel,"name: %s, value: %s, format: %s\n", name, value, format);
 
-	if (typeof(format) != "undefined") printf("Settting %s to: " + format + "\n",name,value);
+	if (typeof(format) != "undefined") log_verbose("Setting %s to: " + format + "\n",name,value);
 	var p = config.get_property(name);
 	dprintf(dlevel,"p: %s\n", p);
 	let has_val = false;

@@ -77,7 +77,7 @@
 #include "jsxml.h"
 #endif
 
-#ifdef js_invoke_c__
+//#ifdef js_invoke_c__
 
 uint32
 js_GenerateShape(JSContext *cx, JSBool gcLocked, JSScopeProperty *sprop)
@@ -2231,7 +2231,7 @@ js_DumpOpMeters()
 
 #endif /* JS_OPSMETER */
 
-#else /* !defined js_invoke_c__ */
+//#else /* !defined js_invoke_c__ */
 
 #define PUSH(v)         (*regs.sp++ = (v))
 #define PUSH_OPND(v)    PUSH(v)
@@ -7006,4 +7006,4 @@ interrupt:
     }
 }
 
-#endif /* !defined js_invoke_c__ */
+//#endif /* !defined js_invoke_c__ */

@@ -1,0 +1,14 @@
+{
+    "fan1":{
+        "topic":"SolarD/Agents/fan1/Data",
+        "pump":"fan1",
+        "cooldown":5,
+        "reserve":100,
+        "priority":1
+    },
+    "fan2":{
+        "topic":"SolarD/Agents/fan2/Data",
+        "pump":"fan2",
+        "reserve":100
+    }
+}

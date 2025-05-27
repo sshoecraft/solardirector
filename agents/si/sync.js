@@ -14,7 +14,7 @@ function sync_init() {
 		[ "have_smanet_info", DATA_TYPE_BOOL, "false", CONFIG_FLAG_PRIVATE ],
 	];
 
-	config.add_props(si,sync_props);
+	config.add_props(si,sync_props,si.driver_name);
 }
 
 function sync_main() {
@@ -34,13 +34,13 @@ function sync_main() {
 			dprintf(dlevel,"si.charge_source: %s\n", si.charge_source);
 			if (!si.charge_source) {
 				si.charge_source = vals.ExtSrc;
-				printf("Setting charge_source to: %s (from SMANET.ExtSrc)\n", si.charge_source);
+				log_verbose("Setting charge_source to: %s (from SMANET.ExtSrc)\n", si.charge_source);
 				do_save = true;
 			}
 			dprintf(dlevel,"si.battery_capacity: %s\n", si.battery_capacity);
 			if (!si.battery_capacity) {
 				si.battery_capacity = parseInt(vals.BatCpyNom) * 10;
-				printf("Setting battery_capacity to: %d (from SMANET.BatCpyNom)\n", si.battery_capacity);
+				log_verbose("Setting battery_capacity to: %d (from SMANET.BatCpyNom)\n", si.battery_capacity);
 				do_save = true;
 			}
 			if (!si.cluster_config) {
@@ -66,7 +66,7 @@ function sync_main() {
 					si.phases = 1;
 					si.units = 1;
 				}
-				printf("Setting phases to: %d, and units to: %d\n", si.phases, si.units);
+				log_verbose("Setting phases to: %d, and units to: %d\n", si.phases, si.units);
 				do_save = true;
 			}
 			if (do_save) config.save();

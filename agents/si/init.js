@@ -18,19 +18,12 @@ core_dir = lib_dir + "/sd";
 include(core_dir+"/init.js");
 include(core_dir+"/utils.js");
 include(core_dir+"/kalman.js");
-include(core_dir+"/inverter.js");
-include(core_dir+"/charger.js");
 
 // Our utils
 include(script_dir+"/utils.js");
 
 /* global vars */
 info = si.info;
-fields = inverter_fields.concat(charger_fields).unique();
-fields.push("name");
-fields.push("remain_text");
-fields.sort();
-data_topic = SOLARD_TOPIC_ROOT+"/Agents/"+si.agent.name+"/"+SOLARD_FUNC_DATA;
 
 // Notify all modules when location set
 function si_location_trigger() {
@@ -40,7 +33,7 @@ function si_location_trigger() {
 	dprintf(dlevel,"location: %s\n", si.location);
 	if (!si.location) return;
 
-	agent.event("Location","Set");
+	si.signal(si.name,"Location","Set");
 }
 
 function init_main() {
@@ -69,11 +62,13 @@ function init_main() {
 		[ "location", DATA_TYPE_STRING, null, 0, si_location_trigger ],
 	];
 
-	config.add_props(si,props);
+	config.add_props(si,props,si.driver_name);
 
 	// re-publish info (in the case of scripts being disable then enabled after init)
 	agent.pubinfo();
 	agent.pubconfig();
+
+	si.topic = agent.mktopic(SOLARD_FUNC_DATA);
 
 	dprintf(dlevel,"done!\n");
 	return 0;

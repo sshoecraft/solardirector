@@ -51,7 +51,7 @@
 #define JS_HAS_PERL_SUBSTR      1       /* has str.substr */
 #define JS_HAS_OBJ_PROTO_PROP   1       /* has o.__proto__ etc. */
 #define JS_HAS_OBJ_WATCHPOINT   1       /* has o.watch and o.unwatch */
-#define JS_HAS_EXPORT_IMPORT    1       /* has export fun; import obj.fun */
+#define JS_HAS_EXPORT_IMPORT    1       /* has export fun; import obj.fun - crashes when 0 */
 #define JS_HAS_EVAL_THIS_SCOPE  1       /* Math.eval is same as with (Math) */
 #define JS_HAS_SHARP_VARS       1       /* has #n=, #n# for object literals */
 #define JS_HAS_SCRIPT_OBJECT    1       /* has (new Script("x++")).exec() */
@@ -74,7 +74,9 @@
 #define JS_HAS_DESTRUCTURING    2       /* has [a,b] = ... or {p:a,q:b} = ... */
 #define JS_HAS_GENERATOR_EXPRS  1       /* has (expr for (lhs in iterable)) */
 #define JS_HAS_EXPR_CLOSURES    1       /* has function (formals) listexpr */
+#if JS_HAS_XML_SUPPORT
 #define JS_HAS_JSON_OBJECT	1	/* has json object */
+#endif
 #define JS_HAS_FILE_OBJECT	1	/* has file object */
 #define JS_HAS_SOCKET_OBJECT	0	/* has socket object */
 #ifdef WINDOWS
@@ -87,6 +89,7 @@
 #define JS_HAS_DEBUGGER_KEYWORD 1
 #define JS_HAS_GENERATORS 1
 #define JS_HAS_BLOCK_SCOPE 1
+#define JS_C_STRINGS_ARE_UTF8 1
 
 
 /* Feature-test macro for evolving destructuring support. */

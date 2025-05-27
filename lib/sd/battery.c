@@ -336,7 +336,7 @@ static JSBool battery_getprop(JSContext *cx, JSObject *obj, jsval id, jsval *rva
 				jsval val;
 
 //				dprintf(dlevel,"ntemps: %d\n", bp->ntemps);
-				rows = JS_NewArrayObject(cx, bp->ntemps, NULL);
+				rows = JS_NewArrayObject(cx, 0, NULL);
 				for(i=0; i < bp->ntemps; i++) {
 //					dprintf(dlevel,"temps[%d]: %f\n", i, bp->temps[i]);
 					JS_NewDoubleValue(cx, bp->temps[i], &val);
@@ -354,7 +354,7 @@ static JSBool battery_getprop(JSContext *cx, JSObject *obj, jsval id, jsval *rva
 				JSObject *rows;
 				jsval val;
 
-				rows = JS_NewArrayObject(cx, bp->ncells, NULL);
+				rows = JS_NewArrayObject(cx, 0, NULL);
 				for(i=0; i < bp->ncells; i++) {
 //					JS_NewDoubleValue(cx, bp->cells[i].voltage, &val);
 					JS_NewDoubleValue(cx, bp->cellvolt[i], &val);
@@ -368,7 +368,7 @@ static JSBool battery_getprop(JSContext *cx, JSObject *obj, jsval id, jsval *rva
 				JSObject *rows;
 				jsval val;
 
-				rows = JS_NewArrayObject(cx, bp->ncells, NULL);
+				rows = JS_NewArrayObject(cx, 0, NULL);
 				for(i=0; i < bp->ncells; i++) {
 //					JS_NewDoubleValue(cx, bp->cells[i].resistance, &val);
 					JS_NewDoubleValue(cx, bp->cellres[i], &val);

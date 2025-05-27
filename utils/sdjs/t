@@ -1,0 +1,59 @@
+function recursiveJsonStringify(obj) {
+  // If the object is an array, process it recursively
+  if (obj.isArray()) {
+    var result = '[';
+    var first = true; // Flag to handle comma separation
+
+    // Iterate over each item in the array
+    for (var i = 0; i < obj.length; i++) {
+      if (!first) result += ',';
+      first = false;
+      result += recursiveJsonStringify(obj[i]);
+    }
+
+    result += ']';
+    return result;
+  }
+
+  // If the object is a non-null object (but not an array), process it recursively
+  if (typeof obj === 'object' && obj !== null) {
+    var result = '{';
+    var first = true; // Flag to handle comma separation
+
+    // Iterate over the object's properties
+    for (var key in obj) {
+      if (obj.hasOwnProperty(key)) {
+        if (!first) result += ',';
+        first = false;
+        result += '"' + key + '":' + recursiveJsonStringify(obj[key]);
+      }
+    }
+
+    result += '}';
+    return result;
+  }
+
+  // If the object is a primitive value (string, number, boolean, etc.)
+  if (typeof obj === 'string') {
+    return '"' + obj + '"';  // Add quotes for strings
+  } else if (typeof obj === 'number' || typeof obj === 'boolean') {
+    return String(obj);  // Return the number or boolean as a string
+  } else if (obj === null) {
+    return 'null';  // Return "null" for null values
+  }
+}
+
+// Example usage:
+var obj = {
+  name: 'Alice',
+  age: 30,
+  details: {
+    address: {
+      city: 'New York',
+      zip: '10001'
+    },
+    hobbies: ['reading', 'travelling']
+  }
+};
+console.log(recursiveJsonStringify(obj));
+

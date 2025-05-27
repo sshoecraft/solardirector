@@ -7,14 +7,14 @@ This source code is licensed under the BSD-style license found in the
 LICENSE file in the root directory of this source tree.
 */
 
-#define DEBUG_THIS 0
+#define DEBUG_THIS 1
 
 #ifdef DEBUG
 #undef DEBUG
 #define DEBUG DEBUG_THIS
 #endif
 
-#define dlevel 9;
+#define dlevel 9
 #include "debug.h"
 
 /* To disable the tracking but keep the functions, set this to 0 */
@@ -104,13 +104,18 @@ void *mem_calloc(size_t nmemb, size_t msize, char *file, int line) {
 void *mem_realloc(void *mem, size_t size, char *file, int line) {
 	void *newmem;
 
+//	dprintf(-1,"mem: %p, size: %ld, file: %s, line: %d\n", mem, size, file, line);
+
 #if MEM_ENABLE
 	if (mem) {
 		if (((meminfo_t *)(mem-sizeof(meminfo_t)))->sig != SIG) {
-			log_error("mem_free: not our mem, aborting\n");
+			log_error("mem_realloc(%s,%d): not our mem, aborting\n",file,line);
 			return 0;
 		}
 		mem -= sizeof(meminfo_t);
+//		dprintf(-1,"old size: %d\n", ((meminfo_t *)mem)->size);
+		/* XXX important */
+		used -= ((meminfo_t *)mem)->size;
 	}
 #endif
 	newmem = realloc(mem,size+sizeof(meminfo_t));
@@ -170,6 +175,7 @@ void mem_free(void *mem, char *file, int line) {
 	info = mem - sizeof(meminfo_t);
 	if (info->sig != SIG) {
 		log_error("mem_free(%s:%d): not our mem, aborting\n",file,line);
+		// free ... anyway ... silently?
 //		free(mem);
 		return;
 	}

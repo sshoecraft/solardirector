@@ -1,8 +1,7 @@
 
-
 NAME=$(shell basename $(shell pwd))
 
-PROGNAME=$(NAME)
+#PROGNAME=$(NAME)
 SRCS=main.c config.c driver.c info.c jsfuncs.c
 CFLAGS+=-DAGENT_NAME=\"$(NAME)\"
 
