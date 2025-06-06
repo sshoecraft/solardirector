@@ -4,9 +4,10 @@
 
 ### 🔨 Active Development
 - **macOS Compilation Support** - 2025-06-05
-  - Investigate compilation issues on macOS
+  - ✅ Fixed Makefile CPU count detection for macOS (using sysctl)
+  - ✅ Added macOS platform detection and configuration to Makefile.sys
+  - 🔄 **IN PROGRESS**: Resolve undefined symbols for arm64 architecture
   - Resolve dependency conflicts (paho.mqtt.c, gattlib)
-  - Update build system for macOS compatibility
   - Test agent compilation on macOS
 
 ### 📋 Backlog
@@ -30,10 +31,17 @@
   - Add more detailed logging capabilities
 
 ## Completed Tasks
-*Tasks will be moved here when completed*
+- **Makefile macOS CPU Detection** - 2025-06-05: Fixed /proc/cpuinfo issue by using sysctl on macOS
+- **macOS Platform Configuration** - 2025-06-05: Added macOS target support to Makefile.sys
 
 ## Discovered During Work
-*New tasks and issues discovered during development will be added here*
+- **Missing Symbol Implementations** - 2025-06-05
+  - `_js_FileClass` and `_js_InitFileClass` missing from JavaScript library on arm64
+  - `_tmpdir` symbol missing from common library
+  - Duplicate library linking warning (-lsd-js-mqtt-influx appears twice)
+- **Library Architecture Issues** - 2025-06-05
+  - JavaScript library may not be compiled for arm64 architecture
+  - Need to investigate if libraries need rebuilding for Apple Silicon
 
 ---
 
