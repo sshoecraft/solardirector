@@ -8,7 +8,8 @@
   - ✅ Added macOS platform detection and configuration to Makefile.sys
   - ✅ Identified root cause of undefined symbols (library architecture mismatch)
   - ✅ Created troubleshooting guide for macOS compilation issues
-  - 🔄 **NEXT STEP**: Test library rebuild process on macOS arm64
+  - 🔄 **IN PROGRESS**: Debug why macOS configuration not being applied
+  - 🔄 **IN PROGRESS**: Fix JavaScript library missing File class symbols
 
 ### 📋 Backlog
 
@@ -38,21 +39,16 @@
 ## Discovered During Work
 - **Missing Symbol Implementations** - 2025-06-05
   - `_js_FileClass` and `_js_InitFileClass` missing from JavaScript library on arm64
-  - `_tmpdir` symbol missing from common library  
-  - **Root Cause**: Libraries compiled for wrong architecture (likely x86_64 instead of arm64)
-- **Library Architecture Issues** - 2025-06-05
-  - JavaScript library may not be compiled for arm64 architecture
-  - SD library also needs rebuilding for Apple Silicon
-  - Duplicate library linking warning (-lsd-js-mqtt-influx appears twice) - minor issue
-- **Build Process Dependencies** - 2025-06-05
-  - Libraries must be built in correct order: js → sd → agents
-  - Clean rebuilds required when switching architectures
-  - Need to verify external dependencies (paho.mqtt.c, gattlib) are also arm64
+  - **New Finding**: macOS configuration not being applied (still using gcc instead of clang)
+- **Build System Issues** - 2025-06-05
+  - Makefile.sys updates may not be included properly
+  - JavaScript library may be missing jsfile.c compilation
+  - Need to verify build system include chain
 
 ## Next Steps for User
-1. Try the clean rebuild process outlined in `docs/macos-compilation-fix.md`
-2. Verify library architectures using `file` command
-3. Report back if issues persist for further debugging
+1. Check if Makefile.sys updates are being applied
+2. Rebuild JavaScript library with proper macOS settings
+3. Verify jsfile.c is being compiled into libjs.a
 
 ---
 
