@@ -8,8 +8,9 @@
   - ✅ Added macOS platform detection and configuration to Makefile.sys
   - ✅ Identified root cause of undefined symbols (library architecture mismatch)
   - ✅ Created troubleshooting guide for macOS compilation issues
-  - 🔄 **IN PROGRESS**: Debug why macOS configuration not being applied
-  - 🔄 **IN PROGRESS**: Fix JavaScript library missing File class symbols
+  - ✅ **COMPLETED**: Fixed macOS configuration not being applied - 2025-06-06
+  - ✅ **COMPLETED**: Fixed library Makefile CPU detection for macOS - 2025-06-06
+  - 🔄 **IN PROGRESS**: Test JavaScript library compilation with new macOS settings
 
 ### 📋 Backlog
 
@@ -17,6 +18,7 @@
 - **Cross-Platform Build System**
   - ✅ Improve Makefile.sys for better platform detection  
   - ✅ Add macOS-specific library paths and flags
+  - ✅ Fix library build system for macOS compatibility
   - Document platform-specific build requirements
 
 #### Medium Priority
@@ -35,20 +37,27 @@
 - **Makefile macOS CPU Detection** - 2025-06-05: Fixed /proc/cpuinfo issue by using sysctl on macOS
 - **macOS Platform Configuration** - 2025-06-05: Added macOS target support to Makefile.sys with Homebrew/MacPorts paths
 - **Issue Analysis and Documentation** - 2025-06-05: Identified missing symbols root cause and created fix guide
+- **macOS Build System Configuration** - 2025-06-06: Fixed Makefile.sys to properly detect macOS and use clang
+- **Library Build System Fix** - 2025-06-06: Fixed lib/Makefile CPU detection for macOS compatibility
 
 ## Discovered During Work
 - **Missing Symbol Implementations** - 2025-06-05
   - `_js_FileClass` and `_js_InitFileClass` missing from JavaScript library on arm64
-  - **New Finding**: macOS configuration not being applied (still using gcc instead of clang)
+  - **RESOLVED**: Root cause was macOS configuration not being applied (gcc vs clang issue)
 - **Build System Issues** - 2025-06-05
-  - Makefile.sys updates may not be included properly
-  - JavaScript library may be missing jsfile.c compilation
-  - Need to verify build system include chain
+  - ✅ **FIXED**: Makefile.sys updates not being applied properly
+  - ✅ **FIXED**: Library Makefile had same /proc/cpuinfo issue
+  - **Next**: Verify JavaScript library compiles correctly with new settings
 
 ## Next Steps for User
-1. Check if Makefile.sys updates are being applied
-2. Rebuild JavaScript library with proper macOS settings
-3. Verify jsfile.c is being compiled into libjs.a
+1. ✅ **COMPLETED**: Check if Makefile.sys updates are being applied
+2. Test rebuild JavaScript library with proper macOS settings (should now use clang)
+3. Verify jsfile.c is being compiled into libjs.a with correct symbols
+4. Test full project compilation on macOS
+
+## Recent Changes Made (2025-06-06)
+- **Makefile.sys**: Added automatic macOS platform detection, configured clang compiler, added Homebrew/MacPorts library paths
+- **lib/Makefile**: Fixed CPU detection to use sysctl on macOS instead of /proc/cpuinfo
 
 ---
 
