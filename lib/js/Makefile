@@ -14,7 +14,7 @@ jsautokw.h: jskwgen
 	./$< $@
 
 jskwgen: jskwgen.c
-	gcc $(CFLAGS) -o $@ $<
+	$(CC) $(CFLAGS) -o $@ $<
 
 jsscan.c: jsautokw.h
 
