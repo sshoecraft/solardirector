@@ -1,5 +1,11 @@
 
-MAKE_JOBS?=$(shell cat /proc/cpuinfo | grep -c ^processor)
+# Detect platform for CPU count
+UNAME_S := $(shell uname -s)
+ifeq ($(UNAME_S),Darwin)
+	MAKE_JOBS?=$(shell sysctl -n hw.ncpu)
+else
+	MAKE_JOBS?=$(shell cat /proc/cpuinfo | grep -c ^processor)
+endif
 
 all:
 	@for d in *; do test "$$d" = "lib" && continue; echo $$d; if test -d $$d; then make -j $$MAKE_JOBS -C $$d || exit 1; fi; done
