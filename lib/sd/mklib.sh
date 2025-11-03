@@ -1,4 +1,4 @@
-#!/bin/sh
+#!/bin/bash
 
 JS=$1
 MQTT=$2
@@ -6,6 +6,8 @@ INFLUX=$3
 RELEASE=$4
 test -z "$RELEASE" && RELEASE=no
 INSTALL=$5
+
+#echo JOBS: ${MAKE_JOBS}
 
 do_make() {
 	set -x

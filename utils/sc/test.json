@@ -1,0 +1,18 @@
+{
+  "agent_dir": ".",
+  "refresh_rate": 2,
+  "discovery_interval": 30,
+  "offline_timeout": 120,
+  "mqtt": {
+    "broker": "tcp://localhost:1883",
+    "clientid": "sc_test",
+    "username": "",
+    "password": "",
+    "lwt": "SolarD/Clients/sc/Status",
+    "lwt_message": "Offline"
+  },
+  "logging": {
+    "level": "DEBUG",
+    "file": ""
+  }
+}

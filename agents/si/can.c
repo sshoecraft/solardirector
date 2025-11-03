@@ -19,7 +19,9 @@ LICENSE file in the root directory of this source tree.
 
 #include "si.h"
 #include <pthread.h>
-#ifndef __WIN32
+#ifdef __APPLE__
+#include <signal.h>
+#elif !defined(__WIN32)
 #include <sys/signal.h>
 #endif
 #include "transports.h"
@@ -207,7 +209,7 @@ int si_can_get_data(si_session_t *s) {
 	s->data.ac1_voltage_l1 =  GETD10(rdp->ac1_voltage_l1);
 	s->data.ac1_voltage_l2 =  GETD10(rdp->ac1_voltage_l2);
 	s->data.ac1_voltage_l3 =  GETD10(rdp->ac1_voltage_l3);
-	s->data.ac1_voltage = s->data.ac1_voltage_l1 + s->data.ac1_voltage_l2;
+	s->data.ac1_voltage = s->data.ac1_voltage_l1 + (double_equals(s->data.ac1_voltage_l2,0.0) ? s->data.ac1_voltage_l3 : s->data.ac1_voltage_l2);
 	s->data.ac1_frequency = GETD100(rdp->ac1_frequency);
 
 	s->data.battery_voltage =  GETD10(rdp->battery_voltage);
@@ -224,7 +226,7 @@ int si_can_get_data(si_session_t *s) {
 
 	si_can_get_relays(s);
 	dprintf(dlevel,"running: %d\n", s->running);
-	if (s->running < 0) {
+	if (s->running == -1) {
 		s->running = s->data.Run;
 		dprintf(dlevel,"Initial run state: %d\n", s->running);
 	}
@@ -241,7 +243,7 @@ int si_can_get_data(si_session_t *s) {
 	s->data.ac2_voltage_l1 = GETD10(rdp->ac2_voltage_l1);
 	s->data.ac2_voltage_l2 = GETD10(rdp->ac2_voltage_l2);
 	s->data.ac2_voltage_l3 = GETD10(rdp->ac2_voltage_l3);
-	s->data.ac2_voltage = s->data.ac2_voltage_l1 + s->data.ac2_voltage_l2;
+	s->data.ac2_voltage = s->data.ac2_voltage_l1 + (double_equals(s->data.ac2_voltage_l2,0.0) ? s->data.ac2_voltage_l3 : s->data.ac2_voltage_l2);
 	s->data.ac2_frequency = GETD100(rdp->ac2_frequency);
 
 	s->data.PVPwrAt =  GETD10(rdp->PVPwrAt);
@@ -310,13 +312,16 @@ static void *si_can_recv_thread(void *handle) {
 	int bytes,fidx;
 	uint32_t can_id;
 //	uint32_t mask;
-#ifndef __WIN32
+#if !defined(__WIN32) && !defined(__APPLE__)
 	sigset_t set;
 
 	/* Ignore SIGPIPE */
 	sigemptyset(&set);
 	sigaddset(&set, SIGPIPE);
 	sigprocmask(SIG_BLOCK, &set, NULL);
+#elif defined(__APPLE__)
+	/* On macOS, use signal() instead of sigprocmask */
+	signal(SIGPIPE, SIG_IGN);
 #endif
 
 	can_id = 0xffff;

@@ -10,7 +10,29 @@ LICENSE file in the root directory of this source tree.
 #define dlevel 2
 #include "debug.h"
 
-#ifndef __WIN32
+#if defined(__WIN32)
+#include <windows.h>
+void tmpdir(char *dest, int dest_len) { GetTempPath(dest_len, dest); }
+#elif defined(__APPLE__)
+#include "common.h"
+#include <unistd.h>
+void tmpdir(char *dest, int dest_len) {
+	char *p,*vars[] = { "TMPDIR", "TMP", "TEMP", "TEMPDIR" };
+	int i;
+
+	if (!dest) return;
+
+	*dest = 0;
+	/* On macOS, check environment variables */
+	for(i=0; i < (sizeof(vars)/sizeof(char *)); i++) {
+		p = os_getenv(vars[i]);
+		if (p) break;
+	}
+	if (!p) p = "/tmp";
+	strncat(dest,p,dest_len-1);
+	return;
+}
+#else
 #include "common.h"
 
 static int issetugid(void) {
@@ -38,7 +60,4 @@ void tmpdir(char *dest, int dest_len) {
 //	dprintf(1,"dest: %s\n", dest);
 	return;
 }
-#else
-#include <windows.h>
-void tmpdir(char *dest, int dest_len) { GetTempPath(dest_len, dest); }
 #endif

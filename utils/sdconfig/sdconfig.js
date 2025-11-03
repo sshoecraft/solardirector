@@ -1,4 +1,4 @@
-#!/opt/sd/bin/sdjs
+#!+BINDIR+/sdjs
 
 function sdconfig_main(argv) {
 	script_dir = dirname(script_name);
@@ -40,7 +40,7 @@ function sdconfig_main(argv) {
 				let obj = ci[i];
 				if (typeof(obj.size) == "undefined") obj.size = "";
 				if (typeof(obj.default) == "undefined") obj.default = "";
-				printf("%-30.30s %-10.10s %-10s %s\n", obj.name, obj.type, obj.size, obj.default);
+				printf("%-30.30s %-10.10s %-10s %s\n", obj.name, obj.type.replace(/^DATA_TYPE_/, ""), obj.size, obj.default);
 			}
 			break;
 		}

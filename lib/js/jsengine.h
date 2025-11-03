@@ -33,8 +33,8 @@ struct JSEngine {
 	list initfuncs;
 	js_outputfunc_t *output;
 	list scripts;
-//	char errmsg[1024];
 	list roots;
+    list loaded;
 	void *private;
 };
 typedef struct JSEngine JSEngine;
@@ -57,5 +57,7 @@ void JS_EngineCleanup(JSEngine *e);
 JSContext *JS_EngineGetCX(JSEngine *e);
 void JS_GlobalShutdown(JSContext *cx);
 int JS_EngineAddRoot(JSContext *cx, char *name, void *rp);
+int JS_EngineLoadScript(JSEngine *e, char *path);
+int JS_EngineCheckLoaded(JSEngine *e);
 
 #endif

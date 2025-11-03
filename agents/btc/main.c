@@ -46,7 +46,6 @@ static void process_message(btc_session_t *s, solard_message_t *msg) {
 
 		v = json_parse(msg->data);
 		p = json_object_get_string(json_value_object(v), "agent_role");
-		json_destroy_value(v);
 		dprintf(ldlevel,"p: %p\n", p);
 		if (p) {
 			dprintf(ldlevel,"%s: agent_role: %s\n", msg->name, p);
@@ -56,6 +55,7 @@ static void process_message(btc_session_t *s, solard_message_t *msg) {
 			strcpy(newinfo.role,p);
 			list_add(s->agents,&newinfo,sizeof(newinfo));
 		}
+		json_destroy_value(v);
 	} else if (strcmp(msg->func,"Data") == 0 && have_info && strcmp(info->role,SOLARD_ROLE_BATTERY) == 0) {
 		json_value_t *v;
 

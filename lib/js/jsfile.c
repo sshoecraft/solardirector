@@ -364,6 +364,9 @@ int PR_GetFileInfo(const char *fn, PRFileInfo *info) {
 #ifdef XP_WIN
 	info->creationTime = sb.st_ctime;
 	info->modifyTime = sb.st_mtime;
+#elif defined(MACOS) || defined(__APPLE__) || defined(__MACH__)
+	info->creationTime = sb.st_ctimespec.tv_sec;
+	info->modifyTime = sb.st_mtimespec.tv_sec;
 #else
 	info->creationTime = sb.st_ctim.tv_sec;
 	info->modifyTime = sb.st_mtim.tv_sec;

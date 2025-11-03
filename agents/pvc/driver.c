@@ -7,7 +7,7 @@ This source code is licensed under the BSD-style license found in the
 LICENSE file in the root directory of this source tree.
 */
 
-#define dlevel 2
+#define dlevel 1
 #include "debug.h"
 
 #include "pvc.h"
@@ -51,6 +51,7 @@ static int combine_data(pvc_session_t *s, solard_pvinverter_t *pv) {
 	strcpy(pv->name,"pvcombiner");
 	time(&cur);
 	count = 0;
+    dprintf(ldlevel,"agent_count: %d\n", list_count(s->agents));
 	list_reset(s->agents);
 	while((info = list_get_next(s->agents)) != 0) {
 		if (strcmp(info->role,SOLARD_ROLE_PVINVERTER) != 0) continue;
@@ -80,6 +81,11 @@ int pvc_read(void *handle, uint32_t *what, void *buf, int buflen) {
 	pvc_session_t *s = handle;
 	solard_pvinverter_t pv;
 
+	if (s->ap->m) dprintf(dlevel,"connected: %d\n", mqtt_connected(s->ap->m));
+	if (s->ap->m && !mqtt_connected(s->ap->m)) {
+		mqtt_reconnect(s->ap->m);
+		sleep(1);
+	}
 	if (combine_data(s,&pv)) {
 		json_value_t *v = pvinverter_to_json(&pv);
 		if (!v) return 1;

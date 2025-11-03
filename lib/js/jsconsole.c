@@ -47,9 +47,8 @@ static jsval *_mkvp(JSContext *cx, void *mark, uintN argc, jsval *vp) {
 	p = format;
 	*p = 0;
 	newvp = js_AllocStack(cx, 3 + argc, mark);
-	if (!newvp) {
-		return JS_FALSE;
-	}
+	if (!newvp) return 0;
+
 	newvp[0] = vp[0];
 	newvp[1] = vp[1];
 	for(i = 0; i < argc; i++) {

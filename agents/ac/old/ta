@@ -1,5 +1,0 @@
-sdconfig ac add_pump primer ""
-sdconfig ac add_pump unitpump "primer=primer:wait_time=5:cooldown=5"
-sdconfig ac add_pump fanpump "primer=primer:wait_time=5:warmup=5"
-sdconfig ac add_fan testfan "topic=SolarD/Agents/ahtest/Data:pump=fanpump:cooldown=5"
-sdconfig ac add_unit testunit "pump=unitpump"

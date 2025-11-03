@@ -19,8 +19,6 @@ function pub_main() {
 //	ac_data.sample_time = ac.sample_end_time;
 //	ac_data.sample_time = (ac.sample_end_time ? new Date(ac.sample_end_time*1000) : "");
 	ac_data.water_temp = ac.water_temp;
-//	ac_data.water_temp_time = ac.water_temp_time;
-//	ac_data.water_temp_time = (ac.water_temp_time ? new Date(ac.water_temp_time*1000) : "");
 	influx.write("ac",ac_data);
 	pub.ac = ac_data;
 
@@ -41,7 +39,7 @@ function pub_main() {
 		fan_data.running = 0;
 		if (fan.error) fan_data.state = "Error";
 		else if (!fan.enabled) fan_data.state = "Disabled";
-		else if (fan.wt_warned) fan_data.state = "Temp";
+		else if ((fan.heat_state == "on" || fan.cool_state == "on") && fan.stop_wt && fan.wt_warned) fan_data.state = "Temp";
 		else fan_data.state = fan_statestr(fan.state);
 		fan_data.error = 0;
 		fan_data.mode = ac_modestr(fan.mode);
@@ -77,11 +75,13 @@ function pub_main() {
 		dprintf(dlevel+1,"pump[%s]: temp_in_sensor: %s\n", name, pump.temp_in_sensor);
 		pump_data.temp_in = get_sensor(pump.temp_in_sensor,false);
 		dprintf(dlevel+1,"pump[%s]: temp_in: %s\n", name, pump_data.temp_in);
-		if (typeof(pump_data.temp_in) == "undefined") pump_data.temp_in = INVALID_TEMP;
+//		if (typeof(pump_data.temp_in) == "undefined") pump_data.temp_in = INVALID_TEMP;
+		if (pump_data.temp_in < -50 || pump_data.temp_in > 150) delete pump_data.temp_in;
 		dprintf(dlevel+1,"pump[%s]: temp_out_sensor: %s\n", name, pump.temp_out_sensor);
 		pump_data.temp_out = get_sensor(pump.temp_out_sensor,false);
 		dprintf(dlevel+1,"pump[%s]: temp_out: %s\n", name, pump_data.temp_out);
-		if (typeof(pump_data.temp_out) == "undefined") pump_data.temp_out = INVALID_TEMP;
+//		if (typeof(pump_data.temp_out) == "undefined") pump_data.temp_out = INVALID_TEMP;
+		if (pump_data.temp_out < -50 || pump_data.temp_out > 150) delete pump_data.temp_out;
 		if (influx && influx.enabled && influx.connected) influx.write("pumps",pump_data);
 		pub.pumps.push(pump_data);
 	}
@@ -104,11 +104,13 @@ function pub_main() {
 		dprintf(dlevel+1,"unit[%s]: liquid_temp_sensor: %s\n", name, unit.liquid_temp_sensor);
 		unit_data.liquid_temp = get_sensor(unit.liquid_temp_sensor,false);
 		dprintf(dlevel+1,"unit[%s]: liquid_temp: %s\n", name, unit_data.liquid_temp);
-		if (typeof(unit_data.liquid_temp) == "undefined") unit_data.liquid_temp = INVALID_TEMP;
+//		if (typeof(unit_data.liquid_temp) == "undefined") unit_data.liquid_temp = INVALID_TEMP;
+		if (unit_data.liquid_temp < -50 || unit_data.liquid_temp > 200) delete unit_data.liquid_temp;
 		dprintf(dlevel+1,"unit[%s]: vapor_temp_sensor: %s\n", name, unit.vapor_temp_sensor);
 		unit_data.vapor_temp = get_sensor(unit.vapor_temp_sensor,false);
 		dprintf(dlevel+1,"unit[%s]: vapor_temp: %s\n", name, unit_data.vapor_temp);
-		if (typeof(unit_data.vapor_temp) == "undefined") unit_data.vapor_temp = INVALID_TEMP;
+//		if (typeof(unit_data.vapor_temp) == "undefined") unit_data.vapor_temp = INVALID_TEMP;
+		if (unit_data.vapor_temp < -50 || unit_data.vapor_temp > 200) delete unit_data.vapor_temp;
 		if (influx && influx.enabled && influx.connected) influx.write("units",unit_data);
 		pub.units.push(unit_data);
 	}

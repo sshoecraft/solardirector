@@ -1,0 +1,162 @@
+Initializing Service Controller Web Interface...
+SC Binary Path: ../sc
+SC Data File: /tmp/sc_data.json
+Agent Directory: /Users/steve/bin
+Relaxed Validation: True
+Note: Relaxed validation is enabled - agents will be included even if they fail -I test
+
+Starting SC background process...
+Starting SC process: /Users/steve/src/sd/utils/sc/sc
+Command: /Users/steve/src/sd/utils/sc/sc -w -r 5
+Started SC process with PID: 74590
+SC process is running successfully
+SC process started successfully
+
+Starting Flask web interface...
+Port: 5001
+Debug mode: False
+Dashboard available at: http://localhost:5001
+Press Ctrl+C to stop the server
+
+ * Serving Flask app 'app'
+ * Debug mode: off
+[31m[1mWARNING: This is a development server. Do not use it in a production deployment. Use a production WSGI server instead.[0m
+ * Running on http://127.0.0.1:5001
+[33mPress CTRL+C to quit[0m
+127.0.0.1 - - [13/Jul/2025 18:17:07] "GET /api/agents HTTP/1.1" 200 -
+127.0.0.1 - - [13/Jul/2025 18:17:08] "GET /api/system/status HTTP/1.1" 200 -
+127.0.0.1 - - [13/Jul/2025 18:17:09] "GET /api/system/status HTTP/1.1" 200 -
+127.0.0.1 - - [13/Jul/2025 18:17:10] "GET /api/agents HTTP/1.1" 200 -
+127.0.0.1 - - [13/Jul/2025 18:17:11] "GET /api/system/status HTTP/1.1" 200 -
+127.0.0.1 - - [13/Jul/2025 18:17:12] "GET /api/system/status HTTP/1.1" 200 -
+127.0.0.1 - - [13/Jul/2025 18:17:13] "GET /api/system/status HTTP/1.1" 200 -
+127.0.0.1 - - [13/Jul/2025 18:17:13] "GET /api/agents HTTP/1.1" 200 -
+127.0.0.1 - - [13/Jul/2025 18:17:15] "GET /api/agents HTTP/1.1" 200 -
+127.0.0.1 - - [13/Jul/2025 18:17:16] "GET /api/system/status HTTP/1.1" 200 -
+127.0.0.1 - - [13/Jul/2025 18:17:17] "GET /api/system/status HTTP/1.1" 200 -
+127.0.0.1 - - [13/Jul/2025 18:17:20] "GET /api/agents HTTP/1.1" 200 -
+127.0.0.1 - - [13/Jul/2025 18:17:21] "GET /api/system/status HTTP/1.1" 200 -
+127.0.0.1 - - [13/Jul/2025 18:17:22] "GET /api/system/status HTTP/1.1" 200 -
+127.0.0.1 - - [13/Jul/2025 18:17:23] "GET /api/system/status HTTP/1.1" 200 -
+127.0.0.1 - - [13/Jul/2025 18:17:25] "GET /api/agents HTTP/1.1" 200 -
+127.0.0.1 - - [13/Jul/2025 18:17:26] "GET /api/system/status HTTP/1.1" 200 -
+127.0.0.1 - - [13/Jul/2025 18:17:27] "GET /api/system/status HTTP/1.1" 200 -
+127.0.0.1 - - [13/Jul/2025 18:17:30] "GET /api/agents HTTP/1.1" 200 -
+127.0.0.1 - - [13/Jul/2025 18:17:31] "GET /api/system/status HTTP/1.1" 200 -
+127.0.0.1 - - [13/Jul/2025 18:17:32] "GET /api/system/status HTTP/1.1" 200 -
+127.0.0.1 - - [13/Jul/2025 18:17:33] "GET /api/system/status HTTP/1.1" 200 -
+127.0.0.1 - - [13/Jul/2025 18:17:35] "GET /api/agents HTTP/1.1" 200 -
+127.0.0.1 - - [13/Jul/2025 18:17:36] "GET /api/system/status HTTP/1.1" 200 -
+127.0.0.1 - - [13/Jul/2025 18:17:37] "GET /api/system/status HTTP/1.1" 200 -
+127.0.0.1 - - [13/Jul/2025 18:17:40] "GET /api/agents HTTP/1.1" 200 -
+127.0.0.1 - - [13/Jul/2025 18:17:41] "GET /api/system/status HTTP/1.1" 200 -
+127.0.0.1 - - [13/Jul/2025 18:17:42] "GET /api/system/status HTTP/1.1" 200 -
+127.0.0.1 - - [13/Jul/2025 18:17:43] "GET /api/system/status HTTP/1.1" 200 -
+127.0.0.1 - - [13/Jul/2025 18:17:45] "GET /api/agents HTTP/1.1" 200 -
+127.0.0.1 - - [13/Jul/2025 18:17:46] "GET /api/system/status HTTP/1.1" 200 -
+127.0.0.1 - - [13/Jul/2025 18:17:47] "GET /api/system/status HTTP/1.1" 200 -
+127.0.0.1 - - [13/Jul/2025 18:17:50] "GET /api/agents HTTP/1.1" 200 -
+127.0.0.1 - - [13/Jul/2025 18:17:51] "GET /api/system/status HTTP/1.1" 200 -
+127.0.0.1 - - [13/Jul/2025 18:17:52] "GET /api/system/status HTTP/1.1" 200 -
+127.0.0.1 - - [13/Jul/2025 18:17:53] "GET /api/system/status HTTP/1.1" 200 -
+127.0.0.1 - - [13/Jul/2025 18:17:55] "GET /api/agents HTTP/1.1" 200 -
+127.0.0.1 - - [13/Jul/2025 18:17:56] "GET /api/system/status HTTP/1.1" 200 -
+127.0.0.1 - - [13/Jul/2025 18:17:57] "GET /api/system/status HTTP/1.1" 200 -
+127.0.0.1 - - [13/Jul/2025 18:18:00] "GET /api/agents HTTP/1.1" 200 -
+127.0.0.1 - - [13/Jul/2025 18:18:01] "GET /api/system/status HTTP/1.1" 200 -
+127.0.0.1 - - [13/Jul/2025 18:18:02] "GET /api/system/status HTTP/1.1" 200 -
+127.0.0.1 - - [13/Jul/2025 18:18:03] "GET /api/system/status HTTP/1.1" 200 -
+127.0.0.1 - - [13/Jul/2025 18:18:05] "GET /api/agents HTTP/1.1" 200 -
+127.0.0.1 - - [13/Jul/2025 18:18:06] "GET /api/system/status HTTP/1.1" 200 -
+127.0.0.1 - - [13/Jul/2025 18:18:07] "GET /api/system/status HTTP/1.1" 200 -
+127.0.0.1 - - [13/Jul/2025 18:18:10] "GET /api/agents HTTP/1.1" 200 -
+127.0.0.1 - - [13/Jul/2025 18:18:11] "GET /api/system/status HTTP/1.1" 200 -
+127.0.0.1 - - [13/Jul/2025 18:18:12] "GET /api/system/status HTTP/1.1" 200 -
+127.0.0.1 - - [13/Jul/2025 18:18:13] "GET /api/system/status HTTP/1.1" 200 -
+127.0.0.1 - - [13/Jul/2025 18:18:15] "GET /api/agents HTTP/1.1" 200 -
+127.0.0.1 - - [13/Jul/2025 18:18:16] "GET /api/system/status HTTP/1.1" 200 -
+127.0.0.1 - - [13/Jul/2025 18:18:17] "GET /api/system/status HTTP/1.1" 200 -
+127.0.0.1 - - [13/Jul/2025 18:18:20] "GET /api/agents HTTP/1.1" 200 -
+127.0.0.1 - - [13/Jul/2025 18:18:21] "GET /api/system/status HTTP/1.1" 200 -
+127.0.0.1 - - [13/Jul/2025 18:18:22] "GET /api/system/status HTTP/1.1" 200 -
+127.0.0.1 - - [13/Jul/2025 18:18:23] "GET /api/system/status HTTP/1.1" 200 -
+127.0.0.1 - - [13/Jul/2025 18:18:25] "GET /api/agents HTTP/1.1" 200 -
+127.0.0.1 - - [13/Jul/2025 18:18:26] "GET /api/system/status HTTP/1.1" 200 -
+127.0.0.1 - - [13/Jul/2025 18:18:27] "GET /api/system/status HTTP/1.1" 200 -
+127.0.0.1 - - [13/Jul/2025 18:18:30] "GET /api/agents HTTP/1.1" 200 -
+127.0.0.1 - - [13/Jul/2025 18:18:31] "GET /api/system/status HTTP/1.1" 200 -
+127.0.0.1 - - [13/Jul/2025 18:18:32] "GET /api/system/status HTTP/1.1" 200 -
+127.0.0.1 - - [13/Jul/2025 18:18:33] "GET /api/system/status HTTP/1.1" 200 -
+127.0.0.1 - - [13/Jul/2025 18:18:35] "GET /api/agents HTTP/1.1" 200 -
+127.0.0.1 - - [13/Jul/2025 18:18:36] "GET /api/system/status HTTP/1.1" 200 -
+127.0.0.1 - - [13/Jul/2025 18:18:37] "GET /api/system/status HTTP/1.1" 200 -
+127.0.0.1 - - [13/Jul/2025 18:18:40] "GET /api/agents HTTP/1.1" 200 -
+127.0.0.1 - - [13/Jul/2025 18:18:41] "GET /api/system/status HTTP/1.1" 200 -
+127.0.0.1 - - [13/Jul/2025 18:18:42] "GET /api/system/status HTTP/1.1" 200 -
+127.0.0.1 - - [13/Jul/2025 18:18:43] "GET /api/system/status HTTP/1.1" 200 -
+127.0.0.1 - - [13/Jul/2025 18:18:45] "GET /api/agents HTTP/1.1" 200 -
+127.0.0.1 - - [13/Jul/2025 18:18:46] "GET /api/system/status HTTP/1.1" 200 -
+127.0.0.1 - - [13/Jul/2025 18:18:47] "GET /api/system/status HTTP/1.1" 200 -
+127.0.0.1 - - [13/Jul/2025 18:18:47] "GET / HTTP/1.1" 200 -
+127.0.0.1 - - [13/Jul/2025 18:18:47] "[36mGET /static/js/app.js HTTP/1.1[0m" 304 -
+127.0.0.1 - - [13/Jul/2025 18:18:47] "[36mGET /static/js/dashboard.js HTTP/1.1[0m" 304 -
+127.0.0.1 - - [13/Jul/2025 18:18:47] "[36mGET /static/css/style.css HTTP/1.1[0m" 304 -
+127.0.0.1 - - [13/Jul/2025 18:18:47] "GET /api/agents HTTP/1.1" 200 -
+127.0.0.1 - - [13/Jul/2025 18:18:48] "GET / HTTP/1.1" 200 -
+127.0.0.1 - - [13/Jul/2025 18:18:48] "[36mGET /static/css/style.css HTTP/1.1[0m" 304 -
+127.0.0.1 - - [13/Jul/2025 18:18:48] "[36mGET /static/js/app.js HTTP/1.1[0m" 304 -
+127.0.0.1 - - [13/Jul/2025 18:18:48] "[36mGET /static/js/dashboard.js HTTP/1.1[0m" 304 -
+127.0.0.1 - - [13/Jul/2025 18:18:48] "GET /api/agents HTTP/1.1" 200 -
+127.0.0.1 - - [13/Jul/2025 18:18:48] "GET / HTTP/1.1" 200 -
+127.0.0.1 - - [13/Jul/2025 18:18:48] "GET /api/system/status HTTP/1.1" 200 -
+127.0.0.1 - - [13/Jul/2025 18:18:48] "[36mGET /static/css/style.css HTTP/1.1[0m" 304 -
+127.0.0.1 - - [13/Jul/2025 18:18:48] "[36mGET /static/js/app.js HTTP/1.1[0m" 304 -
+127.0.0.1 - - [13/Jul/2025 18:18:48] "[36mGET /static/js/dashboard.js HTTP/1.1[0m" 304 -
+127.0.0.1 - - [13/Jul/2025 18:18:48] "GET /api/agents HTTP/1.1" 200 -
+127.0.0.1 - - [13/Jul/2025 18:18:48] "GET / HTTP/1.1" 200 -
+127.0.0.1 - - [13/Jul/2025 18:18:49] "[36mGET /static/css/style.css HTTP/1.1[0m" 304 -
+127.0.0.1 - - [13/Jul/2025 18:18:49] "[36mGET /static/js/app.js HTTP/1.1[0m" 304 -
+127.0.0.1 - - [13/Jul/2025 18:18:49] "[36mGET /static/js/dashboard.js HTTP/1.1[0m" 304 -
+127.0.0.1 - - [13/Jul/2025 18:18:49] "GET /api/agents HTTP/1.1" 200 -
+127.0.0.1 - - [13/Jul/2025 18:18:49] "GET /api/system/status HTTP/1.1" 200 -
+127.0.0.1 - - [13/Jul/2025 18:18:49] "GET /api/system/status HTTP/1.1" 200 -
+127.0.0.1 - - [13/Jul/2025 18:18:50] "GET /api/system/status HTTP/1.1" 200 -
+127.0.0.1 - - [13/Jul/2025 18:18:51] "GET /api/system/status HTTP/1.1" 200 -
+127.0.0.1 - - [13/Jul/2025 18:18:51] "GET / HTTP/1.1" 200 -
+127.0.0.1 - - [13/Jul/2025 18:18:51] "[36mGET /static/css/style.css HTTP/1.1[0m" 304 -
+127.0.0.1 - - [13/Jul/2025 18:18:51] "[36mGET /static/js/app.js HTTP/1.1[0m" 304 -
+127.0.0.1 - - [13/Jul/2025 18:18:51] "[36mGET /static/js/dashboard.js HTTP/1.1[0m" 304 -
+127.0.0.1 - - [13/Jul/2025 18:18:51] "GET /api/agents HTTP/1.1" 200 -
+127.0.0.1 - - [13/Jul/2025 18:18:52] "GET /api/system/status HTTP/1.1" 200 -
+127.0.0.1 - - [13/Jul/2025 18:18:53] "GET /api/system/status HTTP/1.1" 200 -
+127.0.0.1 - - [13/Jul/2025 18:19:02] "GET /api/system/status HTTP/1.1" 200 -
+127.0.0.1 - - [13/Jul/2025 18:19:12] "GET /api/system/status HTTP/1.1" 200 -
+127.0.0.1 - - [13/Jul/2025 18:19:22] "GET /api/system/status HTTP/1.1" 200 -
+127.0.0.1 - - [13/Jul/2025 18:19:32] "GET /api/system/status HTTP/1.1" 200 -
+127.0.0.1 - - [13/Jul/2025 18:19:42] "GET /api/system/status HTTP/1.1" 200 -
+127.0.0.1 - - [13/Jul/2025 18:19:52] "GET /api/system/status HTTP/1.1" 200 -
+127.0.0.1 - - [13/Jul/2025 18:20:02] "GET /api/system/status HTTP/1.1" 200 -
+127.0.0.1 - - [13/Jul/2025 18:20:29] "GET /api/agents HTTP/1.1" 200 -
+127.0.0.1 - - [13/Jul/2025 18:20:30] "GET /api/system/status HTTP/1.1" 200 -
+127.0.0.1 - - [13/Jul/2025 18:20:31] "GET /api/system/status HTTP/1.1" 200 -
+127.0.0.1 - - [13/Jul/2025 18:20:32] "GET /api/system/status HTTP/1.1" 200 -
+127.0.0.1 - - [13/Jul/2025 18:20:33] "POST /api/agents/add HTTP/1.1" 200 -
+127.0.0.1 - - [13/Jul/2025 18:20:34] "GET /api/agents HTTP/1.1" 200 -
+127.0.0.1 - - [13/Jul/2025 18:20:35] "GET /api/system/status HTTP/1.1" 200 -
+127.0.0.1 - - [13/Jul/2025 18:20:36] "GET /api/agents HTTP/1.1" 200 -
+127.0.0.1 - - [13/Jul/2025 18:20:36] "GET /api/system/status HTTP/1.1" 200 -
+127.0.0.1 - - [13/Jul/2025 18:20:39] "GET /api/agents HTTP/1.1" 200 -
+127.0.0.1 - - [13/Jul/2025 18:20:40] "GET /api/system/status HTTP/1.1" 200 -
+127.0.0.1 - - [13/Jul/2025 18:20:41] "GET /api/system/status HTTP/1.1" 200 -
+127.0.0.1 - - [13/Jul/2025 18:20:42] "GET /api/system/status HTTP/1.1" 200 -
+127.0.0.1 - - [13/Jul/2025 18:20:44] "GET /api/agents HTTP/1.1" 200 -
+127.0.0.1 - - [13/Jul/2025 18:20:45] "GET /api/system/status HTTP/1.1" 200 -
+127.0.0.1 - - [13/Jul/2025 18:20:46] "GET /api/system/status HTTP/1.1" 200 -
+127.0.0.1 - - [13/Jul/2025 18:20:49] "GET /api/agents HTTP/1.1" 200 -
+127.0.0.1 - - [13/Jul/2025 18:20:50] "GET /api/system/status HTTP/1.1" 200 -
+127.0.0.1 - - [13/Jul/2025 18:20:51] "GET /api/system/status HTTP/1.1" 200 -
+127.0.0.1 - - [13/Jul/2025 18:20:52] "GET /api/system/status HTTP/1.1" 200 -
+127.0.0.1 - - [13/Jul/2025 18:20:54] "GET /api/agents HTTP/1.1" 200 -
+127.0.0.1 - - [13/Jul/2025 18:20:55] "GET /api/system/status HTTP/1.1" 200 -
+127.0.0.1 - - [13/Jul/2025 18:20:56] "GET /api/system/status HTTP/1.1" 200 -
+127.0.0.1 - - [13/Jul/2025 18:20:59] "GET /api/agents HTTP/1.1" 200 -

@@ -1,0 +1,15 @@
+#!/bin/bash
+# Test agent that responds to -I with proper JSON
+
+if [ "$1" = "-I" ]; then
+    cat << 'EOF'
+{
+    "agent_name": "test_agent",
+    "agent_role": "test",
+    "agent_version": "1.0",
+    "description": "Test agent for SC"
+}
+EOF
+else
+    echo "Test agent - use -I for info"
+fi

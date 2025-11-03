@@ -115,9 +115,22 @@ int ah_agent_init(int argc, char **argv, opt_proctab_t *opts, ah_session_t *s) {
 		{ "fan_off", ah_stop_fan, s, 0 },
 		{ 0 }
 	};
+	int r;
 
 	s->ap = agent_init(argc,argv,ah_version_string,opts,&ah_driver,s,0,ah_props,ah_funcs);
 	if (!s->ap) return 1;
+
+#ifdef JS
+	r = wpi_init(s->ap->js.e);
+#else
+	r = wpi_init();
+#endif
+	if (r && ignore_wpi) r = 0;
+	if (r) {
+		log_error("wpi_init failed\n");
+		return 1;
+	}
+	ads1115Setup(AD_BASE,0x48);
 
 	/* Set pins to IN/OUT and get current value */
 	s->manual_fan_on = 0;

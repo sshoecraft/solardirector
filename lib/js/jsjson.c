@@ -38,7 +38,7 @@
  *
  * ***** END LICENSE BLOCK ***** */
 
-#define dlevel 4
+#define dlevel 6
 #include "debug.h"
 
 #include "jsconfig.h"

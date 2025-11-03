@@ -107,7 +107,8 @@ json_value_t *sb_request(sb_session_t *s, char *func, char *fields) {
 	}
 
 	/* Parse the buffer */
-	dprintf(1,"bufidx: %d\n", s->bufidx);
+	dprintf(dlevel,"bufidx: %d\n", s->bufidx);
+	dprintf(dlevel,"buffer: %s\n", s->buffer);
 	return json_parse(s->buffer);
 }
 
@@ -196,10 +197,29 @@ static int sb_open(void *handle) {
 
 	*s->session_id = 0;
 	v = sb_request(s,SB_LOGIN,s->login_fields);
+	dprintf(dlevel,"v: %p\n", v);
 	if (!v) return 1;
+#if 0
+	{
+		char *j = json_dumps(v,0);
+		dprintf(dlevel,"j: %s\n", j);
+		free(j);
+	}
+#endif
 	results = sb_get_results(s,v);
+	dprintf(dlevel,"results: %p\n", results);
 	json_destroy_value(v);
-	if (!results) return 1;
+	if (!results) {
+		if (s->errcode != 0) {
+			if (s->errcode == 503) {
+				log_error("sb_open: server returned error 503 - too many login attempts or server busy\n");
+			} else {
+				log_error("sb_open: login failed with error code %d\n", s->errcode);
+			}
+		}
+		return 1;
+	}
+//	sb_display_results(results);
 	if (!*s->session_id) {
 		log_error("sb_open: error getting session_id .. bad password?\n");
 		return 1;
@@ -349,6 +369,11 @@ static int sb_read(void *handle, uint32_t *control, void *buf, int buflen) {
 	v = pvinverter_to_json(&inv);
 	if (!v) return 1;
 #ifdef MQTT
+	if (s->ap->m) dprintf(dlevel,"connected: %d\n", mqtt_connected(s->ap->m));
+	if (s->ap->m && !mqtt_connected(s->ap->m)) {
+		mqtt_reconnect(s->ap->m);
+		sleep(1);
+	}
 	if (mqtt_connected(s->ap->m)) agent_pubdata(s->ap, v);
 #endif
 #ifdef INFLUX

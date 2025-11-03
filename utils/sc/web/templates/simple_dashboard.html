@@ -1,0 +1,98 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Service Controller Dashboard</title>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 20px; }
+        .container { max-width: 1200px; margin: 0 auto; }
+        .card { border: 1px solid #ddd; border-radius: 5px; margin: 10px 0; padding: 15px; }
+        table { width: 100%; border-collapse: collapse; margin: 20px 0; }
+        th, td { padding: 10px; text-align: left; border-bottom: 1px solid #ddd; }
+        th { background-color: #f5f5f5; }
+        .status-online { color: green; font-weight: bold; }
+        .status-offline { color: red; font-weight: bold; }
+        .btn { padding: 5px 10px; margin: 2px; border: none; border-radius: 3px; cursor: pointer; }
+        .btn-success { background-color: #28a745; color: white; }
+        .btn-danger { background-color: #dc3545; color: white; }
+        .btn-info { background-color: #17a2b8; color: white; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Service Controller Dashboard</h1>
+        
+        <div class="card">
+            <h2>Agents</h2>
+            <div id="loading">Loading agents...</div>
+            <table id="agents-table" style="display: none;">
+                <thead>
+                    <tr>
+                        <th>Name</th>
+                        <th>Role</th>
+                        <th>Status</th>
+                        <th>Actions</th>
+                    </tr>
+                </thead>
+                <tbody id="agents-tbody">
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <script>
+        function loadData() {
+            fetch('/api/agents')
+                .then(function(response) {
+                    return response.json();
+                })
+                .then(function(data) {
+                    updateTable(data);
+                })
+                .catch(function(err) {
+                    document.getElementById('loading').innerHTML = 'Error loading data';
+                });
+        }
+
+        function updateTable(data) {
+            var tbody = document.getElementById('agents-tbody');
+            tbody.innerHTML = '';
+            
+            if (data.agents && data.agents.length > 0) {
+                for (var i = 0; i < data.agents.length; i++) {
+                    var agent = data.agents[i];
+                    var row = tbody.insertRow();
+                    
+                    row.insertCell(0).innerHTML = agent.name;
+                    row.insertCell(1).innerHTML = agent.role;
+                    
+                    var statusCell = row.insertCell(2);
+                    statusCell.innerHTML = agent.status;
+                    statusCell.className = agent.online ? 'status-online' : 'status-offline';
+                    
+                    var actionsCell = row.insertCell(3);
+                    actionsCell.innerHTML = '<button class="btn btn-info" onclick="viewLogs(\'' + agent.name + '\')">Logs</button>';
+                }
+                
+                document.getElementById('agents-table').style.display = 'table';
+                document.getElementById('loading').style.display = 'none';
+            } else {
+                document.getElementById('loading').innerHTML = 'No agents found';
+            }
+        }
+
+        function viewLogs(agentName) {
+            // Open logs in new window using a simple URL approach
+            window.open('/api/agents/logs/' + agentName + '?format=html', 'logs_' + agentName, 
+                'width=800,height=600,scrollbars=yes,resizable=yes');
+        }
+
+        // Load data on page load
+        loadData();
+        
+        // Refresh every 5 seconds
+        setInterval(loadData, 5000);
+    </script>
+</body>
+</html>

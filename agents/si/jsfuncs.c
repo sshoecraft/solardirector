@@ -128,7 +128,10 @@ static JSBool si_getprop(JSContext *cx, JSObject *obj, jsval id, jsval *rval) {
 
 	dprintf(dlevel,"id type: %s\n", jstypestr(cx,id));
 	p = 0;
+#pragma clang diagnostic push
+#pragma clang diagnostic ignored "-Wshift-negative-value"
 	if(JSVAL_IS_INT(id)) {
+#pragma clang diagnostic pop
 		prop_id = JSVAL_TO_INT(id);
 		dprintf(dlevel,"prop_id: %d\n", prop_id);
 		switch(prop_id) {

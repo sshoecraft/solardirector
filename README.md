@@ -2,6 +2,7 @@
 
 A comprehensive solar power management system written in C that provides MQTT-based agents for monitoring and controlling various solar hardware components including BMS (Battery Management Systems), inverters, and other power electronics.
 
+<<<<<<< Updated upstream
 ## Platform Support
 
 - **Linux** (Debian-based distributions)
@@ -33,6 +34,32 @@ sudo port install pkgconfig glib2
 ```
 
 ### Required Libraries
+=======
+	apt-get install libssl-dev
+	apt-get install libcurl4-openssl-dev
+	apt-get install libreadline-dev
+	apt-get install libglib2.0-dev libbluetooth-dev (only if using bluetooth)
+
+if you want to enable the JDB agent to use bluetooth, you need to set:
+
+BLUETOOTH=yes
+
+in make.opts
+
+
+For MQTT on Linux (on macos just install paho-mqtt from homebrew):
+paho.mqtt.c (https://github.com/eclipse/paho.mqtt.c.git)
+
+	mkdir -p build && cd build
+	cmake -DPAHO_WITH_SSL=ON -DPAHO_BUILD_SHARED=TRUE -DPAHO_BUILD_STATIC=TRUE -DPAHO_ENABLE_TESTING=FALSE -DPAHO_BUILD_SAMPLES=FALSE ..
+	make && make install
+
+notable Agents:
+	bms/jbd - jbd bms agent
+	bms/jk - jikong bms agent
+	inverter/si - sma sunny island agent
+	inverter/sb - sma sunny boy agent
+>>>>>>> Stashed changes
 
 **paho.mqtt.c** (https://github.com/eclipse/paho.mqtt.c.git)
 ```bash

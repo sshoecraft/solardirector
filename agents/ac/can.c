@@ -23,6 +23,7 @@ LICENSE file in the root directory of this source tree.
 #include "ac.h"
 #include <pthread.h>
 #ifndef __WIN32
+#include <signal.h>
 #include <sys/signal.h>
 #endif
 #include "transports.h"

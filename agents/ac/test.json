@@ -9,7 +9,7 @@
         "influx_database": "test",
         "debug_mem": 1,
         "debug_mem_always": 1,
-        "temp_sensor": "func,get_influx,solardirector|hvac|last(temp) as temp,last(humidity) as humidity,last(pressure) as pressure",
+        "temp_sensor": "func,get_influx,solardirector.localdomain|weather|SELECT last(temp_outdoor_f) as temp,last(humidity_outdoor) as humidity,last(barometer_relative_in) as pressure FROM ws2000",
         "sample_interval": 300,
         "pa_name": "patest"
     }

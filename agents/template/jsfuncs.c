@@ -99,8 +99,8 @@ static JSBool js_template_setprop(JSContext *cx, JSObject *obj, jsval id, jsval 
 	return js_config_common_setprop(cx, obj, id, rval, s->ap->cp, 0);
 }
 
-static JSClass myclass = {
-	AGENT_NAME,		/* Name */
+static JSClass template_class = {
+	"template",		/* Name */
 	JSCLASS_GLOBAL_FLAGS | JSCLASS_HAS_PRIVATE,	/* Flags */
 	JS_PropertyStub,	/* addProperty */
 	JS_PropertyStub,	/* delProperty */
@@ -193,14 +193,14 @@ static int js_init(JSContext *cx, JSObject *parent, void *priv) {
 	if (!s->props) s->props = props;
 	if (!s->funcs) s->funcs = funcs;
 
-	dprintf(dlevel,"Defining %s object\n",myclass.name);
-	obj = JS_InitClass(cx, parent, 0, &myclass, 0, 0, s->props, s->funcs, 0, 0);
+	dprintf(dlevel,"Defining %s object\n",template_class.name);
+	obj = JS_InitClass(cx, parent, 0, &template_class, 0, 0, s->props, s->funcs, 0, 0);
 	if (!obj) {
-		JS_ReportError(cx,"unable to initialize %s class", AGENT_NAME);
+		JS_ReportError(cx,"unable to initialize %s class", template_class.name);
 		return 1;
 	}
 
-	dprintf(dlevel,"Defining %s aliases\n",myclass.name);
+	dprintf(dlevel,"Defining %s aliases\n",template_class.name);
 	if (!JS_DefineAliases(cx, obj, aliases)) {
 		JS_ReportError(cx,"unable to define aliases");
 		return 1;

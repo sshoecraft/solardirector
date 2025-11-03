@@ -82,14 +82,20 @@ function fan_set_mode(name,mode) {
 		if (mode == FAN_MODE_NONE) {
 			dprintf(dlevel,"*** STOPPING FAN ***\n");
 			if (pump.direct_group.length) direct_disable(pump.direct_group);
+			fan.refs = 1;
 			fan_stop(name);
 			fan.mode = FAN_MODE_NONE;
-		} else {
-			dprintf(dlevel,"fan[%s]: state: %s\n", name, fan_statestr(fan.state));
-			if (fan.state == FAN_STATE_RUNNING) {
-				error_set("fan",name,sprintf("unable to set fan mode from %s to %s: fan is running", fan.mode, mode));
+		} else if (fan.state == FAN_STATE_RUNNING) {
+			dprintf(dlevel,"fan[%s]: (RUNNING) current mode: %s, new mode: %s\n", name, fan_modestr(fan.mode), fan_modestr(mode));
+			if (fan.mode == FAN_MODE_NONE) {
+				fan.mode = mode;
+			} else {
+				// fan is running and mode change from COOL to HEAT or HEAT to COOL
+				error_set("fan",name,sprintf("unable to set fan %s mode from %s to %s: fan is running", name, fan_modestr(fan.mode), fan_modestr(mode)));
 				return 1;
 			}
+		} else {
+			dprintf(dlevel,"fan[%s]: state: %s\n", name, fan_statestr(fan.state));
 			dprintf(dlevel,"ac.mode: %s\n", ac_modestr(ac.mode));
 			if (fan_modestr(mode) != ac_modestr(ac.mode)) {
 				// If the mode doesnt match the storage mode, go direct
@@ -125,6 +131,7 @@ function fan_on(name,fan) {
 //		dprintf(dlevel,"r: %s\n", r);
 //		if (debug >= dlevel) dumpobj(r,"sdconfig result");
 		if (r.status == 0) break;
+		sleep(1);
 	}
 	if (r.status != 0) {
 		error_set("fan",name,r.message);
@@ -149,6 +156,7 @@ function fan_off(name,fan) {
 //		dprintf(dlevel,"r: %s\n", r);
 //		if (debug >= dlevel) dumpobj(r,"sdconfig result");
 		if (r.status == 0) break;
+		sleep(1);
 	}
 	if (r.status != 0) {
 		error_set("fan",name,r.message);
@@ -161,7 +169,7 @@ function fan_off(name,fan) {
 
 function fan_cooldown(name,fan) {
 
-        let dlevel = 1;
+    let dlevel = 1;
 
 	// Turn the pump off first
 	if (fan.pump.length) pump_stop(fan.pump);
@@ -174,6 +182,8 @@ function fan_cooldown(name,fan) {
 }
 
 function fan_stop(name) {
+		// XXX if its in cooldown already dont reset time
+		if (fans[name].state == FAN_STATE_COOLDOWN) return 0;
         return common_stop(name,"fan",fans,fan_cooldown,false)
 }
 
@@ -325,7 +335,7 @@ function fan_modestr(mode) {
 
 function fan_revoke(name) {
 
-	let dlevel = -1;
+	let dlevel = 1;
 
 	dprintf(dlevel,"name: %s\n", name);
 
@@ -336,5 +346,6 @@ function fan_revoke(name) {
 		return 1;
 	}
 	dprintf(dlevel,"fan[%s]: state: %s\n", name, fan_statestr(fan.state));
-	fan_stop(name);
+	fan.refs = 1;
+	fan_force_stop(name);
 }

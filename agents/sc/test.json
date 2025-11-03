@@ -1,7 +1,5 @@
 {
-    "sc": {
-        "name": "sctest",
-        "mqtt_uri": "tcp:\/\/localhost:1883",
-        "influx_endpoint": "localhost:8086"
+    "template": {
+	"script_dir": "."
     }
 }

@@ -22,17 +22,14 @@ function charge_init() {
 
 	let props = [
 		[ "water_temp", DATA_TYPE_DOUBLE, INVALID_TEMP, CONFIG_FLAG_PRIVATE ],
-		[ "water_temp_time", DATA_TYPE_U32, 0, CONFIG_FLAG_PRIVATE ],
 		[ "cool_high_temp", DATA_TYPE_INT, 60, 0 ],
 		[ "cool_low_temp", DATA_TYPE_INT, 35, 0 ],
 		[ "heat_high_temp", DATA_TYPE_INT, 125, 0 ],
 		[ "heat_low_temp", DATA_TYPE_INT, 100, 0 ],
-		[ "charge_threshold", DATA_TYPE_INT, 5, 0 ],
-		[ "charge_priority_scale", DATA_TYPE_INT, 100, 0 ],
-		[ "repri_interval", DATA_TYPE_INT, 3, 0 ],
+		[ "charge_threshold", DATA_TYPE_INT, 3, 0 ],
+		[ "repri_interval", DATA_TYPE_FLOAT, 1.0, 0 ],
 	];
 	config.add_props(ac,props,ac.driver_name);
-//	ac.water_temp_time = 0;
 	ac.last_repri = INVALID_TEMP;
 
 	event.handler(charge_mode_event_handler,ac.name,"Mode","Set");
@@ -65,11 +62,21 @@ function charge_statestr(state) {
 }
 
 function charge_get_pri() {
+
+	let dlevel = 1;
+
+	let val = 0;
 	let pri = 100;
-	if (ac.mode == AC_MODE_COOL)
-		pri = parseInt(((ac.cool_high_temp - ac.water_temp) / (ac.cool_high_temp - ac.cool_low_temp)) * ac.charge_priority_scale);
-	else
-		pri = parseInt(((ac.water_temp - ac.heat_low_temp) / (ac.heat_high_temp - ac.heat_low_temp)) * ac.charge_priority_scale);
+	if (ac.mode == AC_MODE_COOL) {
+		val = ((ac.cool_high_temp - ac.water_temp) / (ac.cool_high_temp - ac.cool_low_temp));
+	} else {
+		val = ((ac.water_temp - ac.heat_low_temp) / (ac.heat_high_temp - ac.heat_low_temp));
+	}
+	dprintf(dlevel,"val: %f\n", val);
+	let m = (val * 100.0) + 1;
+	dprintf(dlevel,"m: %f\n", m);
+	pri = parseInt(Math.ceil(m));
+	dprintf(dlevel,"pri: %f\n", pri);
 	if (pri < 1) pri = 1;
 	else if (pri > 100) pri = 100;
 	return pri;
@@ -139,21 +146,22 @@ function charge_main() {
 			if (unit.state == UNIT_STATE_RUNNING) {
 				if (unit.priority == 0 && unit.reserve) {
 					let pump = pumps[unit.pump];
-					if (pump.temp_in != INVALID_TEMP) {
+					if (pump.settled && pump.temp_in >= -50 && pump.temp_in < 150) {
+						if (unit.last_pri_temp < -50 || unit.last_pri_temp > 150) unit.last_pri_temp = pump.temp_in;
 						if (typeof(ac.cic) == 'undefined') ac.cic = (60/ac.interval) + 1;
 						if (ac.cic++ >= (60/ac.interval)) {
-							log_info("temp_in: %.1f, last_pri_temp: %.1f\n", pump.temp_in, unit.last_pri_temp);
+							log_info("charge_main: temp_in: %.1f, last_pri_temp: %.1f\n", pump.temp_in, unit.last_pri_temp);
 							ac.cic = 1;
 						}
 
-						// if the temp_in is > last_pri_temp + 1 degree, do a repri
+						// if the temp_in is > last_pri_temp +/- .3 degree, do a repri
 						if (unit.mode == AC_MODE_COOL && pump.temp_in > unit.last_pri_temp+0.3) unit.last_pri_temp = pump.temp_in;
 						else if (unit.mode == AC_MODE_HEAT && pump.temp_in < unit.last_pri_temp-0.3) unit.last_pri_temp = pump.temp_in;
 						diff = Math.abs(pump.temp_in - unit.last_pri_temp);
 						dprintf(dlevel,"pri temp diff: %.1f, repri_interval: %.1f\n", diff, ac.repri_interval);
 						if (diff >= ac.repri_interval) {
 							let pri = charge_get_pri();
-							dprintf(dlevel,"NEW pri: %d, current_pri: %d\n", pri, unit.charge_priority);
+							dprintf(dlevel,"NEW pri: %.1f, current_pri: %.1f\n", pri, unit.charge_priority);
 							if (pri != unit.charge_priority) {
 								unit.charge_priority = pri;
 								if (!pa_client_repri(ac,"unit",name,unit.reserve,pri)) {

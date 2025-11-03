@@ -1,2 +1,0 @@
-rm -f actest_fans.json actest_pumps.json actest_units.json
-./ac -c test.json

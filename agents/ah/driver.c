@@ -7,12 +7,11 @@ This source code is licensed under the BSD-style license found in the
 LICENSE file in the root directory of this source tree.
 */
 
-#define dlevel 2
+#define dlevel 1
 #include "debug.h"
 
 #include "ah.h"
 
-#define AD_BASE 120
 #define GAIN 1
 static float gainvolts[] = { 6.144, 4.096, 2.048, 1.024, 0.512, 0.256 };
 
@@ -56,16 +55,16 @@ static int getval(ah_session_t *s, int ch) {
 }
 
 static float doread(ah_session_t *s, int ch) {
-	dprintf(2,"ch: %d\n", ch);
+	dprintf(dlevel,"ch: %d\n", ch);
 	if (ch < 0 || ch > 3) return 0;
 	int adc_value = getval(s,ch);
-	dprintf(2,"adc_value: %d\n", adc_value);
+	dprintf(dlevel,"adc_value: %d\n", adc_value);
 	float gv = gainvolts[GAIN];
-	dprintf(2,"gv: %f\n", gv);
+	dprintf(dlevel,"gv: %f\n", gv);
 	float m = gv / 32768;
-	dprintf(2,"m: %f\n", m);
+	dprintf(dlevel,"m: %f\n", m);
 	float vout = adc_value * m;
-	dprintf(2,"vout: %f\n", vout);
+	dprintf(dlevel,"vout: %f\n", vout);
 	return vout;
 }
 
@@ -74,13 +73,13 @@ static float get_temp(ah_session_t *s, int ch) {
 
 	v = doread(s,ch);
 	if (!v) return 0.0 / 0.0;
-	dprintf(2,"ch[%d] v: %f\n", ch, v);
+	dprintf(dlevel,"ch[%d] v: %f\n", ch, v);
 	r = s->divres * v / (3.3 - v);
-	dprintf(2,"ch[%d] r: %f\n", ch, r);
+	dprintf(dlevel,"ch[%d] r: %f\n", ch, r);
 	t = (1 / (log(r / s->refres) / s->beta + 1 / (273.15 + s->reftemp))) - 273.15;
-	dprintf(2,"ch[%d] t: %f\n", ch, t);
+	dprintf(dlevel,"ch[%d] t: %f\n", ch, t);
 	f = (t * 9/5) + 32;
-	dprintf(2,"ch[%d] f: %f\n", ch, f);
+	dprintf(dlevel,"ch[%d] f: %f\n", ch, f);
 	return f;
 }
 
@@ -90,7 +89,13 @@ static int ah_read(void *handle, uint32_t *what, void *buf, int buflen) {
 
 	s->air_in = get_temp(s,s->air_in_ch);
 	s->air_out = get_temp(s,s->air_out_ch);
+#ifdef WATER
+	s->water_in = get_temp(s,s->water_in_ch);
+	s->water_out = get_temp(s,s->water_out_ch);
+	sprintf(out,"fan: %d, cool: %d, heat: %d, air: in: %3.1f, out: %3.1f, water: in: %3.1f, out: %3.1f", s->fan_state, s->cool_state, s->heat_state, s->air_in, s->air_out, s->water_in, s->water_out);
+#else
 	sprintf(out,"fan: %d, cool: %d, heat: %d, air: in: %3.1f, out: %3.1f", s->fan_state, s->cool_state, s->heat_state, s->air_in, s->air_out);
+#endif
 	if (strcmp(out,s->last_out) != 0) {
 		log_info("%s\n", out);
 		strcpy(s->last_out,out);
@@ -108,8 +113,12 @@ static int ah_write(void *handle, uint32_t *what, void *buf, int buflen) {
 	json_object_set_string(o,"fan_state",s->fan_state ? "on" : "off");
 	json_object_set_string(o,"cool_state",s->cool_state ? "on" : "off");
 	json_object_set_string(o,"heat_state",s->heat_state ? "on" : "off");
-	json_object_set_number(o,"air_in",s->air_in);
-	json_object_set_number(o,"air_out",s->air_out);
+	json_object_set_number(o,"air_in",pround(s->air_in,1));
+	json_object_set_number(o,"air_out",pround(s->air_out,1));
+#if WATER
+	json_object_set_number(o,"water_in",pround(s->water_in,1));
+	json_object_set_number(o,"water_out",pround(s->water_out,1));
+#endif
 	v = json_object_value(o);
 //	j = json_dumps(v, 1);
 //	printf("j: %s\n", j);
@@ -162,6 +171,7 @@ static int ah_config(void *h, int req, ...) {
 	case SOLARD_CONFIG_INIT:
 		s->ap = va_arg(va,solard_agent_t *);
 		dprintf(dlevel,"s->ap->e: %p\n", s->ap->js.e);
+#if 0
 #ifdef JS
 		r = wpi_init(s->ap->js.e);
 #else
@@ -170,6 +180,8 @@ static int ah_config(void *h, int req, ...) {
 		if (r && ignore_wpi) r = 0;
 		if (r) log_error("wpi_init failed\n");
 		else ads1115Setup(AD_BASE,0x48);
+#endif
+		r = 0;
 		break;
 	case SOLARD_CONFIG_GET_INFO:
 		{

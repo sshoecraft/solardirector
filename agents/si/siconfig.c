@@ -501,6 +501,7 @@ void si_config_add_si_data(si_session_t *s) {
 	config_property_t si_data_props[] = {
 		{ "ac1_voltage_l1", DATA_TYPE_DOUBLE, &s->data.ac1_voltage_l1, 0, 0, flags },
 		{ "ac1_voltage_l2", DATA_TYPE_DOUBLE, &s->data.ac1_voltage_l2, 0, 0, flags },
+		{ "ac1_voltage_l3", DATA_TYPE_DOUBLE, &s->data.ac1_voltage_l3, 0, 0, flags },
 		{ "ac1_voltage", DATA_TYPE_DOUBLE, &s->data.ac1_voltage, 0, 0, flags },
 		{ "ac1_frequency", DATA_TYPE_DOUBLE, &s->data.ac1_frequency, 0, 0, flags },
 		{ "ac1_current", DATA_TYPE_DOUBLE, &s->data.ac1_current, 0, 0, flags },
@@ -554,6 +555,7 @@ void si_config_add_si_data(si_session_t *s) {
 		{ "errmsg", DATA_TYPE_SHORT, &s->data.errmsg, 0, 0, flags },
 		{ "ac2_voltage_l1", DATA_TYPE_DOUBLE, &s->data.ac2_voltage_l1, 0, 0, flags },
 		{ "ac2_voltage_l2", DATA_TYPE_DOUBLE, &s->data.ac2_voltage_l2, 0, 0, flags },
+		{ "ac2_voltage_l3", DATA_TYPE_DOUBLE, &s->data.ac2_voltage_l3, 0, 0, flags },
 		{ "ac2_voltage", DATA_TYPE_DOUBLE, &s->data.ac2_voltage, 0, 0, flags },
 		{ "ac2_frequency", DATA_TYPE_DOUBLE, &s->data.ac2_frequency, 0, 0, flags },
 		{ "ac2_current", DATA_TYPE_DOUBLE, &s->data.ac2_current, 0, 0, flags },

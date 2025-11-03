@@ -616,7 +616,7 @@ function battery_is_empty() {
 }
 
 function charge_start_grid() {
-	dprintf(-1,"grid_feed: %s, grid_started: %s\n", si.grid_feed, si.grid_started);
+	dprintf(1,"grid_feed: %s, grid_started: %s\n", si.grid_feed, si.grid_started);
 	if (si.grid_feed && !si.feed_started) feed_start(true);
 	if (!si.grid_started) si_start_grid();
 }

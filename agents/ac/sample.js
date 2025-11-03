@@ -70,15 +70,12 @@ function sample_main() {
 
 	if (ac.sample_interval < 1) return;
 
-	dprintf(dlevel,"current_time: %s\n", new Date(time() * 1000));
 	let pump,diff;
 	dprintf(dlevel,"sample_state: %s\n", sample_statestr(ac.sample_state));
 	switch(ac.sample_state) {
 	case SAMPLE_STATE_STOPPED:
-		dprintf(dlevel,"water_temp_time: %s\n", new Date(ac.water_temp_time * 1000));
-		dprintf(dlevel,"sample_time: %s\n", new Date(ac.sample_time * 1000));
-		let ref = ac.water_temp_time > ac.sample_time ? ac.water_temp_time : ac.sample_time;
-		diff = time() - ref;
+		dprintf(dlevel,"time: %s, sample_time: %s\n", time(), ac.sample_time);
+		diff = time() - ac.sample_time;
 		dprintf(dlevel,"diff: %d, sample_interval: %d\n", diff, ac.sample_interval);
 		if (diff >= ac.sample_interval) {
 			sample_select_pump();

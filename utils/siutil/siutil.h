@@ -1,6 +1,6 @@
 
 #ifndef __SIUTIL_H
-#define __SITUIL_H
+#define __SIUTIL_H
 
 #include "si.h"
 

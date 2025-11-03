@@ -58,23 +58,11 @@ static int ac_config(void *h, int req, ...) {
 			log_error("error: ac_config CONFIG_INIT: JSEngine not init!\n");
 			return 1;
 		}
-		r = ac_can_init(s);
-		dprintf(dlevel,"r: %d\n", r);
-		if (r) log_error("ac_can_init failed!\n");
 #ifdef JS
-		else r = jsinit(s);
+		r = jsinit(s);
 		dprintf(dlevel,"r: %d\n", r);
 		if (r) log_error("jsinit failed!\n");
-		else {
-			r = wpi_init(s->ap->js.e);
-#else
-		if (!r) {
-			r = wpi_init();
 #endif
-			dprintf(dlevel,"r: %d, ignore_wpi: %d\n", r, ignore_wpi_flag);
-			if (r && ignore_wpi_flag) r = 0;
-			if (r) log_error("wpi_init failed!\n");
-		}
 		break;
 	case SOLARD_CONFIG_GET_INFO:
 		{

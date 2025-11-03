@@ -16,6 +16,7 @@ LICENSE file in the root directory of this source tree.
 #include <ws2tcpip.h>
 #define USE_THREADS 0
 #else
+#include <signal.h>
 #include <sys/signal.h>
 #include <sys/socket.h>
 #include <netinet/in.h>

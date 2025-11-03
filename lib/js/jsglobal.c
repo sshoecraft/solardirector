@@ -159,8 +159,9 @@ static JSBool js_load(JSContext *cx, uintN argc, jsval *vp) {
 //printf("filename: %s\n", filename);
 		strncpy(fixedname,filename,sizeof(fixedname)-1);
 		JS_free(cx,filename);
-		if (_JS_EngineExec(e, fixedname, cx, 0, 0, 0, 0)) {
+//		if (_JS_EngineExec(e, fixedname, cx, 0, 0, 0, 0)) {
 //			JS_ReportError(cx, "load(%s) failed\n",fixedname);
+        if (JS_EngineLoadScript(e,fixedname)) {
 			return JS_FALSE;
 		}
 	}
@@ -222,7 +223,7 @@ static JSBool js_run(JSContext *cx, uintN argc, jsval *vp) {
 		req = 0;
 	} else {
 		req = 1;
-		func = func;
+//		func = func;
 	} 
 	dprintf(dlevel,"func: %s, req: %d\n", func, req);
 
@@ -549,7 +550,7 @@ static JSBool js_test_json(JSContext *cx, JSObject *obj, uintN argc, jsval *argv
 	ok = (v ? true : false);
 	json_destroy_value(v);
 	*rval = BOOLEAN_TO_JSVAL(ok);
-	ok = ok;
+//	ok = ok;
 	JS_free(cx,j);
 	return JS_TRUE;
 }
@@ -906,6 +907,7 @@ JSObject *JS_CreateGlobalObject(JSContext *cx, void *priv) {
 		JS_FN("isarray",js_isarray,1,1,0),
 		JS_FN("timestamp",js_timestamp,0,1,0),
 		JS_FN("time",js_time,0,0,0),
+		JS_FN("systime",js_time,0,0,0),
 		JS_FS("dirname",js_dirname,1,0,0),
 		JS_FS("basename",js_basename,1,0,0),
 		JS_FS("test_json",js_test_json,1,0,0),

@@ -17,8 +17,8 @@ function pub_main() {
 
 	let dlevel = 1;
 
-	dprintf(dlevel,"running: %s\n", data.Run);
-	if (!data.Run) return;
+//	dprintf(dlevel,"running: %s\n", data.Run);
+//	if (!data.Run) return;
 
 	let pub = {};
 	pub.status = "";
@@ -63,6 +63,7 @@ function pub_main() {
 		output_frequency:	data.output_frequency,
 		output_current:		data.output_current,
 		output_power:		data.output_power,
+		load_power:		data.load_power,
 		remain_text:		si.remain_text,
 		status:			pub.status,
 	};
@@ -92,10 +93,13 @@ function pub_main() {
 		last_out = pub.out;
 	}
 
-//	if (mqtt) mqtt.pub(si.topic,JSON.stringify(pub.data),0);
+    dprintf(dlevel,"mqtt: %s\n", mqtt);
 	if (mqtt) mqtt.pub(si.topic,pub.data);
 
-	if (influx) dprintf(dlevel,"influx: enabled: %s, connected: %s\n", influx.enabled, influx.connected);
-	if (influx && influx.enabled && influx.connected) influx.write("inverter",pub.data);
+    dprintf(dlevel,"influx: %s\n", influx);
+    if (influx) {
+	    dprintf(dlevel,"influx: enabled: %s, connected: %s\n", influx.enabled, influx.connected);
+	    if (influx.enabled && influx.connected) influx.write("inverter",pub.data);
+    }
 	for(let key in pub) delete pub[key];
 }

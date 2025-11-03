@@ -193,7 +193,7 @@ static void *rdev_new(void *target, void *topts) {
 		return 0;
 	}
 
-#ifndef __WIN32
+#if !defined(__WIN32) && !defined(__APPLE__)
 	if (!rdev_init) {
 		sigset_t set;
 

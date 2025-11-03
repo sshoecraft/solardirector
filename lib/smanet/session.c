@@ -13,12 +13,23 @@ LICENSE file in the root directory of this source tree.
 #include "smanet_internal.h"
 #include "transports.h"
 #ifndef WINDOWS
-#include <sys/signal.h>
+#include <signal.h>
 #endif
 #include <ctype.h>
+#ifdef __APPLE__
+#include <sys/fcntl.h>
+#else
 #include <sys/file.h>
+#endif
 #include <libgen.h>
 #include <errno.h>
+#include <pthread.h>
+#include <unistd.h>
+#include <time.h>
+#include <string.h>
+#include <stdlib.h>
+#include <stdio.h>
+#include <stdbool.h>
 
 static solard_driver_t *smanet_transports[] = { &serial_driver, &rdev_driver, 0 };
 
@@ -30,13 +41,16 @@ static void *smanet_recv_thread(void *handle) {
 #else
 	struct rdata rdata;
 #endif
-#ifndef WINDOWS
+#if !defined(WINDOWS) && !defined(__APPLE__)
 	sigset_t set;
 
 	/* Ignore SIGPIPE */
 	sigemptyset(&set);
 	sigaddset(&set, SIGPIPE);
 	sigprocmask(SIG_BLOCK, &set, NULL);
+#elif defined(__APPLE__)
+	/* On macOS, use signal() instead of sigprocmask */
+	signal(SIGPIPE, SIG_IGN);
 #endif
 
 	/* Enable us to be cancelled immediately */
@@ -51,7 +65,11 @@ static void *smanet_recv_thread(void *handle) {
 		if (s->opened && s->auto_close) {
 			time(&now);
 			diff = now - s->last_command;
-			dprintf(dlevel+2,"diff: %d\n", diff);
+#ifdef __APPLE__
+			dprintf(dlevel+2,"diff: %ld\n", (long)diff);
+#else
+			dprintf(dlevel+2,"diff: %d\n", (int)diff);
+#endif
 			if (diff > s->auto_close_timeout) {
 				dprintf(dlevel,"SMANET: closing transport.\n");
 				s->tp->close(s->tp_handle);
@@ -137,7 +155,6 @@ int smanet_close(smanet_session_t *s) {
 	if (s->tp) s->tp->close(s->tp_handle);
 	s->opened = 0;
 //	smanet_unlock_target(s);
-	pthread_mutex_unlock(&s->lock);
 #if SMANET_AUTO_CLOSE || SMANET_RECV_THREAD
 	pthread_mutex_unlock(&s->lock);
 #endif
@@ -151,7 +168,11 @@ static int smanet_configure(smanet_session_t *s) {
 		log_error("%s\n",s->errmsg);
 		return 1;
 	}
+#ifdef __APPLE__
+	dprintf(dlevel,"serial: %lld, type: %s\n", (long long)s->serial, s->type);
+#else
 	dprintf(dlevel,"serial: %ld, type: %s\n", s->serial, s->type);
+#endif
 	sleep(1);
 	if (smanet_cfg_net_adr(s,0)) {
 		sprintf(s->errmsg,"smanet_connect: unable to configure network address");

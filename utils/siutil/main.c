@@ -586,7 +586,6 @@ int main(int argc, char **argv) {
 	case ACTION_GET:
 		{
 			double d;
-			char *text;
 
 			if (mult_flag) {
 				smanet_multreq_t *mr;
@@ -606,13 +605,13 @@ int main(int argc, char **argv) {
 				}
 				for(i=0; i < argc; i++) {
 					dprintf(1,"mr[%d]: value: %f, text: %s\n", i, mr[i].value, mr[i].text);
-					dprintf(1,"text: %p\n", text);
 					if (mr[i].text) dstr(mr[i].name,"%s",mr[i].text);
 					else if (double_isint(mr[i].value)) dint(mr[i].name,"%d",(int)mr[i].value);
 					else ddouble(mr[i].name,"%f",mr[i].value);
 				}
 
 			} else {
+				char *text;
 				if (smanet_get_value(s->smanet,argv[0],&d,&text)) {
 					log_write(LOG_ERROR,"%s: error getting value\n",argv[0]);
 					return 1;

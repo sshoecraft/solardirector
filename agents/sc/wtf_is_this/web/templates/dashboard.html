@@ -1,0 +1,241 @@
+{% extends "base.html" %}
+
+{% block title %}Dashboard - Service Controller{% endblock %}
+
+{% block content %}
+<div class="row">
+    <!-- System Overview -->
+    <div class="col-12 mb-4">
+        <div class="card">
+            <div class="card-header d-flex justify-content-between align-items-center">
+                <h5 class="mb-0">
+                    <i class="bi bi-grid-3x3-gap"></i> System Overview
+                </h5>
+                <small class="text-muted" id="system-last-update">Loading...</small>
+            </div>
+            <div class="card-body">
+                <div class="row text-center">
+                    <div class="col-md-3">
+                        <div class="p-3">
+                            <div class="display-6 text-primary" id="total-agents">-</div>
+                            <div class="text-muted">Total Agents</div>
+                        </div>
+                    </div>
+                    <div class="col-md-3">
+                        <div class="p-3">
+                            <div class="display-6 text-success" id="online-agents">-</div>
+                            <div class="text-muted">Online</div>
+                        </div>
+                    </div>
+                    <div class="col-md-3">
+                        <div class="p-3">
+                            <div class="display-6 text-danger" id="offline-agents">-</div>
+                            <div class="text-muted">Offline</div>
+                        </div>
+                    </div>
+                    <div class="col-md-3">
+                        <div class="p-3">
+                            <div class="display-6 text-info" id="discovering-status">-</div>
+                            <div class="text-muted">Discovery</div>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Role Distribution -->
+                <div class="row mt-4">
+                    <div class="col-12">
+                        <h6>Agent Roles</h6>
+                        <div class="row" id="role-counts">
+                            <!-- Role counts will be populated by JavaScript -->
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="row">
+    <!-- Agents List -->
+    <div class="col-12">
+        <div class="card">
+            <div class="card-header d-flex justify-content-between align-items-center">
+                <h5 class="mb-0">
+                    <i class="bi bi-list-ul"></i> Agents
+                </h5>
+                <div class="d-flex gap-2">
+                    <button class="btn btn-success btn-sm" onclick="showAddAgentModal()">
+                        <i class="bi bi-plus-circle"></i> Add Agent
+                    </button>
+                    <div class="btn-group btn-group-sm" role="group">
+                        <input type="radio" class="btn-check" name="filter" id="filter-all" autocomplete="off" checked>
+                        <label class="btn btn-outline-primary" for="filter-all">All</label>
+                        
+                        <input type="radio" class="btn-check" name="filter" id="filter-online" autocomplete="off">
+                        <label class="btn btn-outline-success" for="filter-online">Online</label>
+                        
+                        <input type="radio" class="btn-check" name="filter" id="filter-offline" autocomplete="off">
+                        <label class="btn btn-outline-danger" for="filter-offline">Offline</label>
+                        
+                        <input type="radio" class="btn-check" name="filter" id="filter-warning" autocomplete="off">
+                        <label class="btn btn-outline-warning" for="filter-warning">Warning</label>
+                    </div>
+                </div>
+            </div>
+            <div class="card-body">
+                <div class="table-responsive">
+                    <table class="table table-hover">
+                        <thead>
+                            <tr>
+                                <th>Name</th>
+                                <th>Role</th>
+                                <th>Status</th>
+                                <th>Health</th>
+                                <th>Service</th>
+                                <th>Last Seen</th>
+                                <th>Actions</th>
+                                <th>Manage</th>
+                            </tr>
+                        </thead>
+                        <tbody id="agents-table-body">
+                            <!-- Agents will be populated by JavaScript -->
+                        </tbody>
+                    </table>
+                </div>
+                
+                <!-- Loading state -->
+                <div id="loading-agents" class="text-center py-4">
+                    <div class="spinner-border text-primary" role="status">
+                        <span class="visually-hidden">Loading...</span>
+                    </div>
+                    <div class="mt-2">Loading agents...</div>
+                </div>
+                
+                <!-- No agents state -->
+                <div id="no-agents" class="text-center py-4 d-none">
+                    <i class="bi bi-inbox display-1 text-muted"></i>
+                    <div class="mt-2 text-muted">No agents found</div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Agent Action Modal -->
+<div class="modal fade" id="actionModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Confirm Action</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <p id="action-confirm-text">Are you sure you want to perform this action?</p>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                <button type="button" class="btn btn-primary" id="confirm-action-btn">Confirm</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Add Agent Modal -->
+<div class="modal fade" id="addAgentModal" tabindex="-1">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Add Agent to Monitoring</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <div class="mb-3">
+                    <label class="form-label">Choose how to add the agent:</label>
+                    <div class="btn-group w-100" role="group">
+                        <input type="radio" class="btn-check" name="addAgentMethod" id="method-available" autocomplete="off" checked>
+                        <label class="btn btn-outline-primary" for="method-available">Select from Available</label>
+                        
+                        <input type="radio" class="btn-check" name="addAgentMethod" id="method-custom" autocomplete="off">
+                        <label class="btn btn-outline-secondary" for="method-custom">Custom Path</label>
+                    </div>
+                </div>
+                
+                <!-- Available Agents Section -->
+                <div id="available-agents-section">
+                    <div class="mb-3">
+                        <label for="available-agent-select" class="form-label">Available Agents in SOLARD_BINDIR:</label>
+                        <select class="form-select" id="available-agent-select">
+                            <option value="">Loading available agents...</option>
+                        </select>
+                        <div class="form-text">Agents found in the configured agent directory that are not yet managed.</div>
+                    </div>
+                    <div id="selected-agent-info" class="alert alert-info d-none">
+                        <h6>Agent Information:</h6>
+                        <div id="agent-info-details"></div>
+                    </div>
+                </div>
+                
+                <!-- Custom Path Section -->
+                <div id="custom-path-section" class="d-none">
+                    <div class="mb-3">
+                        <label for="custom-agent-path" class="form-label">Agent Path:</label>
+                        <input type="text" class="form-control" id="custom-agent-path" 
+                               placeholder="/path/to/agent/executable">
+                        <div class="form-text">Full path to the agent executable.</div>
+                    </div>
+                    <div class="mb-3">
+                        <label for="custom-agent-name" class="form-label">Agent Name:</label>
+                        <input type="text" class="form-control" id="custom-agent-name" 
+                               placeholder="agent_name">
+                        <div class="form-text">Name for the agent (will be auto-detected if left empty).</div>
+                    </div>
+                    <div class="mb-3">
+                        <button type="button" class="btn btn-outline-secondary" id="validate-custom-agent">
+                            <i class="bi bi-check-circle"></i> Validate Agent
+                        </button>
+                    </div>
+                    <div id="custom-agent-validation" class="d-none">
+                        <!-- Validation results will be shown here -->
+                    </div>
+                </div>
+                
+                <div id="add-agent-error" class="alert alert-danger d-none"></div>
+                <div id="add-agent-success" class="alert alert-success d-none"></div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                <button type="button" class="btn btn-success" id="confirm-add-agent" disabled>
+                    <i class="bi bi-plus-circle"></i> Add Agent
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Remove Agent Modal -->
+<div class="modal fade" id="removeAgentModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Remove Agent</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <p id="remove-agent-text">Are you sure you want to remove this agent from monitoring?</p>
+                <div class="alert alert-warning">
+                    <i class="bi bi-exclamation-triangle"></i>
+                    This will remove the agent from the managed agents list. The agent will no longer be monitored until it is added again.
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                <button type="button" class="btn btn-danger" id="confirm-remove-agent">Remove Agent</button>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script src="{{ url_for('static', filename='js/dashboard.js') }}"></script>
+{% endblock %}

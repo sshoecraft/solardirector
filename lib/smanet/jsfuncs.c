@@ -11,6 +11,12 @@ LICENSE file in the root directory of this source tree.
 #include "debug.h"
 
 #ifdef JS
+/* Suppress warnings from JavaScript engine macros that use negative bit shifts */
+#ifdef __clang__
+#pragma clang diagnostic push
+#pragma clang diagnostic ignored "-Wshift-negative-value"
+#endif
+
 #include "smanet_internal.h"
 #include "jsengine.h"
 #include "debug.h"
@@ -18,6 +24,10 @@ LICENSE file in the root directory of this source tree.
 #include "jsobj.h"
 #include "jsarray.h"
 #include "jsstr.h"
+
+#ifdef __clang__
+#pragma clang diagnostic pop
+#endif
 
 enum SMANET_PROPERTY_ID {
 	SMANET_PROPERTY_ID_CONNECTED=1,
@@ -46,7 +56,10 @@ static JSBool smanet_getprop(JSContext *cx, JSObject *obj, jsval id, jsval *rval
 //		*rval = JSVAL_VOID;
 		return JS_TRUE;
 	}
+#pragma clang diagnostic push
+#pragma clang diagnostic ignored "-Wshift-negative-value"
 	if (JSVAL_IS_INT(id)) {
+#pragma clang diagnostic pop
 		prop_id = JSVAL_TO_INT(id);
 		dprintf(dlevel,"prop_id: %d\n", prop_id);
 		switch(prop_id) {
@@ -64,7 +77,10 @@ static JSBool smanet_getprop(JSContext *cx, JSObject *obj, jsval id, jsval *rval
 			break;
 		case SMANET_PROPERTY_ID_CHANNELS:
 			/* XXX TODO */
+#pragma clang diagnostic push
+#pragma clang diagnostic ignored "-Wshift-negative-value"
 			*rval = JSVAL_VOID;
+#pragma clang diagnostic pop
 			break;
 		case SMANET_PROPERTY_ID_SERIAL:
 			*rval = INT_TO_JSVAL(s->serial);
@@ -109,7 +125,10 @@ static JSBool smanet_setprop(JSContext *cx, JSObject *obj, jsval id, jsval *vp) 
 		JS_ReportError(cx, "smanet_setprop: private is null!\n");
 		return JS_FALSE;
 	}
+#pragma clang diagnostic push
+#pragma clang diagnostic ignored "-Wshift-negative-value"
 	if (JSVAL_IS_INT(id)) {
+#pragma clang diagnostic pop
 		prop_id = JSVAL_TO_INT(id);
 		dprintf(dlevel,"smanet_setprop: prop_id: %d", prop_id);
 		switch(prop_id) {
@@ -398,7 +417,10 @@ js_smanet_get_error:
 #endif
 	if (r != JS_TRUE) {
 		JS_ReportError(cx,"%s",s->errmsg);
+#pragma clang diagnostic push
+#pragma clang diagnostic ignored "-Wshift-negative-value"
 		*rval = JSVAL_VOID;
+#pragma clang diagnostic pop
 	}
 	return r;
 }
@@ -492,7 +514,7 @@ static JSBool js_smanet_connect(JSContext *cx, JSObject *obj, uintN argc, jsval 
 	}
 	dprintf(dlevel,"transport: %s, target: %s, topts:%s\n", s->transport, s->target, s->topts);
 
-	if (!s->transport || !s->target) {
+	if (!strlen(s->transport) || !strlen(s->target)) {
 		JS_ReportError(cx, "smanet_connect: transport and/or target not set");
 		return JS_FALSE;
 	}
@@ -552,7 +574,7 @@ JSObject *jssmanet_new(JSContext *cx, JSObject *parent, smanet_session_t *s, cha
 
 	strcpy(s->transport,transport);
 	strcpy(s->target,target);
-	if (s->topts) strcpy(s->topts,topts);
+	if (topts && strlen(topts)) strcpy(s->topts,topts);
 	dprintf(dlevel,"s: %p\n", s);
 	newobj = js_InitSMANETClass(cx,parent);
 	dprintf(dlevel,"newobj: %p\n", newobj);

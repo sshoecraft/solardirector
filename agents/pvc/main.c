@@ -7,7 +7,7 @@ This source code is licensed under the BSD-style license found in the
 LICENSE file in the root directory of this source tree.
 */
 
-#define dlevel 2
+#define dlevel 1
 #include "debug.h"
 
 #include "pvc.h"
@@ -33,12 +33,12 @@ static void process_message(pvc_session_t *s, solard_message_t *msg) {
 	pvc_agentinfo_t *info, newinfo;
 	bool have_info;
 
-	int ldlevel = dlevel;
+	int ldlevel = dlevel+1;
 
 	dprintf(ldlevel,"msg: name: %s, func: %s\n", msg->name, msg->func);
 	info = get_agent(s, msg->name);
 	have_info = info ? true : false;
-	dprintf(dlevel,"have_info: %d\n", have_info);
+	dprintf(ldlevel,"have_info: %d\n", have_info);
 	if (have_info) dprintf(ldlevel,"info->role: %s\n", info->role);
 	if (strcmp(msg->func,"Info") == 0 && !have_info) {
 		json_value_t *v;
@@ -46,7 +46,6 @@ static void process_message(pvc_session_t *s, solard_message_t *msg) {
 
 		v = json_parse(msg->data);
 		p = json_object_get_string(json_value_object(v), "agent_role");
-		json_destroy_value(v);
 		dprintf(ldlevel,"p: %p\n", p);
 		if (p) {
 			dprintf(ldlevel,"%s: agent_role: %s\n", msg->name, p);
@@ -56,6 +55,7 @@ static void process_message(pvc_session_t *s, solard_message_t *msg) {
 			dprintf(ldlevel,"adding: %s\n", msg->name);
 			list_add(s->agents,&newinfo,sizeof(newinfo));
 		}
+		json_destroy_value(v);
 	} else if (strcmp(msg->func,"Data") == 0 && have_info && strcmp(info->role,SOLARD_ROLE_PVINVERTER) == 0) {
 		json_value_t *v;
 

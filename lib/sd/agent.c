@@ -997,6 +997,14 @@ int agent_run(solard_agent_t *ap) {
 	agent_event(ap,"Agent","Start");
 	dprintf(dlevel,"state: %d\n", ap->state);
 	while(check_state(ap,SOLARD_AGENT_STATE_RUNNING)) {
+#ifdef JS
+		/* Check every 10s if any of the JS loaded scripts have been updated and if so reload them */
+		if (ap->js.e && (ap->run_count % 10) == 0) {
+			dprintf(dlevel,"Checking if loaded JS scripts have been updated....\n");
+			JS_EngineCheckLoaded(ap->js.e);
+		}
+#endif
+
 		/* Call read func */
 		time(&cur);
 		diff = cur - last_read;

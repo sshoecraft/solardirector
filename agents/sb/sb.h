@@ -174,6 +174,7 @@ json_value_t *sb_request(sb_session_t *s, char *func, char *fields);
 list sb_get_results(sb_session_t *s, json_value_t *v);
 int sb_destroy_results(list results);
 sb_value_t *sb_get_result_value(list results, char *key);
+void sb_display_results(list results);
 
 /* JSfuncs */
 int sb_jsinit(sb_session_t *s);

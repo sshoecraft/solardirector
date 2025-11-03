@@ -385,9 +385,9 @@ if (0) {
 		new_soc = si.charge_start_level;
 	}
 	if (pround(data.battery_voltage,1) < si.charge_start_voltage) {
-		printf("new_soc: %f, si.soc: %f\n", new_soc, si.soc);
+		dprintf(dlevel,"new_soc: %f, si.soc: %f\n", new_soc, si.soc);
 		let p = pct(new_soc,si.soc);
-		printf("p: %f\n", p);
+		dprintf(dlevel,"p: %f\n", p);
 		if (p >= 10) new_soc = si.soc;
 	}
 	if (new_soc != obl) dprintf(dlevel,"FIXED: new_soc: %.1f\n", new_soc);

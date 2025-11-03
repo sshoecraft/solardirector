@@ -27,9 +27,26 @@ static int ac_agent_init(int argc, char **argv, opt_proctab_t *opts, ac_session_
 		{ "interval", DATA_TYPE_INT, 0, 0, "10", CONFIG_FLAG_NOWARN },
 		{ 0 }
 	};
+	int r;
 
 	s->ap = agent_init(argc,argv,s->version,opts,&ac_driver,s,0,ac_props,0);
 	if (!s->ap) return 1;
+
+	r = ac_can_init(s);
+	dprintf(dlevel,"r: %d\n", r);
+	if (r && ignore_wpi_flag) r = 0;
+	if (r) {
+		log_error("ac_can_init failed!\n");
+		return 1;
+	}
+	log_info("Calling wpi_init with js engine: %p\n", s->ap->js.e);
+	r = wpi_init(s->ap->js.e);
+	dprintf(dlevel,"r: %d, ignore_wpi: %d\n", r, ignore_wpi_flag);
+	if (r && ignore_wpi_flag) r = 0;
+	if (r) {
+		log_error("wpi_init failed!\n");
+		return 1;
+	}
 	return 0;
 }
 

@@ -12,6 +12,27 @@ struct can_frame {
 	uint8_t can_dlc;	/* frame payload length in byte (0 .. CAN_MAX_DLEN) */
 	uint8_t data[CAN_MAX_DLEN] __attribute__((aligned(8)));
 };
+#elif defined(__APPLE__)
+/* macOS doesn't have linux/can.h, so we define the structures ourselves */
+typedef uint32_t canid_t;
+#define CAN_MAX_DLEN 8
+#define CAN_EFF_FLAG 0x80000000U /* EFF/SFF is set in the MSB */
+#define CAN_RTR_FLAG 0x40000000U /* remote transmission request */
+#define CAN_ERR_FLAG 0x20000000U /* error message frame */
+
+/* Valid bits in CAN ID for frame formats */
+#define CAN_SFF_MASK 0x000007FFU /* standard frame format (SFF) */
+#define CAN_EFF_MASK 0x1FFFFFFFU /* extended frame format (EFF) */
+#define CAN_ERR_MASK 0x1FFFFFFFU /* omit EFF, RTR, ERR flags */
+
+struct can_frame {
+	canid_t can_id;		/* 32 bit CAN_ID + EFF/RTR/ERR flags */
+	uint8_t can_dlc;	/* frame payload length in byte (0 .. CAN_MAX_DLEN) */
+	uint8_t __pad;		/* padding */
+	uint8_t __res0;		/* reserved / padding */
+	uint8_t __res1;		/* reserved / padding */
+	uint8_t data[CAN_MAX_DLEN] __attribute__((aligned(8)));
+};
 #else
 #include <linux/can.h>
 #endif

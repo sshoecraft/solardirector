@@ -314,3 +314,91 @@ sb_value_t *sb_get_result_value(list results, char *key) {
 	dprintf(1,"NOT found\n");
 	return 0;
 }
+
+/* Display all results - key and value pairs */
+void sb_display_results(list results) {
+	sb_result_t *rp;
+	sb_value_t *vp;
+	char *p;
+	list lp;
+
+	if (!results) {
+		printf("No results to display\n");
+		return;
+	}
+
+	printf("=== SB Results ===\n");
+	list_reset(results);
+	while((rp = list_get_next(results)) != 0) {
+		if (!rp->obj) continue;
+
+		printf("Key: %s", rp->obj->key);
+		if (rp->obj->label && strlen(rp->obj->label) > 0) {
+			printf(" (%s)", rp->obj->label);
+		}
+		printf("\n");
+
+		/* Display values */
+		if (rp->values) {
+			list_reset(rp->values);
+			while((vp = list_get_next(rp->values)) != 0) {
+				printf("  Value: ");
+				switch(vp->type) {
+				case DATA_TYPE_NULL:
+					printf("(null)");
+					break;
+				case DATA_TYPE_DOUBLE:
+					if (vp->data) {
+						printf("%f", *((double *)vp->data));
+					}
+					break;
+				case DATA_TYPE_STRING:
+					if (vp->data) {
+						printf("%s", (char *)vp->data);
+					}
+					break;
+				case DATA_TYPE_STRING_LIST:
+					if (vp->data) {
+						lp = (list)vp->data;
+						printf("[");
+						list_reset(lp);
+						int first = 1;
+						while((p = list_get_next(lp)) != 0) {
+							if (!first) printf(", ");
+							printf("%s", p);
+							first = 0;
+						}
+						printf("]");
+					}
+					break;
+				default:
+					printf("(unknown type: %d)", vp->type);
+					break;
+				}
+				if (rp->obj->unit && strlen(rp->obj->unit) > 0) {
+					printf(" %s", rp->obj->unit);
+				}
+				printf("\n");
+			}
+		}
+
+		/* Display selection options if available */
+		if (rp->selects && list_count(rp->selects) > 0) {
+			printf("  Selects: ");
+			list_reset(rp->selects);
+			int first = 1;
+			while((p = list_get_next(rp->selects)) != 0) {
+				if (!first) printf(", ");
+				printf("%s", p);
+				first = 0;
+			}
+			printf("\n");
+		}
+
+		/* Display range if available */
+		if (rp->low != 0 || rp->high != 0) {
+			printf("  Range: %d - %d\n", rp->low, rp->high);
+		}
+	}
+	printf("==================\n");
+}

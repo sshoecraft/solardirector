@@ -1,5 +1,7 @@
 {
     "si": {
+        "mqtt_uri": "tcp:\/\/localhost:1883",
+        "influx_endpoint": "localhost:8086",
         "charge_mode": 1,
         "min_voltage": 41,
         "max_voltage": 58.100000000000001,
@@ -8,7 +10,7 @@
         "script_dir": ".",
         "location": "31.809158,-95.144338",
         "mirror": 1,
-        "mirror_source": "mqtt,192.168.1.142,si",
+        "mirror_source": "mqtt,192.168.1.164,si",
         "charge_feed": 1,
         "charge_start_level": 24,
         "charge_end_level": 88,

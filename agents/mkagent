@@ -1,30 +1,50 @@
 #!/bin/bash
+
+# Set proper locale to avoid illegal byte sequence errors
+export LC_ALL=C
+
 test -z "$1" && exit 1
 name=$1
 desc="$2"
 ucname=$(echo $name | tr "[:lower:]" "[:upper:]")
 test ! -d $name && cp -r template $name
 cd $name || exit 1
+
+# Rename template files
 for f in template.*
 do
 	test "$f" = "template.*" && continue
-	n=`echo $f | sed "s:template:$name:"`
+	n=$(echo $f | sed "s/template/$name/")
 	mv -v $f $n
 done
+
+# Process all files for substitutions
 for f in *
 do
 	test "$f" = "*" && continue
-	sed -i -e "s:template.h:${name}.h:" \
-		-e "s:template_:${name}_:g" \
-		-e "s:TEMPLATE_:${ucname}_:g" \
-		-e "s:\"template\":\"${name}\":g" \
-		-e "s:template:${name}:g" \
-		$f
+	# Skip binary files and directories
+	test -d "$f" && continue
+	file "$f" | grep -q text || continue
+	
+	# Use sed -i with backup for BSD/macOS compatibility
+	sed -i.bak \
+		-e "s/template\.h/${name}.h/g" \
+		-e "s/template_/${name}_/g" \
+		-e "s/TEMPLATE_/${ucname}_/g" \
+		-e "s/\"template\"/\"${name}\"/g" \
+		-e "s/template/${name}/g" \
+		"$f"
+	rm -f "$f.bak"
 done
+
+# Handle description substitution
 if test -n "$desc"; then
-	sed -i -e "s:+DESC+:$desc:" Makefile
-else
-	sed -i -e '/+DESC+/d' Makefile info.c
+	sed -i.bak -e "s/+DESC+/$desc/" Makefile
+	rm -f Makefile.bak
 fi
-sed -i -e '/^all:/d' Makefile
-sed -i -e 's:^#PROG:PROG:' Makefile
+
+# Clean up Makefile
+sed -i.bak -e '/^all:/d' Makefile
+rm -f Makefile.bak
+sed -i.bak -e 's/^#PROG/PROG/' Makefile
+rm -f Makefile.bak

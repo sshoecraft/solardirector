@@ -211,7 +211,7 @@ JS_BEGIN_EXTERN_C
  * Well-known JS values.  The extern'd variables are initialized when the
  * first JSContext is created by JS_NewContext (see below).
  */
-#define JSVAL_VOID              INT_TO_JSVAL(0 - JSVAL_INT_POW2(30))
+#define JSVAL_VOID              ((jsval)(((jsuint)(0 - JSVAL_INT_POW2(30)) << 1) | JSVAL_INT))
 #define JSVAL_NULL              OBJECT_TO_JSVAL(0)
 #define JSVAL_ZERO              INT_TO_JSVAL(0)
 #define JSVAL_ONE               INT_TO_JSVAL(1)

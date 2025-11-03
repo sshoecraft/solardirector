@@ -24,10 +24,12 @@ struct ah_session {
 	float air_in;
 	int air_out_ch;
 	float air_out;
+#ifdef WATER
 	int water_in_ch;
 	float water_in;
 	int water_out_ch;
 	float water_out;
+#endif
 	solard_agent_t *ap;
 	char last_out[128];
 	bool sim_enable;
@@ -43,6 +45,8 @@ extern solard_driver_t ah_driver;
 #define AH_MODE_COOL	1
 #define AH_MODE_HEAT	2
 #define AH_MODE_EHEAT	3
+
+#define AD_BASE 120
 
 char *get_modestr(int mode);
 

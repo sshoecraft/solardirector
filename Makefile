@@ -1,4 +1,7 @@
+<<<<<<< Updated upstream
 
+=======
+>>>>>>> Stashed changes
 # Detect platform for CPU count
 UNAME_S := $(shell uname -s)
 ifeq ($(UNAME_S),Darwin)
@@ -14,7 +17,9 @@ all:
 
 install release::
 	for d in *; do if test -f $$d/Makefile; then $(MAKE) -C $$d $@; fi; done
+ifneq ($(UNAME_S),Darwin)
 	systemctl daemon-reload
+endif
 
 clean:
 	for d in *; do if test -f $$d/Makefile; then $(MAKE) -C $$d $@; fi; done

@@ -1,0 +1,236 @@
+{% extends "base.html" %}
+
+{% block title %}Agent {{ agent_name }} - Service Controller{% endblock %}
+
+{% block content %}
+<div class="row">
+    <!-- Breadcrumb -->
+    <div class="col-12 mb-3">
+        <nav aria-label="breadcrumb">
+            <ol class="breadcrumb">
+                <li class="breadcrumb-item">
+                    <a href="{{ url_for('index') }}">Dashboard</a>
+                </li>
+                <li class="breadcrumb-item active">{{ agent_name }}</li>
+            </ol>
+        </nav>
+    </div>
+</div>
+
+<div class="row">
+    <!-- Agent Overview -->
+    <div class="col-md-8">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="mb-0">
+                    <i class="bi bi-cpu"></i> Agent Details
+                </h5>
+            </div>
+            <div class="card-body" id="agent-details">
+                <!-- Loading state -->
+                <div id="loading-agent" class="text-center py-4">
+                    <div class="spinner-border text-primary" role="status">
+                        <span class="visually-hidden">Loading...</span>
+                    </div>
+                    <div class="mt-2">Loading agent details...</div>
+                </div>
+                
+                <!-- Agent not found -->
+                <div id="agent-not-found" class="text-center py-4 d-none">
+                    <i class="bi bi-exclamation-triangle display-1 text-warning"></i>
+                    <div class="mt-2">Agent not found</div>
+                    <a href="{{ url_for('index') }}" class="btn btn-primary mt-3">
+                        <i class="bi bi-arrow-left"></i> Back to Dashboard
+                    </a>
+                </div>
+                
+                <!-- Agent details content -->
+                <div id="agent-content" class="d-none">
+                    <div class="row">
+                        <div class="col-md-6">
+                            <table class="table table-borderless">
+                                <tr>
+                                    <td><strong>Name:</strong></td>
+                                    <td id="agent-name">-</td>
+                                </tr>
+                                <tr>
+                                    <td><strong>Role:</strong></td>
+                                    <td><span id="agent-role" class="badge">-</span></td>
+                                </tr>
+                                <tr>
+                                    <td><strong>Version:</strong></td>
+                                    <td id="agent-version">-</td>
+                                </tr>
+                                <tr>
+                                    <td><strong>Path:</strong></td>
+                                    <td><code id="agent-path">-</code></td>
+                                </tr>
+                                <tr>
+                                    <td><strong>Status:</strong></td>
+                                    <td><span id="agent-status" class="badge">-</span></td>
+                                </tr>
+                                <tr>
+                                    <td><strong>Health:</strong></td>
+                                    <td><span id="agent-health" class="badge">-</span></td>
+                                </tr>
+                            </table>
+                        </div>
+                        <div class="col-md-6">
+                            <table class="table table-borderless">
+                                <tr>
+                                    <td><strong>Service Status:</strong></td>
+                                    <td><span id="service-status" class="badge">-</span></td>
+                                </tr>
+                                <tr>
+                                    <td><strong>Last Seen:</strong></td>
+                                    <td id="agent-last-seen">-</td>
+                                </tr>
+                                <tr>
+                                    <td><strong>Last Status:</strong></td>
+                                    <td id="agent-last-status">-</td>
+                                </tr>
+                                <tr>
+                                    <td><strong>Last Data:</strong></td>
+                                    <td id="agent-last-data">-</td>
+                                </tr>
+                                <tr>
+                                    <td><strong>Have Status:</strong></td>
+                                    <td><span id="have-status" class="badge">-</span></td>
+                                </tr>
+                                <tr>
+                                    <td><strong>Have Data:</strong></td>
+                                    <td><span id="have-data" class="badge">-</span></td>
+                                </tr>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Status Data -->
+        <div class="card mt-4" id="status-data-card" style="display: none;">
+            <div class="card-header">
+                <h5 class="mb-0">
+                    <i class="bi bi-bar-chart"></i> Status Data
+                </h5>
+            </div>
+            <div class="card-body">
+                <pre id="status-data-content" class="bg-light p-3 rounded"></pre>
+            </div>
+        </div>
+        
+        <!-- Config Data -->
+        <div class="card mt-4" id="config-data-card" style="display: none;">
+            <div class="card-header">
+                <h5 class="mb-0">
+                    <i class="bi bi-gear"></i> Configuration Data
+                </h5>
+            </div>
+            <div class="card-body">
+                <pre id="config-data-content" class="bg-light p-3 rounded"></pre>
+            </div>
+        </div>
+        
+        <!-- Info Data -->
+        <div class="card mt-4" id="info-data-card" style="display: none;">
+            <div class="card-header">
+                <h5 class="mb-0">
+                    <i class="bi bi-info-circle"></i> Agent Information
+                </h5>
+            </div>
+            <div class="card-body">
+                <pre id="info-data-content" class="bg-light p-3 rounded"></pre>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Agent Actions -->
+    <div class="col-md-4">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="mb-0">
+                    <i class="bi bi-play-circle"></i> Agent Actions
+                </h5>
+            </div>
+            <div class="card-body">
+                <div class="d-grid gap-2">
+                    <button class="btn btn-success" onclick="performAction('start')">
+                        <i class="bi bi-play-fill"></i> Start Service
+                    </button>
+                    <button class="btn btn-danger" onclick="performAction('stop')">
+                        <i class="bi bi-stop-fill"></i> Stop Service
+                    </button>
+                    <button class="btn btn-warning" onclick="performAction('restart')">
+                        <i class="bi bi-arrow-repeat"></i> Restart Service
+                    </button>
+                    <hr>
+                    <button class="btn btn-outline-primary" onclick="performAction('enable')">
+                        <i class="bi bi-check-circle"></i> Enable Service
+                    </button>
+                    <button class="btn btn-outline-secondary" onclick="performAction('disable')">
+                        <i class="bi bi-x-circle"></i> Disable Service
+                    </button>
+                    <hr>
+                    <button class="btn btn-info" onclick="refreshAgentData()">
+                        <i class="bi bi-arrow-clockwise"></i> Refresh Data
+                    </button>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Quick Stats -->
+        <div class="card mt-4">
+            <div class="card-header">
+                <h5 class="mb-0">
+                    <i class="bi bi-speedometer2"></i> Quick Stats
+                </h5>
+            </div>
+            <div class="card-body">
+                <div class="text-center">
+                    <div class="row">
+                        <div class="col-6">
+                            <div class="p-2">
+                                <div class="h4 text-primary" id="uptime-display">-</div>
+                                <div class="small text-muted">Uptime</div>
+                            </div>
+                        </div>
+                        <div class="col-6">
+                            <div class="p-2">
+                                <div class="h4 text-info" id="data-age">-</div>
+                                <div class="small text-muted">Data Age</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Action Confirmation Modal -->
+<div class="modal fade" id="actionModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Confirm Action</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <p id="action-confirm-text">Are you sure you want to perform this action?</p>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                <button type="button" class="btn btn-primary" id="confirm-action-btn">Confirm</button>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+    const agentName = "{{ agent_name }}";
+</script>
+<script src="{{ url_for('static', filename='js/agent.js') }}"></script>
+{% endblock %}

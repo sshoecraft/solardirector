@@ -1,4 +1,73 @@
+#ifdef __APPLE__
+/* Stub CAN driver for macOS since native CAN is not supported */
+#include "transports.h"
 
+static void *can_new_stub(void *target, void *topts) {
+	return 0;
+}
+
+static int can_destroy_stub(void *handle) {
+	return 0;
+}
+
+static int can_open_stub(void *handle) {
+	return -1;
+}
+
+static int can_close_stub(void *handle) {
+	return 0;
+}
+
+static int can_read_stub(void *handle, uint32_t *control, void *buf, int buflen) {
+	return -1;
+}
+
+static int can_write_stub(void *handle, uint32_t *control, void *buf, int buflen) {
+	return -1;
+}
+
+static int can_config_stub(void *handle, int func, ...) {
+	return -1;
+}
+
+solard_driver_t can_driver = {
+	"can",
+	can_new_stub,
+	can_destroy_stub,
+	can_open_stub,
+	can_close_stub,
+	can_read_stub,
+	can_write_stub,
+	can_config_stub
+};
+
+#ifdef JS
+#include "jsapi.h"
+
+static JSClass js_can_class = {
+	"CAN",
+	JSCLASS_HAS_PRIVATE,
+	JS_PropertyStub,
+	JS_PropertyStub,
+	JS_PropertyStub,
+	JS_PropertyStub,
+	JS_EnumerateStub,
+	JS_ResolveStub,
+	JS_ConvertStub,
+	JS_FinalizeStub,
+	JSCLASS_NO_OPTIONAL_MEMBERS
+};
+
+JSObject *js_can_new(JSContext *cx, JSObject *parent, void *priv) {
+	JSObject *newobj;
+	newobj = JS_NewObject(cx, &js_can_class, 0, parent);
+	if (!newobj) return 0;
+	JS_SetPrivate(cx,newobj,priv);
+	return newobj;
+}
+#endif /* JS */
+
+#else
 /*
 Copyright (c) 2021, Stephen P. Shoecraft
 All rights reserved.
@@ -1698,3 +1767,4 @@ JSObject *js_can_new(JSContext *cx, JSObject *parent, void *priv) {
 	return newobj;
 }
 #endif /* JS */
+#endif /* __APPLE__ */

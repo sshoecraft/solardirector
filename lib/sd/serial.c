@@ -1,3 +1,240 @@
+#ifdef __APPLE__
+/* macOS version of serial driver */
+#include "transports.h"
+#include <fcntl.h>
+#include <termios.h>
+#include <sys/ioctl.h>
+#include <sys/select.h>
+#include <unistd.h>
+#include <errno.h>
+#include <string.h>
+#include "debug.h"
+
+#define dlevel 7
+#define DEFAULT_SPEED 9600
+
+struct serial_session {
+	int fd;
+	char target[256];
+	int speed,data,stop,parity,vmin,vtime;
+};
+typedef struct serial_session serial_session_t;
+
+static int serial_read_direct(void *handle, uint32_t *control, void *buf, int buflen) {
+	serial_session_t *s = handle;
+	int bytes;
+	struct timeval tv;
+	fd_set rfds;
+	int num;
+
+	if (!buf || !buflen) return 0;
+
+	/* See if there's anything to read */
+	FD_ZERO(&rfds);
+	FD_SET(s->fd,&rfds);
+	tv.tv_usec = 500000;
+	tv.tv_sec = 0;
+	num = select(s->fd+1,&rfds,0,0,&tv);
+	if (num < 1) {
+		bytes = 0;
+		goto serial_read_done;
+	}
+
+	/* Read */
+	bytes = read(s->fd, buf, buflen);
+	if (bytes < 0) bytes = 0;
+
+serial_read_done:
+	return bytes;
+}
+
+static void *serial_new(void *target, void *topts) {
+	serial_session_t *s;
+	char *p;
+
+	s = calloc(1,sizeof(*s));
+	if (!s) return 0;
+
+	s->fd = -1;
+	strncat(s->target,target ? (char*)target : "",sizeof(s->target)-1);
+
+	/* TOPTS:  Baud, data, parity, stop, vmin, vtime */
+	/* Defaults: 9600, 8, N, 1, 0, 5 */
+
+	/* Baud rate */
+	p = topts ? strele(0,",",(char*)topts) : "";
+	s->speed = atoi(p);
+	if (!s->speed) s->speed = DEFAULT_SPEED;
+
+	/* Data bits */
+	p = topts ? strele(1,",",(char*)topts) : "";
+	s->data = atoi(p);
+	if (!s->data) s->data = 8;
+
+	/* Parity */
+	p = topts ? strele(2,",",(char*)topts) : "";
+	if (strlen(p)) {
+		switch(p[0]) {
+		case 'N':
+		default:
+			s->parity = 0;
+			break;
+		case 'E':
+			s->parity = 1;
+			break;
+		case 'O':
+			s->parity = 2;
+			break;
+		}
+	}
+
+	/* Stop */
+	p = topts ? strele(3,",",(char*)topts) : "";
+	s->stop = atoi(p);
+	if (!s->stop) s->stop = 1;
+
+	/* vmin */
+	p = topts ? strele(4,",",(char*)topts) : "";
+	s->vmin = atoi(p);
+	if (!s->vmin) s->vmin = 0;
+
+	/* vtime */
+	p = topts ? strele(5,",",(char*)topts) : "";
+	s->vtime = atoi(p);
+	if (!s->vtime) s->vtime = 5;
+
+	return s;
+}
+
+static int set_interface_attribs(int fd, int speed, int data, int parity, int stop, int vmin, int vtime) {
+	struct termios tty;
+	int rate;
+
+	// Don't block
+	fcntl(fd, F_SETFL, FNDELAY);
+
+	// Get current device tty
+	tcgetattr(fd, &tty);
+
+	/* Use raw mode */
+	cfmakeraw(&tty);
+
+	tty.c_cc[VMIN]  = vmin;
+	tty.c_cc[VTIME] = vtime;
+
+	/* Baud */
+	switch(speed) {
+	case 9600:      rate = B9600;    break;
+	case 19200:     rate = B19200;   break;
+	case 1200:      rate = B1200;    break;
+	case 2400:      rate = B2400;    break;
+	case 4800:      rate = B4800;    break;
+	case 38400:     rate = B38400;   break;
+	case 57600:     rate = B57600;   break;
+	case 115200:	rate = B115200;   break;
+	case 230400:	rate = B230400;   break;
+	default:
+		rate = B9600;
+		break;
+	}
+	cfsetispeed(&tty, rate);
+	cfsetospeed(&tty, rate);
+
+	/* Data bits */
+	switch(data) {
+		case 5: tty.c_cflag = (tty.c_cflag & ~CSIZE) | CS5; break;
+		case 6: tty.c_cflag = (tty.c_cflag & ~CSIZE) | CS6; break;
+		case 7: tty.c_cflag = (tty.c_cflag & ~CSIZE) | CS7; break;
+		case 8: default: tty.c_cflag = (tty.c_cflag & ~CSIZE) | CS8; break;
+	}
+
+	/* Stop bits (2 = 2, any other value = 1) */
+	tty.c_cflag &= ~CSTOPB;
+	if (stop == 2) tty.c_cflag |= CSTOPB;
+	else tty.c_cflag &= ~CSTOPB;
+
+	/* Parity (0=none, 1=even, 2=odd */
+        tty.c_cflag &= ~(PARENB | PARODD);
+	switch(parity) {
+		case 1: tty.c_cflag |= PARENB; break;
+		case 2: tty.c_cflag |= PARODD; break;
+		default: break;
+	}
+
+	// do it
+	tcsetattr(fd, TCSANOW, &tty);
+	tcflush(fd,TCIOFLUSH);
+	return 0;
+}
+
+static int serial_open(void *handle) {
+	serial_session_t *s = handle;
+	char path[256];
+
+	strcpy(path,s->target);
+	if ((access(path,0)) != 0) {
+		if (strncmp(path,"/dev",4) != 0) {
+			sprintf(path,"/dev/%s",s->target);
+		}
+	}
+	s->fd = open(path, O_RDWR | O_NOCTTY);
+	if (s->fd < 0) {
+		return 1;
+	}
+	usleep(1000);
+	set_interface_attribs(s->fd, s->speed, s->data, s->parity, s->stop, s->vmin, s->vtime);
+
+	return 0;
+}
+
+static int serial_read(void *handle, uint32_t *control, void *buf, int buflen) {
+	return serial_read_direct(handle,control,buf,buflen);
+}
+
+static int serial_write(void *handle, uint32_t *control, void *buf, int buflen) {
+	serial_session_t *s = handle;
+	int bytes;
+	int bytes_left = buflen;
+	do {
+		bytes = write(s->fd,buf,bytes_left);
+		if (bytes > 0) bytes_left -= bytes;
+	} while(bytes >= 0 && bytes_left);
+	return bytes;
+}
+
+static int serial_close(void *handle) {
+	serial_session_t *s = handle;
+	if (s->fd >= 0) {
+		tcflush(s->fd, TCIFLUSH);
+		close(s->fd);
+		s->fd = -1;
+	}
+	return 0;
+}
+
+static int serial_config(void *h, int func, ...) {
+	return 1;
+}
+
+static int serial_destroy(void *handle) {
+	serial_session_t *s = handle;
+        serial_close(s);
+        free(s);
+        return 0;
+}
+
+solard_driver_t serial_driver = {
+	"serial",
+	serial_new,
+	serial_destroy,
+	serial_open,
+	serial_close,
+	serial_read,
+	serial_write,
+	serial_config
+};
+
+#else
 /*
 Copyright (c) 2021, Stephen P. Shoecraft
 All rights reserved.
@@ -462,3 +699,4 @@ solard_driver_t serial_driver = {
 	serial_write,
 	serial_config
 };
+#endif /* !__APPLE_ */

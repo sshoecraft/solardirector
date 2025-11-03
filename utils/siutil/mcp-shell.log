@@ -1,0 +1,7 @@
+{"level":"info","message":"MCP Shell Server started","timestamp":"2025-08-12T21:32:09.886Z"}
+{"level":"info","message":"Shell: /bin/zsh","timestamp":"2025-08-12T21:32:09.887Z"}
+{"level":"info","message":"Working Directory: /Users/steve","timestamp":"2025-08-12T21:32:09.887Z"}
+{"level":"info","message":"Platform: darwin","timestamp":"2025-08-12T21:32:09.887Z"}
+{"level":"info","message":"Hostname: Mac-mini.localdomain","timestamp":"2025-08-12T21:32:09.887Z"}
+{"level":"info","message":"Username: steve","timestamp":"2025-08-12T21:32:09.888Z"}
+{"level":"info","message":"MCP Shell Server ready","timestamp":"2025-08-12T21:32:09.888Z"}

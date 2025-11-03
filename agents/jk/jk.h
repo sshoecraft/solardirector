@@ -69,6 +69,8 @@ struct jk_session {
 	uint8_t balancing;		/* 0=off, 1=on, 2=only when charging */
 	int errcode;			/* error indicator */
 	char errmsg[256];		/* Error message if errcode !0 */
+	bool retry_tp;			/* retry transport connection */
+	int wait_time;			/* number of seconds to wait between retries */
 #ifdef JS
 	JSPropertySpec *props;
 	JSPropertySpec *data_props;

@@ -377,7 +377,9 @@ const char *getBuild() { //Get current architecture, detectx nearly every archit
 #undef strdup
 #undef free
 #endif
+#ifndef __APPLE__
 #include <malloc.h>
+#endif
 
 #ifdef __WINDOWS__
 #include <windows.h>
@@ -426,6 +428,16 @@ size_t sys_mem_used(void) {
 	CloseHandle( hProcess );
 	return used;
 #endif
+}
+#elif defined(__APPLE__)
+#include <mach/mach.h>
+size_t sys_mem_used(void) {
+	struct mach_task_basic_info info;
+	mach_msg_type_number_t size = sizeof(info);
+	if (task_info(mach_task_self(), MACH_TASK_BASIC_INFO, (task_info_t)&info, &size) == KERN_SUCCESS) {
+		return info.resident_size;
+	}
+	return 0;
 }
 #else 
 #include <malloc.h>

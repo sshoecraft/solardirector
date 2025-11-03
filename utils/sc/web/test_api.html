@@ -1,0 +1,232 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>API Test Page</title>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 20px; }
+        .test-section { margin: 20px 0; padding: 15px; border: 1px solid #ccc; border-radius: 5px; }
+        .result { margin-top: 10px; padding: 10px; background-color: #f5f5f5; border-radius: 3px; }
+        .success { background-color: #d4edda; color: #155724; }
+        .error { background-color: #f8d7da; color: #721c24; }
+        button { padding: 8px 16px; margin: 5px; }
+        pre { white-space: pre-wrap; word-wrap: break-word; }
+    </style>
+</head>
+<body>
+    <h1>Service Controller API Test Page</h1>
+    <p>This page tests the API endpoints directly to debug connectivity issues.</p>
+    
+    <div class="test-section">
+        <h3>Test 1: Available Agents API</h3>
+        <button onclick="testAvailableAgents()">Test /api/available-agents</button>
+        <div id="test1-result" class="result" style="display: none;"></div>
+    </div>
+    
+    <div class="test-section">
+        <h3>Test 2: All Agents API</h3>
+        <button onclick="testAllAgents()">Test /api/agents</button>
+        <div id="test2-result" class="result" style="display: none;"></div>
+    </div>
+    
+    <div class="test-section">
+        <h3>Test 3: System Status API</h3>
+        <button onclick="testSystemStatus()">Test /api/system/status</button>
+        <div id="test3-result" class="result" style="display: none;"></div>
+    </div>
+    
+    <div class="test-section">
+        <h3>Test 4: Direct Fetch with Debug</h3>
+        <button onclick="testDirectFetch()">Test Direct fetch() to /api/available-agents</button>
+        <div id="test4-result" class="result" style="display: none;"></div>
+    </div>
+    
+    <div class="test-section">
+        <h3>Test 5: Test Port 5001 Directly</h3>
+        <button onclick="testPort5001()">Test http://localhost:5001/api/available-agents</button>
+        <div id="test5-result" class="result" style="display: none;"></div>
+    </div>
+
+    <script>
+        // Helper function to display results
+        function showResult(testId, success, message, data = null) {
+            const resultDiv = document.getElementById(testId + '-result');
+            resultDiv.style.display = 'block';
+            resultDiv.className = 'result ' + (success ? 'success' : 'error');
+            
+            let content = `<strong>${success ? 'SUCCESS' : 'ERROR'}:</strong> ${message}`;
+            if (data) {
+                content += `<br><strong>Data:</strong><pre>${JSON.stringify(data, null, 2)}</pre>`;
+            }
+            resultDiv.innerHTML = content;
+        }
+
+        // Test available agents endpoint
+        async function testAvailableAgents() {
+            console.log('Testing /api/available-agents...');
+            try {
+                const response = await fetch('/api/available-agents');
+                console.log('Response status:', response.status);
+                console.log('Response headers:', response.headers);
+                
+                if (!response.ok) {
+                    throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+                }
+                
+                const data = await response.json();
+                console.log('Response data:', data);
+                
+                showResult('test1', true, 
+                    `API returned ${data.available_agents?.length || 0} available agents`, 
+                    data);
+                    
+            } catch (error) {
+                console.error('Test failed:', error);
+                showResult('test1', false, `Request failed: ${error.message}`);
+            }
+        }
+
+        // Test all agents endpoint
+        async function testAllAgents() {
+            console.log('Testing /api/agents...');
+            try {
+                const response = await fetch('/api/agents');
+                console.log('Response status:', response.status);
+                
+                if (!response.ok) {
+                    throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+                }
+                
+                const data = await response.json();
+                console.log('Response data:', data);
+                
+                showResult('test2', true, 
+                    `API returned ${data.agents?.length || 0} managed agents`, 
+                    data);
+                    
+            } catch (error) {
+                console.error('Test failed:', error);
+                showResult('test2', false, `Request failed: ${error.message}`);
+            }
+        }
+
+        // Test system status endpoint
+        async function testSystemStatus() {
+            console.log('Testing /api/system/status...');
+            try {
+                const response = await fetch('/api/system/status');
+                console.log('Response status:', response.status);
+                
+                if (!response.ok) {
+                    throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+                }
+                
+                const data = await response.json();
+                console.log('Response data:', data);
+                
+                showResult('test3', true, 'System status retrieved successfully', data);
+                    
+            } catch (error) {
+                console.error('Test failed:', error);
+                showResult('test3', false, `Request failed: ${error.message}`);
+            }
+        }
+
+        // Test with maximum debugging
+        async function testDirectFetch() {
+            console.log('=== DIRECT FETCH TEST ===');
+            
+            try {
+                console.log('Making fetch request to /api/available-agents...');
+                console.log('Current location:', window.location.href);
+                console.log('Base URL:', window.location.origin);
+                
+                const startTime = performance.now();
+                const response = await fetch('/api/available-agents', {
+                    method: 'GET',
+                    headers: {
+                        'Accept': 'application/json',
+                        'Content-Type': 'application/json'
+                    }
+                });
+                const endTime = performance.now();
+                
+                console.log(`Request completed in ${endTime - startTime}ms`);
+                console.log('Response object:', response);
+                console.log('Response status:', response.status);
+                console.log('Response statusText:', response.statusText);
+                console.log('Response headers:');
+                for (const [key, value] of response.headers.entries()) {
+                    console.log(`  ${key}: ${value}`);
+                }
+                
+                if (!response.ok) {
+                    const errorText = await response.text();
+                    console.log('Error response body:', errorText);
+                    throw new Error(`HTTP ${response.status}: ${response.statusText}\nBody: ${errorText}`);
+                }
+                
+                const responseText = await response.text();
+                console.log('Raw response text:', responseText);
+                
+                let data;
+                try {
+                    data = JSON.parse(responseText);
+                    console.log('Parsed JSON data:', data);
+                } catch (parseError) {
+                    console.error('JSON parse error:', parseError);
+                    throw new Error(`Failed to parse JSON: ${parseError.message}\nResponse: ${responseText}`);
+                }
+                
+                showResult('test4', true, 
+                    `Direct fetch successful! Found ${data.available_agents?.length || 0} agents`, 
+                    data);
+                    
+            } catch (error) {
+                console.error('=== DIRECT FETCH ERROR ===');
+                console.error('Error object:', error);
+                console.error('Error message:', error.message);
+                console.error('Error stack:', error.stack);
+                
+                showResult('test4', false, `Direct fetch failed: ${error.message}`);
+            }
+        }
+
+        // Test port 5001 directly
+        async function testPort5001() {
+            console.log('Testing http://localhost:5001/api/available-agents...');
+            try {
+                const response = await fetch('http://localhost:5001/api/available-agents');
+                console.log('Response status:', response.status);
+                
+                if (!response.ok) {
+                    throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+                }
+                
+                const data = await response.json();
+                console.log('Response data:', data);
+                
+                showResult('test5', true, 
+                    `Port 5001 API returned ${data.available_agents?.length || 0} available agents`, 
+                    data);
+                    
+            } catch (error) {
+                console.error('Test failed:', error);
+                showResult('test5', false, `Request failed: ${error.message}`);
+            }
+        }
+
+        // Auto-run basic test on page load
+        window.addEventListener('load', function() {
+            console.log('=== API TEST PAGE LOADED ===');
+            console.log('Current URL:', window.location.href);
+            console.log('Running automatic test...');
+            
+            setTimeout(() => {
+                testAvailableAgents();
+            }, 1000);
+        });
+    </script>
+</body>
+</html>

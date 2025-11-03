@@ -1,7 +1,0 @@
- 
-
-var a$b = 1;
-
-//printf("a: %s\n", a);
-//printf("b: %s\n", b);
-printf("a$b: %s\n", a$b);

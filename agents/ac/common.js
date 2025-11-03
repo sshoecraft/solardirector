@@ -15,7 +15,7 @@ function common_get_state(name,objs,def) {
 
 function common_set_state(name,label,objs,newstate) {
 
-	let dlevel = 2;
+	let dlevel = 1;
 
 	dprintf(dlevel,"name: %s\n", name);
 	let obj = objs[name];
@@ -25,7 +25,7 @@ function common_set_state(name,label,objs,newstate) {
 	ssfunc = label + "_statestr";
 	dprintf(dlevel,"ssfunc: %s\n", ssfunc);
 	if (newstate != obj.state) {
-		log_verbose("%ss[%s]: state: %s -> %s\n", label, name,
+		log_info("%ss[%s]: state: %s -> %s\n", label, name,
 			window[ssfunc](obj.state),window[ssfunc](newstate));
 		obj.state = newstate;
 	}

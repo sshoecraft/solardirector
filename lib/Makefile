@@ -1,10 +1,18 @@
 
+<<<<<<< Updated upstream
 # Detect platform for CPU count
 UNAME_S := $(shell uname -s)
 ifeq ($(UNAME_S),Darwin)
 	MAKE_JOBS?=$(shell sysctl -n hw.ncpu)
 else
 	MAKE_JOBS?=$(shell cat /proc/cpuinfo | grep -c ^processor)
+=======
+UNAME_S := $(shell uname -s)
+ifeq ($(UNAME_S),Darwin)
+    MAKE_JOBS?=$(shell sysctl -n hw.ncpu)
+else
+    MAKE_JOBS?=$(shell cat /proc/cpuinfo | grep -c ^processor)
+>>>>>>> Stashed changes
 endif
 
 all:

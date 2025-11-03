@@ -151,7 +151,15 @@ function get_influx(info) {
 //		dumpobj(ac[vname]);
 	}
 
-	return influx2obj(i.query(sprintf("SELECT %s FROM ac", fn)));
+	if (fn.toLowerCase().indexOf("select") < 0) {
+		fn = "SELECT " + fn;
+		dprintf(1,"NEW fn: %s\n", fn);
+	}
+	if (fn.toLowerCase().indexOf("from") < 0) {
+		fn = fn + " FROM ac";
+		dprintf(1,"NEW fn: %s\n", fn);
+	}
+	return influx2obj(i.query(fn));
 }
 
 function get_influx_value(info) {

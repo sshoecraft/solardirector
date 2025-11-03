@@ -10,6 +10,9 @@ LICENSE file in the root directory of this source tree.
 #ifndef __SMANET_H
 #define __SMANET_H
 
+#include <stdbool.h>
+#include <stdint.h>
+#include <time.h>
 #include "list.h"
 
 /* Channel type */

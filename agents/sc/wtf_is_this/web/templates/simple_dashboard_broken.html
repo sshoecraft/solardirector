@@ -1,0 +1,445 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Service Controller Dashboard</title>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 20px; }
+        .container { max-width: 1200px; margin: 0 auto; }
+        .card { border: 1px solid #ddd; border-radius: 5px; margin: 10px 0; padding: 15px; }
+        .stats { display: flex; gap: 20px; margin: 20px 0; }
+        .stat { padding: 15px; border: 1px solid #ccc; border-radius: 5px; text-align: center; }
+        .stat h3 { margin: 0 0 5px 0; }
+        .stat p { margin: 0; color: #666; }
+        table { width: 100%; border-collapse: collapse; margin: 20px 0; }
+        th, td { padding: 10px; text-align: left; border-bottom: 1px solid #ddd; }
+        th { background-color: #f5f5f5; }
+        .status-online { color: green; font-weight: bold; }
+        .status-offline { color: red; font-weight: bold; }
+        .health-healthy { color: green; }
+        .health-warning { color: orange; }
+        .health-offline { color: red; }
+        .btn { padding: 5px 10px; margin: 2px; border: none; border-radius: 3px; cursor: pointer; }
+        .btn-success { background-color: #28a745; color: white; }
+        .btn-danger { background-color: #dc3545; color: white; }
+        .btn-info { background-color: #17a2b8; color: white; }
+        .refresh-btn { float: right; }
+        #loading { text-align: center; margin: 20px; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Service Controller Dashboard
+            <button class="btn btn-success refresh-btn" onclick="loadData()">Refresh</button>
+        </h1>
+        
+        <div class="card">
+            <h2>System Overview</h2>
+            <div class="stats">
+                <div class="stat">
+                    <h3 id="total-agents">-</h3>
+                    <p>Total Agents</p>
+                </div>
+                <div class="stat">
+                    <h3 id="online-agents">-</h3>
+                    <p>Online</p>
+                </div>
+                <div class="stat">
+                    <h3 id="offline-agents">-</h3>
+                    <p>Offline</p>
+                </div>
+                <div class="stat">
+                    <h3 id="last-discovery">-</h3>
+                    <p>Last Discovery</p>
+                </div>
+            </div>
+        </div>
+
+        <div class="card">
+            <h2>Agents</h2>
+            <div id="loading">Loading agents...</div>
+            <table id="agents-table" style="display: none;">
+                <thead>
+                    <tr>
+                        <th>Name</th>
+                        <th>Role</th>
+                        <th>Version</th>
+                        <th>Status</th>
+                        <th>Health</th>
+                        <th>Path</th>
+                        <th>Service</th>
+                        <th>Actions</th>
+                    </tr>
+                </thead>
+                <tbody id="agents-tbody">
+                </tbody>
+            </table>
+        </div>
+
+        <div class="card">
+            <h2>Add Agent</h2>
+            <div style="margin: 10px 0;">
+                <label>Available Agents:</label>
+                <select id="available-agents" style="margin: 0 10px; padding: 5px;">
+                    <option value="">Loading...</option>
+                </select>
+                <button class="btn btn-success" onclick="addSelectedAgent()">Add Agent</button>
+            </div>
+            <div id="add-agent-result" style="margin: 10px 0;"></div>
+        </div>
+    </div>
+
+    <script>
+        let systemData = {};
+        let agentsData = {};
+
+        function loadData() {
+            Promise.all([
+                fetch('/api/system/status').then(r => r.json()),
+                fetch('/api/agents').then(r => r.json()),
+                fetch('/api/available-agents').then(r => r.json())
+            ]).then(([system, agents, available]) => {
+                systemData = system;
+                agentsData = agents;
+                updateUI();
+                updateAvailableAgents(available);
+            }).catch(err => {
+                console.error('Error loading data:', err);
+                document.getElementById('loading').innerHTML = 'Error loading data: ' + err;
+            });
+        }
+
+        function updateUI() {
+            // Update system stats
+            document.getElementById('total-agents').textContent = systemData.total_agents || 0;
+            document.getElementById('online-agents').textContent = systemData.online_agents || 0;
+            document.getElementById('offline-agents').textContent = systemData.offline_agents || 0;
+            document.getElementById('last-discovery').textContent = 
+                systemData.last_discovery ? new Date(systemData.last_discovery * 1000).toLocaleTimeString() : 'Never';
+
+            // Update agents table
+            const tbody = document.getElementById('agents-tbody');
+            tbody.innerHTML = '';
+            
+            if (agentsData.agents && agentsData.agents.length > 0) {
+                agentsData.agents.forEach(agent => {
+                    const row = tbody.insertRow();
+                    row.innerHTML = `
+                        <td>${agent.name}</td>
+                        <td>${agent.role}</td>
+                        <td>${agent.version}</td>
+                        <td class="status-${agent.online ? 'online' : 'offline'}">${agent.status}</td>
+                        <td class="health-${agent.health.toLowerCase()}">${agent.health}</td>
+                        <td style="font-size: 0.8em;">${agent.path}</td>
+                        <td style="font-size: 0.8em;">${agent.service_status || 'unknown'}</td>
+                        <td>
+                            ${agent.online ? 
+                                `<button class="btn btn-danger" onclick="stopAgent('${agent.name}')">Stop</button>
+                                 <button class="btn btn-success" onclick="restartAgent('${agent.name}')">Restart</button>` :
+                                `<button class="btn btn-success" onclick="startAgent('${agent.name}')">Start</button>`
+                            }
+                            <button class="btn btn-danger" onclick="removeAgent('${agent.name}')">Remove</button>
+                            <button class="btn btn-info" onclick="viewLogs('${agent.name}')">Logs</button>
+                        </td>
+                    `;
+                });
+                document.getElementById('agents-table').style.display = 'table';
+                document.getElementById('loading').style.display = 'none';
+            } else {
+                document.getElementById('loading').innerHTML = 'No agents found';
+            }
+        }
+
+        function updateAvailableAgents(available) {
+            const select = document.getElementById('available-agents');
+            select.innerHTML = '<option value="">Select an agent...</option>';
+            
+            if (available.agents) {
+                available.agents.forEach(agent => {
+                    const option = document.createElement('option');
+                    option.value = JSON.stringify({name: agent.name, path: agent.path});
+                    option.textContent = agent.name;
+                    select.appendChild(option);
+                });
+            }
+        }
+
+        function addSelectedAgent() {
+            const select = document.getElementById('available-agents');
+            const resultDiv = document.getElementById('add-agent-result');
+            
+            if (!select.value) {
+                resultDiv.innerHTML = '<div style="color: red;">Please select an agent</div>';
+                return;
+            }
+
+            const agent = JSON.parse(select.value);
+            
+            fetch('/api/agents/add', {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify(agent)
+            })
+            .then(r => r.json())
+            .then(data => {
+                if (data.error) {
+                    resultDiv.innerHTML = `<div style="color: red;">Error: ${data.error}</div>`;
+                } else {
+                    resultDiv.innerHTML = `<div style="color: green;">${data.message}</div>`;
+                    setTimeout(() => {
+                        loadData();
+                        resultDiv.innerHTML = '';
+                    }, 2000);
+                }
+            })
+            .catch(err => {
+                resultDiv.innerHTML = `<div style="color: red;">Error: ${err}</div>`;
+            });
+        }
+
+        function startAgent(name) {
+            fetch('/api/agents/start', {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({name: name})
+            })
+            .then(r => r.json())
+            .then(data => {
+                if (data.error) {
+                    alert('Error: ' + data.error);
+                } else {
+                    alert(data.message);
+                    setTimeout(loadData, 2000); // Refresh after 2 seconds
+                }
+            })
+            .catch(err => {
+                alert('Error: ' + err);
+            });
+        }
+
+        function stopAgent(name) {
+            if (!confirm(`Stop agent ${name}?`)) return;
+            
+            fetch('/api/agents/stop', {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({name: name})
+            })
+            .then(r => r.json())
+            .then(data => {
+                if (data.error) {
+                    alert('Error: ' + data.error);
+                } else {
+                    alert(data.message);
+                    setTimeout(loadData, 2000); // Refresh after 2 seconds
+                }
+            })
+            .catch(err => {
+                alert('Error: ' + err);
+            });
+        }
+
+        function restartAgent(name) {
+            if (!confirm(`Restart agent ${name}?`)) return;
+            
+            fetch('/api/agents/restart', {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({name: name})
+            })
+            .then(r => r.json())
+            .then(data => {
+                if (data.error) {
+                    alert('Error: ' + data.error);
+                } else {
+                    alert(data.message);
+                    setTimeout(loadData, 3000); // Refresh after 3 seconds for restart
+                }
+            })
+            .catch(err => {
+                alert('Error: ' + err);
+            });
+        }
+
+        function removeAgent(name) {
+            if (!confirm(`Remove agent ${name} from monitoring?`)) return;
+            
+            fetch('/api/agents/remove', {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({name: name})
+            })
+            .then(r => r.json())
+            .then(data => {
+                if (data.error) {
+                    alert('Error: ' + data.error);
+                } else {
+                    loadData();
+                }
+            })
+            .catch(err => {
+                alert('Error: ' + err);
+            });
+        }
+
+        function viewLogs(agentName) {
+            // Open a new popup window for log viewing
+            const popup = window.open('', 'logs_' + agentName, 
+                'width=800,height=600,scrollbars=yes,resizable=yes,menubar=no,toolbar=no,location=no,status=no');
+            
+            if (!popup) {
+                alert('Popup blocked! Please allow popups for this site.');
+                return;
+            }
+
+            // Create the popup content
+            const popupContent = `<!DOCTYPE html>
+<html>
+<head>
+    <title>Logs - ${agentName}</title>
+                    <style>
+                        body { font-family: monospace; margin: 10px; background: #1e1e1e; color: #d4d4d4; }
+                        .header { background: #2d2d30; padding: 10px; margin: -10px -10px 10px -10px; border-bottom: 1px solid #3e3e42; }
+                        .header h3 { margin: 0; color: #ffffff; }
+                        .controls { margin: 10px 0; }
+                        .controls button { margin-right: 10px; padding: 5px 10px; background: #0e639c; color: white; border: none; border-radius: 3px; cursor: pointer; }
+                        .controls button:hover { background: #1177bb; }
+                        .log-container { 
+                            height: 450px; 
+                            overflow-y: auto; 
+                            background: #1e1e1e; 
+                            border: 1px solid #3e3e42; 
+                            padding: 10px; 
+                            font-size: 12px; 
+                            line-height: 1.4;
+                            white-space: pre-wrap;
+                        }
+                        .error { color: #f44747; }
+                        .warning { color: #ffcc02; }
+                        .info { color: #569cd6; }
+                        .timestamp { color: #608b4e; }
+                    </style>
+                </head>
+                <body>
+                    <div class="header">
+                        <h3>Agent Logs: ${agentName}</h3>
+                    </div>
+                    <div class="controls">
+                        <button onclick="toggleAutoScroll()">Toggle Auto-scroll</button>
+                        <button onclick="clearLogs()">Clear Display</button>
+                        <button onclick="refreshLogs()">Refresh</button>
+                        <span id="status">Loading...</span>
+                    </div>
+                    <div id="logs" class="log-container"></div>
+                    
+                    <script>
+                        let autoScroll = true;
+                        let eventSource = null;
+                        const logsContainer = document.getElementById('logs');
+                        const statusSpan = document.getElementById('status');
+                        
+                        function scrollToBottom() {
+                            if (autoScroll) {
+                                logsContainer.scrollTop = logsContainer.scrollHeight;
+                            }
+                        }
+                        
+                        function toggleAutoScroll() {
+                            autoScroll = !autoScroll;
+                            statusSpan.textContent = autoScroll ? 'Auto-scroll: ON' : 'Auto-scroll: OFF';
+                        }
+                        
+                        function clearLogs() {
+                            logsContainer.innerHTML = '';
+                        }
+                        
+                        function refreshLogs() {
+                            loadInitialLogs();
+                        }
+                        
+                        function formatLogLine(line) {
+                            // Simple log formatting - highlight errors, warnings, timestamps
+                            line = line.replace(/ERROR/gi, '<span class="error">ERROR</span>');
+                            line = line.replace(/WARN(ING)?/gi, '<span class="warning">WARNING</span>');
+                            line = line.replace(/INFO/gi, '<span class="info">INFO</span>');
+                            line = line.replace(/(\\d{4}-\\d{2}-\\d{2}[T ]\\d{2}:\\d{2}:\\d{2})/g, '<span class="timestamp">$1</span>');
+                            return line;
+                        }
+                        
+                        function loadInitialLogs() {
+                            fetch('/api/agents/logs/' + agentName + '?lines=100')
+                                .then(r => r.json())
+                                .then(data => {
+                                    if (data.error) {
+                                        logsContainer.innerHTML = '<span class="error">Error: ' + data.error + '</span>';
+                                        statusSpan.textContent = 'Error loading logs';
+                                    } else {
+                                        const lines = data.content.split('\\n');
+                                        logsContainer.innerHTML = lines.map(formatLogLine).join('\\n');
+                                        statusSpan.textContent = 'Loaded ' + lines.length + ' lines';
+                                        scrollToBottom();
+                                        startStreaming();
+                                    }
+                                })
+                                .catch(err => {
+                                    logsContainer.innerHTML = '<span class="error">Failed to load logs: ' + err + '</span>';
+                                    statusSpan.textContent = 'Connection error';
+                                });
+                        }
+                        
+                        function startStreaming() {
+                            if (eventSource) {
+                                eventSource.close();
+                            }
+                            
+                            eventSource = new EventSource('/api/agents/logs/' + agentName + '/stream');
+                            
+                            eventSource.onmessage = function(event) {
+                                if (event.data && event.data.trim()) {
+                                    const formattedLine = formatLogLine(event.data);
+                                    logsContainer.innerHTML += '\\n' + formattedLine;
+                                    scrollToBottom();
+                                }
+                            };
+                            
+                            eventSource.onerror = function(event) {
+                                statusSpan.textContent = 'Stream disconnected';
+                                setTimeout(() => {
+                                    if (!eventSource || eventSource.readyState === EventSource.CLOSED) {
+                                        statusSpan.textContent = 'Reconnecting...';
+                                        startStreaming();
+                                    }
+                                }, 5000);
+                            };
+                            
+                            eventSource.onopen = function(event) {
+                                statusSpan.textContent = 'Live streaming';
+                            };
+                        }
+                        
+                        // Handle window close
+                        window.addEventListener('beforeunload', function() {
+                            if (eventSource) {
+                                eventSource.close();
+                            }
+                        });
+                        
+                        // Start loading logs
+                        loadInitialLogs();
+                    </script>
+                </body>
+                </html>`;
+            
+            popup.document.write(popupContent);
+            popup.document.close();
+        }
+
+        // Auto-refresh every 5 seconds
+        setInterval(loadData, 5000);
+        
+        // Initial load
+        loadData();
+    </script>
+</body>
+</html>

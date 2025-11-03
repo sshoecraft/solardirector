@@ -14,8 +14,8 @@ function read_main() {
 		if (typeof(pump) == "undefined") continue;
 		// Pump settled will only be set if it has a valid temp_in sensor
 		dprintf(dlevel,"pump[%s]: state: %s, settled: %s\n", unit.pump, pump_statestr(pump.state), pump.settled);
-		if (pump.state == PUMP_STATE_RUNNING && pump.settled) {
-			ac.water_temp = pump.temp_in;
+		if (pump.state == PUMP_STATE_RUNNING) {
+			if (pump.settled && pump.temp_in >= -50 && pump.temp_in < 150) ac.water_temp = pump.temp_in;
 			have_temp = true;
 			break;
 		}
@@ -33,7 +33,7 @@ function read_main() {
 			dprintf(dlevel,"pump[%s]: %s\n", fan.pump, pump);
 			if (typeof(pump) == "undefined") continue;
 			dprintf(dlevel,"pump[%s]: state: %s\n", fan.pump, pump_statestr(pump.state));
-			if (pump.state == PUMP_STATE_RUNNING && pump.settled) {
+			if (pump.state == PUMP_STATE_RUNNING && pump.settled && pump.temp_in >= -50 && pump.temp_in < 150) {
 				ac.water_temp = pump.temp_in;
 				have_temp = true;
 				break;

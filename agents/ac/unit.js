@@ -36,10 +36,7 @@ function _unit_init(name,unit) {
 	let found = false;
 	for(let key in pumps) {
 		if (key == unit.pump) {
-			found = true;
-			break;
-		}
-	}
+			found = true; break; } }
 	dprintf(dlevel,"found: %s\n", found);
 	if (!found) {
 		config.errmsg = sprintf("unit %s specifies pump %s which doesnt exist\n", name, unit.pump);
@@ -60,12 +57,16 @@ function _unit_init(name,unit) {
 		unit.mode = AC_MODE_HEAT;
 		unit.refs = 1;
 	} else {
-		if (unit.rvpin >= 0 && digitalRead(unit.rvpin)) {
-			if (unit.rvcool) unit.mode = AC_MODE_COOL;
-			else unit.mode = AC_MODE_HEAT;
-		}
 		unit_set_state(name,UNIT_STATE_STOPPED);
 		unit.refs = 0;
+		// Set reversing valve to match configured mode when stopped
+		if (unit.rvpin >= 0 && !unit.rvevery) {
+			if (ac.mode == AC_MODE_COOL) {
+				set_pin(unit.rvpin, unit.rvcool ? HIGH : LOW);
+			} else if (ac.mode == AC_MODE_HEAT) {
+				set_pin(unit.rvpin, unit.rvcool ? LOW : HIGH);
+			}
+		}
 	}
 	dprintf(dlevel,"unit[%s]: state: %s, mode: %s, refs: %d\n", name, unit_statestr(unit.state), ac_modestr(unit.mode), unit.refs)
 	unit.error = false;
@@ -374,7 +375,7 @@ function unit_statestr(state) {
 
 function unit_revoke(name) {
 
-	let dlevel = 1;
+	let dlevel = -1;
 
 	dprintf(dlevel,"name: %s\n", name);
 
@@ -386,5 +387,6 @@ function unit_revoke(name) {
 	}
 	dprintf(dlevel,"unit[%s]: state: %s\n", name, unit_statestr(unit.state));
 	log_info("revoke request received for unit %s\n", name);
+	unit.refs = 1;
 	return unit_stop(name);
 }

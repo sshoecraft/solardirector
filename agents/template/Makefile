@@ -2,8 +2,7 @@
 NAME=$(shell basename $(shell pwd))
 
 #PROGNAME=$(NAME)
-SRCS=main.c config.c driver.c info.c jsfuncs.c
-CFLAGS+=-DAGENT_NAME=\"$(NAME)\"
+SRCS=main.c driver.c jsfuncs.c
 
 SERVICE_NAME=$(NAME)
 SERVICE_DESC="+DESC+"

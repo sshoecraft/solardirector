@@ -44,9 +44,9 @@
 #define JS_VERSION 180
 #endif
 
-#define	JS_ARENAMETER		1
-#define JS_GCMETER		1
-#define JS_OPMETER		1
+#define	JS_ARENAMETER		0
+#define JS_GCMETER		0
+#define JS_OPMETER		0
 #define JS_HAS_STR_HTML_HELPERS 1       /* has str.anchor, str.bold, etc. */
 #define JS_HAS_PERL_SUBSTR      1       /* has str.substr */
 #define JS_HAS_OBJ_PROTO_PROP   1       /* has o.__proto__ etc. */

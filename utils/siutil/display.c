@@ -166,6 +166,7 @@ void dodump(si_session_t *s, int id) {
 #endif
 
 void display_data(si_session_t *s,int mon_flag) {
+	ddouble("TotLodPwr","%3.2f",s->data.TotLodPwr);
 	_outpower("Active Grid",s->data.active_grid_l1,s->data.active_grid_l2,s->data.active_grid_l3);
 	_outpower("Active SI",s->data.active_si_l1,s->data.active_si_l2,s->data.active_si_l3);
 	_outpower("Reactive Grid",s->data.reactive_grid_l1,s->data.reactive_grid_l2,s->data.reactive_grid_l3);
@@ -254,10 +255,11 @@ void display_data(si_session_t *s,int mon_flag) {
 	_dint("Charging procedure",s->data.charging_proc);
 	_dint("State",s->data.state);
 	_dint("Error Message",s->data.errmsg);
-	ddouble("TotLodPwr","%3.2f",s->data.TotLodPwr);
+#if 0
 	ddouble("PVPwrAt","%3.2f",s->data.PVPwrAt);
 	ddouble("GdCsmpPwrAt","%3.2f",s->data.GdCsmpPwrAt);
 	ddouble("GdFeedPwr","%3.2f",s->data.GdFeedPwr);
+#endif
 #endif
 }
 

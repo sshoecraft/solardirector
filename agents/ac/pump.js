@@ -115,8 +115,12 @@ function pump_on(name,pump) {
 }
 
 function pump_start(name) {
-//	dprintf(-1,"==> caller: %s\n", getCallerFunctionName());
-	return common_start(name,"pump",pumps);
+	let r = common_start(name,"pump",pumps);
+	if (!r) {
+		let pump = pumps[name];
+		dprintf(1,"pump[%s]: state: %s\n", name, pump_statestr(pump.state));
+		if (pump.state == PUMP_STATE_COOLDOWN) pump.state = PUMP_STATE_RUNNING;
+	}
 }
 
 function pump_off(name,pump) {
@@ -147,6 +151,8 @@ function pump_cooldown(name,pump) {
 }
 
 function pump_stop(name) {
+	// XXX if it's in CD already skip it
+	if (pumps[name].state == PUMP_STATE_COOLDOWN) return 0;
 	return common_stop(name,"pump",pumps,pump_cooldown,false)
 }
 
@@ -289,5 +295,6 @@ function pump_revoke(name) {
 		return 1;
 	}
 	dprintf(dlevel,"pump[%s]: state: %s\n", name, pump_statestr(pump.state));
+	pump.refs = 1;
 	pump_stop(name);
 }

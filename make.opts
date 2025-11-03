@@ -19,6 +19,7 @@ LIBTYPE?=standard
 JS?=yes
 MQTT?=yes
 INFLUX?=yes
+BLUETOOTH?=no
 
 # Global setting to append to logfile or not
 SERVICE_APPEND?=yes

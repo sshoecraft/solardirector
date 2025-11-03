@@ -269,7 +269,15 @@ static int js_init(JSContext *cx, JSObject *parent, void *priv) {
 }
 
 int jsinit(ac_session_t *s) {
+	int r;
+
 	dprintf(dlevel,"s->ap->js.e: %p\n", s->ap->js.e);
+
+	/* Initialize WiringPi JavaScript bindings */
+	dprintf(dlevel,"Calling wpi_init...\n");
+	r = wpi_init(s->ap->js.e);
+	dprintf(dlevel,"wpi_init returned: %d\n", r);
+
 	JS_EngineAddInitFunc(s->ap->js.e, ac_driver.name, js_init, s);
 	return 0;
 }

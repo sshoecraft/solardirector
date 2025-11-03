@@ -32,7 +32,6 @@ LICENSE file in the root directory of this source tree.
 #include "debug.h"
 
 struct js_initfuncinfo {
-//	char *name;
 	char name[64];
 	int type;
 	union {
@@ -43,26 +42,110 @@ struct js_initfuncinfo {
 };
 typedef struct js_initfuncinfo js_initfuncinfo_t;
 
+struct _js_engine_rootinfo {
+        JSContext *cx;
+        void *rp;
+        char name[128];
+};
+
+typedef struct _js_engine_rootinfo js_engine_rootinfo_t;
+int JS_EngineAddRoot(JSContext *cx, char *name, void *rp) {
+	JSObject *global;
+	JSEngine *e = 0;
+        js_engine_rootinfo_t ri;
+        jsval *vp = rp;
+        JSBool ok;
+
+        int ldlevel = 6;
+
+	/* dont add anything not affected by GC */
+	dprintf(ldlevel,"name: %s, rp: %p, ISGCTHING: %d\n", name, rp, vp ? JSVAL_IS_GCTHING(*vp) : 0);
+	if (!vp || !JSVAL_IS_GCTHING(*vp)) return 0;
+
+	dprintf(ldlevel,"cx: %p\n", cx);
+	if (!cx) return 1;
+	global = JS_GetGlobalObject(cx);
+	dprintf(ldlevel,"global: %p\n", global);
+	if (!global) return 1;
+	e = JS_GetPrivate(cx,global);
+	dprintf(ldlevel,"e: %p\n", e);
+	if (!e) return 1;
+
+	/* add the root */
+	strncpy(ri.name,name,sizeof(ri.name));
+	ok = JS_AddNamedRoot(cx,rp,ri.name);
+	dprintf(ldlevel,"ok: %d\n", ok);
+	if (!ok) {
+		JS_ReportError(cx,"error adding root for name: %s", name);
+		return 1;
+	}
+	ri.cx = cx;
+	ri.rp = rp;
+	list_add(e->roots,&ri,sizeof(ri));
+	return 0;
+}
+
+int JS_EngineRemoveRoot(JSContext *cx, void *rp) {
+	JSObject *global;
+	JSEngine *e = 0;
+        js_engine_rootinfo_t *rip;
+
+        int ldlevel = 1;
+
+	dprintf(ldlevel,"cx: %p\n", cx);
+	if (!cx) return 1;
+	global = JS_GetGlobalObject(cx);
+	dprintf(ldlevel,"global: %p\n", global);
+	if (!global) return 1;
+	e = JS_GetPrivate(cx,global);
+	dprintf(ldlevel,"e: %p\n", e);
+	if (!e) return 1;
+
+	list_reset(e->roots);
+	while((rip = list_get_next(e->roots)) != 0) {
+		if (rip->rp == rp) {
+			list_delete(e->roots,rip);
+		}
+	}
+	JS_RemoveRoot(cx,rp);
+	return 0;
+}
+
 #if SCRIPT_CACHE
 struct _scriptinfo {
 	JSEngine *e;
 	char filename[256];
 	int modtime;
 	JSScript *script;
-//	JSObject *obj;
 	JSTempValueRooter tvr;
 	int exitcode;
 };
 typedef struct _scriptinfo scriptinfo_t;
 
-struct _js_engine_rootinfo {
-        JSContext *cx;
-        void *rp;
-        char name[128];
-};
-typedef struct _js_engine_rootinfo js_engine_rootinfo_t;
-
 static int _cstrings_set = 0;
+
+static JSContext *_getcx(JSEngine *e, int lock, int mknew) {
+	if (!e) return 0;
+	dprintf(dlevel,"e->cx: %p, mknew: %d\n", e->cx, mknew);
+	if (!e->cx && mknew) {
+		e->cx = JS_EngineNewContext(e);
+		if (!e->cx) return 0;
+		e->obj = JS_GetGlobalObject(e->cx);
+	}
+	dprintf(dlevel,"e->cx: %p, lock: %d\n", e->cx, lock);
+	if (e->cx && lock) {
+		dprintf(dlevel,"locking global cx\n");
+		pthread_mutex_lock(&e->lockcx);
+	}
+	dprintf(dlevel,"returning cx: %p\n", e->cx);
+	return e->cx;
+}
+
+static void _relcx(JSEngine *e) {
+	if (!e) return;
+	dprintf(dlevel,"unlocking global cx\n");
+	pthread_mutex_unlock(&e->lockcx);
+}
 
 static time_t _getmodtime(char *filename) {
 	struct stat sb;
@@ -99,41 +182,48 @@ static scriptinfo_t *_getsinfo(JSEngine *e, char *filename, int add) {
 
 static int _chkscript(JSContext *cx, scriptinfo_t *sp) {
 	time_t mt;
+	int r;
 
-	dprintf(dlevel,"scriptinfo: sp: %p, e: %p, filename: %s, modtime: %d, script: %p\n", sp,
+	int ldlevel = dlevel;
+
+	dprintf(ldlevel,"scriptinfo: sp: %p, e: %p, filename: %s, modtime: %d, script: %p\n", sp,
 		sp->e, sp->filename, sp->modtime, sp->script);
 
 	mt = _getmodtime(sp->filename);
-	dprintf(dlevel,"mt: %ld, modtime: %ld\n", mt, sp->modtime);
-//	if (!sp->script || sp->modtime != mt) {
+	dprintf(ldlevel,"mt: %ld, modtime: %ld\n", mt, sp->modtime);
 	if (sp->script && sp->modtime == mt) {
-		return 2;
+		r = 2;
 	} else {
-		dprintf(dlevel,"script: %p\n", sp->script);
+		r = 1;
+		dprintf(ldlevel,"script: %p\n", sp->script);
 		if (sp->script) {
 			/* Removing the root will cause GC to destroy the script */
 			JS_RemoveRoot(cx, &sp->script->object);
 		}
 		JS_BeginRequest(cx);
 		sp->script = JS_CompileFile(cx, JS_GetGlobalObject(cx), sp->filename);
-		dprintf(dlevel,"script: %p\n", sp->script);
-		if (!sp->script) {
-			JS_EndRequest(cx);
-			return 1;
+		dprintf(ldlevel,"script: %p\n", sp->script);
+		if (sp->script) {
+			JS_NewScriptObject(cx, sp->script);
+			dprintf(ldlevel,"script->object: %p\n", sp->script->object);
+			if (sp->script->object) {
+				dprintf(ldlevel,"adding named root...\n");
+				if (JS_AddNamedRoot(cx, &sp->script->object, sp->filename)) {
+					dprintf(ldlevel,"updating modtime...\n");
+					sp->modtime = mt;
+					r = 0;
+				}
+			}
 		}
-		JS_NewScriptObject(cx, sp->script);
-		dprintf(dlevel,"script->object: %p\n", sp->script->object);
-		if (!sp->script->object) {
-			JS_DestroyScript(cx, sp->script);
+		dprintf(ldlevel,"r: %d\n", r);
+		if (r) {
+			if (sp->script) JS_DestroyScript(cx, sp->script);
+			JS_EndRequest(cx);
 			sp->script = 0;
-			JS_EndRequest(cx);
-			return 1;
 		}
-		if (!JS_AddNamedRoot(cx, &sp->script->object, sp->filename)) return 1;
-		JS_EndRequest(cx);
-		sp->modtime = mt;
 	}
-	return 0;
+	dprintf(ldlevel,"returning: %d\n", r);
+	return r;
 }
 #endif
 
@@ -290,26 +380,6 @@ JS_EngineNewContext_error:
 	return 0;
 }
 
-static JSContext *_getcx(JSEngine *e, int lock, int mknew) {
-	if (!e) return 0;
-	if (lock) {
-		dprintf(dlevel,"locking global cx\n");
-		pthread_mutex_lock(&e->lockcx);
-	}
-	if (!e->cx && mknew) {
-		e->cx = JS_EngineNewContext(e);
-		if (!e->cx) return 0;
-		e->obj = JS_GetGlobalObject(e->cx);
-	}
-	dprintf(dlevel,"returning cx: %p\n", e->cx);
-	return e->cx;
-}
-
-static void _relcx(JSEngine *e) {
-	if (!e) return;
-	dprintf(dlevel,"unlocking global cx\n");
-	pthread_mutex_unlock(&e->lockcx);
-}
 
 JSEngine *JS_EngineInit(int rtsize, int stacksize, js_outputfunc_t *output) {
 	JSEngine *e;
@@ -338,6 +408,8 @@ JSEngine *JS_EngineInit(int rtsize, int stacksize, js_outputfunc_t *output) {
 	e->initfuncs = list_create();
 	pthread_mutex_init(&e->lockcx, 0);
 	e->roots = list_create();
+	e->loaded = list_create();
+	
 
 	dprintf(dlevel,"e: %p\n", e);
 	return e;
@@ -348,6 +420,7 @@ JS_EngineInit_error:
 	return 0;
 }
 
+#if 0
 JSEngine *JS_DupEngine(JSEngine *old) {
 	JSEngine *e;
 
@@ -360,6 +433,7 @@ JSEngine *JS_DupEngine(JSEngine *old) {
 
 	return e;
 }
+#endif
 
 int JS_EngineDestroy(JSEngine *e) {
 #if SCRIPT_CACHE
@@ -368,6 +442,7 @@ int JS_EngineDestroy(JSEngine *e) {
 
 	dprintf(dlevel,"e: %p\n", e);
 	if (!e) return 1;
+	
 
 #if SCRIPT_CACHE
 	list_reset(e->scripts);
@@ -625,6 +700,79 @@ int JS_EngineExecString(JSEngine *e, char *string) {
 	return (ok ? 0 : 1);
 }
 
+int JS_EngineLoadScript(JSEngine *e, char *path) {
+    JSContext *cx;
+    int r;
+
+	cx = _getcx(e,0,0);
+    if (!cx) return 1;
+    r = _JS_EngineExec(e, path, cx, 0, 0, 0, 0);
+    if (!r) list_add(e->loaded,path,strlen(path)+1);
+    _relcx(e);
+    return 0;
+}
+
+int JS_EngineCheckLoaded(JSEngine *e) {
+    JSContext *cx;
+    char *p;
+    int reloaded = 0;
+    
+    int ldlevel = dlevel;
+
+    if (!e) return 0;
+    
+    dprintf(ldlevel,"JS_EngineCheckLoaded: checking loaded scripts for engine %p\n", e);
+    
+    /* Get context with proper locking for thread safety */
+    cx = _getcx(e,1,0);
+    if (!cx) {
+	return 0;
+    }
+    
+    /* Check loaded scripts for modifications and reload if needed */
+    list_reset(e->loaded);
+#if SCRIPT_CACHE
+    while((p = list_get_next(e->loaded)) != 0) {
+        scriptinfo_t *sinfo;
+        int r;
+
+        dprintf(ldlevel,"checking loaded script: %s\n", p);
+        sinfo = _getsinfo(e,p,0);
+        dprintf(ldlevel,"sinfo: %p\n", sinfo);
+        if (!sinfo) continue;
+        
+        /* Check if script has been modified and reload if necessary */
+        r = _chkscript(cx, sinfo);
+        dprintf(ldlevel,"_chkscript returned: %d (0=recompiled, 1=error, 2=unchanged)\n", r);
+        
+        if (r == 0) {
+            /* Script was recompiled, re-execute it to reload */
+            jsval rval;
+            JSBool ok;
+            
+            dprintf(-1,"Script %s was modified, re-executing...\n", p);
+            JS_BeginRequest(cx);
+            ok = JS_ExecuteScript(cx, JS_GetGlobalObject(cx), sinfo->script, &rval);
+            JS_EndRequest(cx);
+            
+            if (ok) {
+                dprintf(ldlevel,"Successfully reloaded script: %s\n", p);
+                reloaded++;
+            } else {
+                dprintf(ldlevel,"Error reloading script: %s\n", p);
+                JS_ReportPendingException(cx);
+            }
+        } else if (r == 1) {
+            dprintf(ldlevel,"Error checking/compiling script: %s\n", p);
+        }
+    }
+#endif
+    
+    _relcx(e);
+    dprintf(ldlevel,"JS_EngineCheckLoaded: completed, reloaded %d scripts\n", reloaded);
+    return reloaded;
+}
+
 #if 0
 char *JS_EngineGetErrmsg(JSEngine *e) {
 	if (!e) return "";
@@ -643,6 +791,7 @@ void JS_EngineCleanup(JSEngine *e) {
 	return;
 }
 
+#if 0
 int JS_GetValue(JSEngine *e, char *name, int type, void *dest, int dsize) {
         JSContext *cx;
         JSBool ok;
@@ -659,65 +808,4 @@ int JS_GetValue(JSEngine *e, char *name, int type, void *dest, int dsize) {
 	_relcx(e);
 	return (ok != JS_TRUE);
 }
-
-int JS_EngineAddRoot(JSContext *cx, char *name, void *rp) {
-	JSObject *global;
-	JSEngine *e = 0;
-        js_engine_rootinfo_t ri;
-        jsval *vp = rp;
-        JSBool ok;
-
-        int ldlevel = 6;
-
-	/* dont add anything not affected by GC */
-	dprintf(ldlevel,"name: %s, rp: %p, ISGCTHING: %d\n", name, rp, vp ? JSVAL_IS_GCTHING(*vp) : 0);
-	if (!vp || !JSVAL_IS_GCTHING(*vp)) return 0;
-
-	dprintf(ldlevel,"cx: %p\n", cx);
-	if (!cx) return 1;
-	global = JS_GetGlobalObject(cx);
-	dprintf(ldlevel,"global: %p\n", global);
-	if (!global) return 1;
-	e = JS_GetPrivate(cx,global);
-	dprintf(ldlevel,"e: %p\n", e);
-	if (!e) return 1;
-
-	/* add the root */
-	strncpy(ri.name,name,sizeof(ri.name));
-	ok = JS_AddNamedRoot(cx,rp,ri.name);
-	dprintf(ldlevel,"ok: %d\n", ok);
-	if (!ok) {
-		JS_ReportError(cx,"error adding root for name: %s", name);
-		return 1;
-	}
-	ri.cx = cx;
-	ri.rp = rp;
-	list_add(e->roots,&ri,sizeof(ri));
-	return 0;
-}
-
-int JS_EngineRemoveRoot(JSContext *cx, void *rp) {
-	JSObject *global;
-	JSEngine *e = 0;
-        js_engine_rootinfo_t *rip;
-
-        int ldlevel = 1;
-
-	dprintf(ldlevel,"cx: %p\n", cx);
-	if (!cx) return 1;
-	global = JS_GetGlobalObject(cx);
-	dprintf(ldlevel,"global: %p\n", global);
-	if (!global) return 1;
-	e = JS_GetPrivate(cx,global);
-	dprintf(ldlevel,"e: %p\n", e);
-	if (!e) return 1;
-
-	list_reset(e->roots);
-	while((rip = list_get_next(e->roots)) != 0) {
-		if (rip->rp == rp) {
-			list_delete(e->roots,rip);
-		}
-	}
-	JS_RemoveRoot(cx,rp);
-	return 0;
-}
+#endif

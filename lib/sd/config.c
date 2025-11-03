@@ -3247,8 +3247,11 @@ static int _js_config_add_props(config_t *cp, JSContext *cx, JSObject *parent, J
 	dprintf(ldlevel,"sname: %s\n", sname);
 	sec = config_get_section(cp,sname);
 	if (!sec) {
-		sprintf(cp->errmsg,"add_props: section '%s' not found", sname);
-		return 1;
+        sec = config_create_section(cp,sname,0);
+        if (!sec) {
+    		sprintf(cp->errmsg,"add_props: section '%s' not found and unable to create", sname);
+    		return 1;
+        }
 	}
 
 	if (!js_GetLengthProperty(cx, arr, &count)) {

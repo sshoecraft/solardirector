@@ -94,7 +94,7 @@ function get_wt() {
 			log_error("get_wt: unable to get timespec for day_start %d days ago\n", k-1);
 			return INVALID_TEMP;
 		}
-		let q2 = sprintf("select mean(f) from outside_temp where time >= '%s' and time < '%s'%s", p2, p3, tz);
+		let q2 = sprintf("select mean(temp) from ac where time >= '%s' and time < '%s'%s", p2, p3, tz);
 		dprintf(dlevel,"q2: %s\n", q2);
 		let r2 = influx2arr(influx.query(q2));
 		dprintf(dlevel,"r2: %s\n", r2);
@@ -135,7 +135,7 @@ function mode_auto() {
 }
 
 function mode_set(mode_str) {
-	dprintf(-1,"mode_str: %s\n", mode_str.toLowerCase());
+	dprintf(1,"mode_str: %s\n", mode_str.toLowerCase());
 	switch(mode_str.toLowerCase()) {
 	case "auto":
 		mode_auto();

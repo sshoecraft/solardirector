@@ -1,3 +1,4 @@
+<<<<<<< Updated upstream
 
 # Platform detection - check for macOS first
 UNAME_S := $(shell uname -s)
@@ -8,8 +9,16 @@ ifeq ($(UNAME_S),Darwin)
 	endif
 endif
 
+=======
+# Auto-detect platform if TARGET not set
+>>>>>>> Stashed changes
 ifeq ($(TARGET),)
-	TARGET=linux
+	UNAME_S := $(shell uname -s)
+	ifeq ($(UNAME_S),Darwin)
+		TARGET=macos
+	else
+		TARGET=linux
+	endif
 endif
 
 CFLAGS+=-I.
@@ -88,6 +97,37 @@ else ifeq ($(TARGET),win32)
 	DEST_INCDIR=$(DEST_IPREFIX)/include
 	DEST_LIBDIR=$(DEST_IPREFIX)/lib
 	DYNAMIC=no
+else ifeq ($(TARGET),macos)
+	ARCH=macos
+	OS=Darwin
+	CC=clang
+	AR=ar
+	RANLIB=ranlib
+	STRIP=strip
+	CFLAGS+=-DMACOS -D_DARWIN_C_SOURCE
+	# Check for Homebrew and MacPorts common locations
+	ifeq ($(shell test -d /opt/homebrew/include && echo yes),yes)
+		CFLAGS+=-I/opt/homebrew/include
+		LDFLAGS+=-L/opt/homebrew/lib
+		# Add rpath for homebrew libraries
+		LDFLAGS+=-Wl,-rpath,/opt/homebrew/lib
+	else ifeq ($(shell test -d /usr/local/include && echo yes),yes)
+		CFLAGS+=-I/usr/local/include
+		LDFLAGS+=-L/usr/local/lib
+		# Add rpath for local libraries
+		LDFLAGS+=-Wl,-rpath,/usr/local/lib
+	endif
+	ifeq ($(shell test -d /opt/local/include && echo yes),yes)
+		CFLAGS+=-I/opt/local/include
+		LDFLAGS+=-L/opt/local/lib
+		# Add rpath for macports libraries
+		LDFLAGS+=-Wl,-rpath,/opt/local/lib
+	endif
+	DEST_BASE=/usr/local
+	DEST_PREFIX=$(DEST_BASE)
+	DEST_BINDIR=$(DEST_PREFIX)/bin
+	DEST_INCDIR=$(DEST_IPREFIX)/include
+	DEST_LIBDIR=$(DEST_IPREFIX)/lib
 else ifeq ($(TARGET),solaris)
 	MACH := $(shell uname -p)
 	ARCH=solaris_$(MACH)
@@ -155,6 +195,10 @@ ifeq ($(BITS),)
 	ifneq "$(findstring armv7l,$(MACH))" ""
 		BITS=32
 	endif
+	# Handle Apple Silicon
+	ifneq "$(findstring arm64,$(MACH))" ""
+		BITS=64
+	endif
 endif
 
 # SRC_ROOT is wherever we are at
@@ -171,17 +215,20 @@ DEPDIR := .deps
 CLEANFILES+=.deps
 DEPFLAGS = -MT $@ -MMD -MP -MF $(DEPDIR)/$*$(OBJSUFFIX).d
 
-FULLCC = $(CC) $(DEPFLAGS) $(CFLAGS) $(CPPFLAGS)
+#FULLCC = $(CC) $(DEPFLAGS) $(CFLAGS) $(CPPFLAGS) $(LDFLAGS)
+COMPILE = $(CC) $(DEPFLAGS) $(CFLAGS)
+#LINK = $(CC) $(DEPFLAGS) $(LDFLAGS)
+LINK = $(CC) $(DEPFLAGS) $(LDFLAGS)
 
 .SUFFIXES: .c .o .so
 
 ##%.o : %.c
 %$(OBJSUFFIX).o : %.c $(DEPDIR)/%$(OBJSUFFIX).d | $(DEPDIR)
-	$(FULLCC) -c $< -o $@
+	$(COMPILE) -c $< -o $@
 
 #%.so : %.c
 %$(OBJSUFFIX).so : %.c $(DEPDIR)/%$(OBJSUFFIX).d | $(DEPDIR)
-	$(FULLCC) -fPIC -c $< -o $@
+	$(COMPILE) -fPIC -c $< -o $@
 
 $(DEPDIR): ; @mkdir -p $@
 
@@ -293,6 +340,9 @@ ifeq ($(LIBTYPE),shared)
 ifeq ($(OS),Windows)
 LIBEXT=.dll
 SHLDADD+=-Wl,--export-all-symbols -Wl,--enable-auto-import
+else ifeq ($(OS),Darwin)
+LIBEXT=.dylib
+SHLDADD+=-dynamiclib -install_name @rpath/lib$(LIBNAME)$(LIBSUFFIX)$(LIBEXT)
 else
 LIBEXT=.so
 endif
@@ -302,8 +352,7 @@ SOBJS+=$(SRCS:%.c=%$(OBJSUFFIX).so)
 _all: $(SLIB)
 
 $(SLIB): $(SOBJS)
-#	$(CC) $(LDADD) $(SHLDADD) -shared -o $(SLIB) $(SOBJS) $(SHAREDLIBS)
-	$(FULLCC) $(LDADD) $(SHLDADD) -shared -o $(SLIB) $(SOBJS) $(SHAREDLIBS)
+	$(LINK) $(LDADD) $(SHLDADD) -shared -o $(SLIB) $(SOBJS) $(SHAREDLIBS)
 
 else # LIBTYPE
 
@@ -339,7 +388,13 @@ else #  LIBNAME
 ifneq ($(PROGNAME),)
 # Static binary?
 ifeq ($(_DOSTATIC),yes)
-LDADD+=-static
+	# macOS doesn't support -static flag, disable it
+	ifeq ($(TARGET),macos)
+		# On macOS, we can't use -static but we can prefer static libs
+		# The linker will choose static over dynamic when both are available
+	else
+		LDADD+=-static
+	endif
 else
 # Dynamic binary?
 ifeq ($(DYNAMIC),yes)
@@ -371,9 +426,15 @@ $(PROG): $(_PROG_SCRIPT)
 		> $@
 	chmod +x $(PROG)
 else
+#$(LINK) $(CFLAGS) $(LDFLAGS) $(LDADD) -o $(PROG) $(OBJS) $(LIBS) $(ENDLIBS)
 $(PROG): $(OBJS) $(DEPS)
+<<<<<<< Updated upstream
 #	$(FULLCC) $(LDADD) -o $(PROG) $(OBJS) $(LIBS) $(ENDLIBS)
 	$(CC) $(CFLAGS) $(LDADD) $(LDFLAGS) -o $(PROG) $(OBJS) $(LIBS) $(ENDLIBS)
+=======
+#	$(LINK) $(LDADD) -o $(PROG) $(OBJS) $(LIBS) $(ENDLIBS)
+	$(LINK) -o $(PROG) $(OBJS) $(LIBS) $(ENDLIBS)
+>>>>>>> Stashed changes
 endif
 
 debug: $(PROG)
@@ -388,12 +449,15 @@ SERVICE=$(PROGNAME).service
 endif
 PROGCONF=$(PROGNAME).conf
 
+# Only use systemd on Linux
+ifeq ($(OS),Linux)
 ifneq ("$(wildcard $(SERVICE_T))","")
 	_SERVICE=/etc/systemd/system/$(SERVICE)
 else
 	ifneq ("$(wildcard $(SERVICE))","")
 		_SERVICE=/etc/systemd/system/$(SERVICE)
 	endif
+endif
 endif
 
 _doinstall: $(PROG) $(_SERVICE)
@@ -419,14 +483,19 @@ endif
 ifneq ("$(wildcard $(FILES))","")
 	rm -f $(LIBDIR)/$(FILES)
 endif
+# Only manage systemd services on Linux
+ifeq ($(OS),Linux)
 ifneq ("$(wildcard $(_SERVICE))","")
 	systemctl stop $(SERVICE)
 	systemctl disable $(SERVICE)
 	rm -f $(_SERVICE)
 #	systemctl daemon-reload
 endif
+endif
 	rm -f $(BINDIR)/$(PROG)
 
+# Only generate systemd services on Linux
+ifeq ($(OS),Linux)
 ifneq ("$(wildcard $(SERVICE_T))","")
 CLEANFILES+=$(SERVICE)
 ifeq ($(SERVICE_DESC),)
@@ -461,6 +530,7 @@ $(SERVICE): $(SERVICE_T)
 		-e "s:+ARGS+: $(_ARGS):g" \
 		-e "s:+AFTER+:$(AFTER):g" \
 		> $@
+endif
 endif
 
 $(_SERVICE): $(SERVICE)

@@ -635,7 +635,7 @@ int json_to_type(int dt, void *dest, int len, json_value_t *v) {
 				json_to_type(DATA_TYPE_STRING,value,sizeof(value),(json_value_t *)a->items[i]);
 				size += strlen(value) + 1;
 			}
-			dprintf(-1,"size: %d\n", size);
+			dprintf(dlevel,"size: %d\n", size);
 			str = malloc(size);
 			if (!str) {
 				log_syserr("json_to_type: array malloc");
@@ -646,11 +646,11 @@ int json_to_type(int dt, void *dest, int len, json_value_t *v) {
 				json_to_type(DATA_TYPE_STRING,value,sizeof(value),(json_value_t *)a->items[i]);
 				p += sprintf(p,"%s%s",value,i < a->count-1 ? "," : "");
 			}
-			dprintf(-1,"str: %s\n", str);
+			dprintf(dlevel,"str: %s\n", str);
 			r = conv_type(dt,dest,len,DATA_TYPE_STRING,str,strlen(str));
-			dprintf(-1,"dest: %s\n", dest);
+			dprintf(dlevel,"dest: %s\n", dest);
 			free(str);
-			dprintf(-1,"r: %d\n", r);
+			dprintf(dlevel,"r: %d\n", r);
 			return r;
 		}
 		break;

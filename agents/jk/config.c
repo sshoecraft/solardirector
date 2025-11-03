@@ -18,6 +18,8 @@ int jk_agent_init(jk_session_t *s, int argc, char **argv) {
 	opt_proctab_t jk_opts[] = {
 		/* Spec, dest, type len, reqd, default val, have */
 		{ "-t::|transport,target,opts",&s->tpinfo,DATA_TYPE_STRING,sizeof(s->tpinfo)-1,0,"" },
+		{ "-r|retry transport connection",&s->retry_tp,DATA_TYPE_BOOL,0,0,"N" },
+		{ "-w|retry wait time",&s->wait_time,DATA_TYPE_INT,0,0,"30" },
 		{ "-F|flatten arrays",&s->flatten,DATA_TYPE_BOOLEAN,0,0,"N" },
 		OPTS_END
 	};
@@ -68,7 +70,22 @@ int jk_config(void *h, int req, ...) {
 		if (!strlen(s->topts)) strcpy(s->topts,"ffe1");
 
 		/* Init our transport */
-		if (jk_tp_init(s)) return 1;
+		r = jk_tp_init(s);
+		dprintf(1,"r: %d, retry_tp: %d\n", r, s->retry_tp);
+		if (!r && s->retry_tp) {
+			do {
+				dprintf(1,"calling open...\n");
+				r = jk_open(s);
+				dprintf(1,"r: %d\n", r);
+				if (r) {
+					dprintf(1,"open failed, sleeping %d seconds...\n",s->wait_time);
+					sleep(s->wait_time);
+					dprintf(1,"retrying...\n");
+					if (s->tp && s->tp_handle) s->tp->close(s->tp_handle);
+				}
+			dprintf(1,"r: %d\n", r);
+			} while(r != 0);
+		}
 
 		/* Add our internal params to the config */
 //		jk_config_add_parms(s);
