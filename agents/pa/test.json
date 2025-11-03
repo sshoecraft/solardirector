@@ -2,18 +2,11 @@
     "pa": {
         "name": "patest",
         "script_dir": ".",
-        "ETCDIR": ".",
-        "mqtt_uri": "tcp:\/\/localhost:1883",
-        "influx_endpoint": "localhost:8086",
-        "debug_mem": false,
-        "invert_grid_power": 0,
-        "load_power_property": "no_load_power",
-        "fspc": 1,
-        "invert_battery_power": 1,
-        "reserve_delay": 10,
-        "protect_charge": 0,
-        "approve_p1": 1,
-        "budget": 500,
-        "interval": 10
+        "inverter_server_config": "192.168.1.164",
+        "pv_server_config": "192.168.1.164",
+        "battery_server_config": "192.168.1.164",
+        "interval": 30,
+        "limit": 5000.0,
+        "deficit_timeout": 10
     }
 }
