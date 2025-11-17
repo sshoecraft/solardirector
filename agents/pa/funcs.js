@@ -21,7 +21,8 @@ function pa_reserve(agent_name,module,item,str_amount,str_pri) {
 	// Check battery level if configured
 	dprintf(dlevel,"battery_level_min: %.1f, have_battery_level: %s, battery_level: %.1f\n",
 		pa.battery_level_min, pa.have_battery_level, pa.battery_level);
-	if (pa.battery_level_min > 0 && pa.have_battery_level && pa.battery_level < pa.battery_level_min) {
+	dprintf(dlevel,"have_battery_power: %s, pa.battery_power: %.1f\n", pa.have_battery_power, pa.battery_power);
+	if (pa.battery_level_min > 0 && pa.have_battery_level && pa.battery_level < pa.battery_level_min && pa.have_battery_power && pa.battery_power < 0) {
 		config.errmsg = sprintf("battery level too low (%.1f%% < %.1f%%)", pa.battery_level, pa.battery_level_min);
 		dprintf(dlevel,"denying reservation: %s\n", config.errmsg);
 		return 1;

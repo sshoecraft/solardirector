@@ -1,5 +1,3 @@
-<<<<<<< Updated upstream
-
 # Platform detection - check for macOS first
 UNAME_S := $(shell uname -s)
 ifeq ($(UNAME_S),Darwin)
@@ -9,9 +7,7 @@ ifeq ($(UNAME_S),Darwin)
 	endif
 endif
 
-=======
 # Auto-detect platform if TARGET not set
->>>>>>> Stashed changes
 ifeq ($(TARGET),)
 	UNAME_S := $(shell uname -s)
 	ifeq ($(UNAME_S),Darwin)
@@ -133,38 +129,6 @@ else ifeq ($(TARGET),solaris)
 	ARCH=solaris_$(MACH)
 	CC=$(shell if test -x /opt/csw/gcc4/bin/gcc; then echo /opt/csw/gcc4/bin/gcc; else echo gcc; fi)
 	INSTALL=ginstall
-else ifeq ($(TARGET),macos)
-	# macOS configuration
-	ARCH=macos
-	OS=Darwin
-	CC=clang
-	AR=ar
-	RANLIB=ranlib
-	STRIP=strip
-	CFLAGS+=-DMACOS -D_DARWIN_C_SOURCE
-	
-	# Add macOS-specific include and library paths
-	# Homebrew paths
-	ifneq ($(wildcard /opt/homebrew/include),)
-		CFLAGS+=-I/opt/homebrew/include
-		LDFLAGS+=-L/opt/homebrew/lib
-	endif
-	ifneq ($(wildcard /usr/local/include),)
-		CFLAGS+=-I/usr/local/include
-		LDFLAGS+=-L/usr/local/lib
-	endif
-	
-	# MacPorts paths
-	ifneq ($(wildcard /opt/local/include),)
-		CFLAGS+=-I/opt/local/include
-		LDFLAGS+=-L/opt/local/lib
-	endif
-	
-	DEST_BASE=/usr/local
-	DEST_PREFIX=$(DEST_BASE)
-	DEST_BINDIR=$(DEST_PREFIX)/bin
-	DEST_INCDIR=$(DEST_PREFIX)/include
-	DEST_LIBDIR=$(DEST_PREFIX)/lib
 else
 	ARCH=linux
 	OS=Linux
@@ -428,13 +392,10 @@ $(PROG): $(_PROG_SCRIPT)
 else
 #$(LINK) $(CFLAGS) $(LDFLAGS) $(LDADD) -o $(PROG) $(OBJS) $(LIBS) $(ENDLIBS)
 $(PROG): $(OBJS) $(DEPS)
-<<<<<<< Updated upstream
 #	$(FULLCC) $(LDADD) -o $(PROG) $(OBJS) $(LIBS) $(ENDLIBS)
 	$(CC) $(CFLAGS) $(LDADD) $(LDFLAGS) -o $(PROG) $(OBJS) $(LIBS) $(ENDLIBS)
-=======
 #	$(LINK) $(LDADD) -o $(PROG) $(OBJS) $(LIBS) $(ENDLIBS)
 	$(LINK) -o $(PROG) $(OBJS) $(LIBS) $(ENDLIBS)
->>>>>>> Stashed changes
 endif
 
 debug: $(PROG)

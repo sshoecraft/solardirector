@@ -144,21 +144,20 @@ function read_main() {
 		pa.avail = -1;
 	}
 
-	// Check battery power limit - immediate revocation if exceeded while on battery
-	dprintf(dlevel,"battery_limit: %.1f, have_battery_power: %s, battery_power: %.1f\n",
-		pa.battery_limit, pa.have_battery_power, pa.battery_power);
-	if (pa.battery_limit > 0 && pa.have_battery_power && pa.battery_power < 0) {
+	// Check battery power limits - only if we have BOTH battery and grid data this cycle
+	dprintf(dlevel,"battery_hard_limit: %.1f, battery_soft_limit: %.1f, have_battery_power: %s, have_grid_power: %s\n",
+		pa.battery_hard_limit, pa.battery_soft_limit, pa.have_battery_power, pa.have_grid_power);
+	if (pa.have_battery_power && pa.have_grid_power && pa.battery_power < 0) {
 		let battery_discharge = Math.abs(pa.battery_power);
 		dprintf(dlevel,"battery_discharge: %.1f\n", battery_discharge);
 
-		// Check if we're not pulling from grid (grid_power >= 0 or no grid data)
-		let on_grid = pa.have_grid_power && pa.grid_power < 0;
-		dprintf(dlevel,"on_grid: %s (have_grid_power: %s, grid_power: %.1f)\n",
-			on_grid, pa.have_grid_power, pa.grid_power);
+		// Check if we're not pulling from grid (grid_power >= 0)
+		let on_grid = pa.grid_power < 0;
+		dprintf(dlevel,"on_grid: %s (grid_power: %.1f)\n", on_grid, pa.grid_power);
 
-		if (!on_grid && battery_discharge > pa.battery_limit) {
-			log_warning("Battery power limit exceeded: %.1f W > %.1f W limit - revoking all reservations\n",
-				battery_discharge, pa.battery_limit);
+		if (!on_grid && pa.battery_hard_limit > 0 && battery_discharge > pa.battery_hard_limit) {
+			log_warning("Battery HARD limit exceeded: %.1f W > %.1f W - revoking all reservations\n",
+				battery_discharge, pa.battery_hard_limit);
 
 			// Queue all reservations for immediate revocation
 			for(let i = pa.reservations.length - 1; i >= 0; i--) {
@@ -169,6 +168,10 @@ function read_main() {
 				pa.reservations.splice(i, 1);
 				pa.reserved -= res.amount;
 			}
+		} else if (!on_grid && pa.battery_soft_limit > 0 && battery_discharge > pa.battery_soft_limit) {
+			dprintf(dlevel,"Battery SOFT limit exceeded: %.1f W > %.1f W - setting avail negative\n",
+				battery_discharge, pa.battery_soft_limit);
+			pa.avail = -1;
 		}
 	}
 

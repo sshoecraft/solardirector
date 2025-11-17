@@ -67,7 +67,7 @@ function feed_init() {
 
 function feed_start(force) {
 
-	let dlevel = 1;
+	let dlevel = 0;
 
 	let lforce = force;
 	if (typeof(lforce) == "undefined") lforce = false;
@@ -104,7 +104,7 @@ function feed_start(force) {
 
 function feed_stop(force) {
 
-	let dlevel = 1;
+	let dlevel = 0;
 
 	let lforce = force;
 	if (typeof(lforce) == "undefined") lforce = false;

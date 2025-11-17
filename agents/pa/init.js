@@ -153,7 +153,12 @@ function pa_sample_period_trigger(a,p,o) {
 
 	dprintf(dlevel,"new value: %d\n", a.sample_period);
     dprintf(dlevel,"interval: %d\n", a.interval);
-    a.samples = a.sample_period / a.interval;
+	if (a.sample_period < a.interval) {
+		printf("warning: sample_period(%d) < interval(%d), setting samples to 1\n", a.sample_period, a.interval);
+		a.samples = 1;
+	} else {
+		a.samples = a.sample_period / a.interval;
+	}
     return 0;
 }
 
@@ -201,6 +206,8 @@ function init_main() {
 	pa.revokes = [];
 	pa.values = [];
 	pa.neg_power_time = 0;
+	// XXX before trigger def
+	pa.samples = 0;
 
 	// Initialize location from global location if not set
 	if (!pa.location || pa.location.length == 0) {
@@ -259,7 +266,8 @@ function init_main() {
 		[ "pub_topic", DATA_TYPE_STRING, SOLARD_TOPIC_ROOT+"/"+SOLARD_TOPIC_AGENTS+"/" + pa.name + "/"+SOLARD_FUNC_DATA, 0 ],
 		[ "reserved", DATA_TYPE_INT, 0, CONFIG_FLAG_PRIVATE, pa_reserved_trigger, pa ],
 		[ "budget", DATA_TYPE_FLOAT, "0.0", 0, pa_budget_trigger, pa ],
-		[ "battery_limit", DATA_TYPE_FLOAT, "0.0", 0 ],
+		[ "battery_soft_limit", DATA_TYPE_FLOAT, "0.0", 0 ],
+		[ "battery_hard_limit", DATA_TYPE_FLOAT, "0.0", 0 ],
 		[ "battery_scale", DATA_TYPE_BOOL, "yes", 0 ],
 		[ "night_budget", DATA_TYPE_FLOAT, "0.0", 0, pa_night_budget_trigger, pa ],
 		[ "night_approve_p1", DATA_TYPE_BOOL, "false", 0 ],

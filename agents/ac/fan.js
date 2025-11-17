@@ -86,7 +86,7 @@ function fan_set_mode(name,mode) {
 			fan_stop(name);
 			fan.mode = FAN_MODE_NONE;
 		} else if (fan.state == FAN_STATE_RUNNING) {
-			dprintf(dlevel,"fan[%s]: (RUNNING) current mode: %s, new mode: %s\n", name, fan_modestr(fan.mode), fan_modestr(mode));
+			dprintf(-1,"fan[%s]: (RUNNING) current mode: %s, new mode: %s\n", name, fan_modestr(fan.mode), fan_modestr(mode));
 			if (fan.mode == FAN_MODE_NONE) {
 				fan.mode = mode;
 			} else {
@@ -169,7 +169,7 @@ function fan_off(name,fan) {
 
 function fan_cooldown(name,fan) {
 
-    let dlevel = 1;
+    let dlevel = -1;
 
 	// Turn the pump off first
 	if (fan.pump.length) pump_stop(fan.pump);

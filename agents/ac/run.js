@@ -91,12 +91,12 @@ function run_main() {
 			// Dont start unless under water temp within limits
 			dprintf(dlevel,"fan[%s]: stop_wt: %s, water_temp: %s\n", name, fan.stop_wt, ac.water_temp);
 			if (fan.stop_wt && ac.water_temp != INVALID_TEMP) {
-				dprintf(dlevel,"cool_high_temp: %f, heat_low_temp: %f, wt_thresh: %f\n", ac.cool_high_temp, ac.heat_low_temp, fan.wt_thresh);
-				let cool_high = ac.cool_high_temp+(fan.wt_thresh + 0.5);
-				let heat_low = ac.heat_low_temp-(fan.wt_thresh - 0.5);
-				dprintf(-1,"mode: %s, water_temp: %f, cool_high: %f, heat_low: %f\n", ac_modestr(ac.mode), ac.water_temp, cool_high, heat_low);
-				if ((ac.mode == AC_MODE_COOL && ac.water_temp >= cool_high) || (ac.mode == AC_MODE_HEAT && ac.water_temp <= heat_low)) {
-					dprintf(dlevel,"fan[%s]: wt_warned: %s\n", name, fan.wt_warned);
+				dprintf(dlevel,"mode: %s, water_temp: %d, cool_high_temp: %d, heat_low_temp: %d\n", ac_modestr(ac.mode), ac.water_temp, ac.cool_high_temp, ac.heat_low_temp);
+				dprintf(dlevel,"fan[%s]: wt_warned: %s\n", name, fan.wt_warned);
+//				let th = (fan.wt_thresh / 2);
+//				dprintf(dlevel,"fan[%s]: th: %f\n", name, th);
+//				if ((ac.mode == AC_MODE_COOL && ac.water_temp >= ac.cool_high_temp+th) || (ac.mode == AC_MODE_HEAT && ac.water_temp <= ac.heat_low_temp-th)) {
+				if ((ac.mode == AC_MODE_COOL && ac.water_temp >= ac.cool_high_temp+(fan.wt_thresh - 0.5)) || (ac.mode == AC_MODE_HEAT && ac.water_temp <= ac.heat_low_temp-(fan.wt_thresh + 0.5))) {
 					if (!fan.wt_warned) {
 						log_warning("fan %s not started due to water_temp out of range\n",name);
 						fan.wt_warned = true;
@@ -192,12 +192,13 @@ function run_main() {
 			// Stop the fan if the water temp goes out of limits
 			dprintf(dlevel,"fan[%s]: stop_wt: %s, water_temp: %s\n", name, fan.stop_wt, ac.water_temp);
 			if (fan.stop_wt && ac.water_temp != INVALID_TEMP) {
-				let cool_high = ac.cool_high_temp+fan.wt_thresh;
-				let heat_low = ac.heat_low_temp-fan.wt_thresh;
-				dprintf(dlevel,"mode: %s, water_temp: %f, cool_high: %f, heat_low: %f\n", ac_modestr(ac.mode), ac.water_temp, cool_high, heat_low);
-				if ((ac.mode == AC_MODE_COOL && ac.water_temp >= cool_high) || (ac.mode == AC_MODE_HEAT && ac.water_temp <= heat_low)) {
+				dprintf(dlevel,"mode: %s, cool_high_temp: %d, heat_low_temp: %d\n", ac_modestr(ac.mode), ac.water_temp, ac.cool_high_temp, ac.heat_low_temp);
+				if ((ac.mode == AC_MODE_COOL && ac.water_temp >= ac.cool_high_temp+fan.wt_thresh) || (ac.mode == AC_MODE_HEAT && ac.water_temp <= ac.heat_low_temp-fan.wt_thresh)) {
 					fan_set_mode(name,FAN_MODE_NONE)
-					log_warning("fan %s stopped due to water_temp out of range\n",name);
+					if (!fan.wt_warned) {
+						log_warning("fan %s stopped due to water_temp out of range\n",name);
+						fan.wt_warned = true;
+					}
 				}
 			}
 			break;
