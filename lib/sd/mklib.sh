@@ -7,7 +7,16 @@ RELEASE=$4
 test -z "$RELEASE" && RELEASE=no
 INSTALL=$5
 
-#echo JOBS: ${MAKE_JOBS}
+# Set MAKE_JOBS if not already set
+if [ -z "$MAKE_JOBS" ]; then
+	if command -v nproc >/dev/null 2>&1; then
+		MAKE_JOBS=$(nproc)
+	elif [ -f /proc/cpuinfo ]; then
+		MAKE_JOBS=$(grep -c ^processor /proc/cpuinfo)
+	else
+		MAKE_JOBS=4
+	fi
+fi
 
 do_make() {
 	set -x

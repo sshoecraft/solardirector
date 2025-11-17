@@ -1,10 +1,11 @@
-# Detect platform for CPU count
+# Detect CPU count
 UNAME_S := $(shell uname -s)
 ifeq ($(UNAME_S),Darwin)
-	MAKE_JOBS?=$(shell sysctl -n hw.ncpu)
+	MAKE_JOBS ?= $(shell sysctl -n hw.ncpu)
 else
-	MAKE_JOBS?=$(shell cat /proc/cpuinfo | grep -c ^processor)
+	MAKE_JOBS ?= $(shell nproc 2>/dev/null || grep -c ^processor /proc/cpuinfo)
 endif
+export MAKE_JOBS
 
 all:
 #	for d in sd smanet js transports bt; do $(MAKE) -j $(MAKE_JOBS) -C $$d; done
