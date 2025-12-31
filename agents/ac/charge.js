@@ -118,6 +118,7 @@ function charge_main() {
 			unit.charge_priority = charge_get_pri();
 			dprintf(dlevel,"charge_priority: %d\n", unit.charge_priority);
 			unit.last_pri_temp = ac.water_temp;
+			dprintf(-1,"NEW last_pri_temp: %s\n", unit.last_pri_temp);
 			unit.charging = true;
 			unit.charge_state = CHARGE_STATE_WAIT_START;
 			if (unit_start(name)) {
@@ -126,47 +127,60 @@ function charge_main() {
 			}
 			unit.charge_start_time = time();
 		case CHARGE_STATE_WAIT_START:
+			// Keep the priority updated since it may have changed
+			unit.charge_priority = charge_get_pri();
+			dprintf(dlevel,"charge_priority: %d\n", unit.charge_priority);
 			dprintf(dlevel,"unit[%s]: state: %s\n", name, unit_statestr(unit.state));
 			if (unit.state != UNIT_STATE_RUNNING) {
 				// If another unit cooled/heated while we waiting...
-				if (do_stop) {
-					unit.charge_state = CHARGE_STATE_STOP;
-				} else {
-					// Keep the priority updated since it may have changed
-					unit.charge_priority = charge_get_pri();
-					dprintf(dlevel,"charge_priority: %d\n", unit.charge_priority);
-					unit.last_pri_temp = ac.water_temp;
-				}
+				if (do_stop) unit.charge_state = CHARGE_STATE_STOP;
 				continue;
 			}
 			unit.charge_state = CHARGE_STATE_RUNNING;
-			unit.charge_start = time();
+			unit.last_pri_temp = ac.water_temp;
+			dprintf(-1,"NEW last_pri_temp: %s\n", unit.last_pri_temp);
 		case CHARGE_STATE_RUNNING:
 			dprintf(dlevel,"unit[%s]: state: %s, reserve: %d\n", name, unit_statestr(unit.state), unit.reserve);
 			if (unit.state == UNIT_STATE_RUNNING) {
 				if (unit.priority == 0 && unit.reserve) {
 					let pump = pumps[unit.pump];
 					if (pump.settled && pump.temp_in >= -50 && pump.temp_in < 150) {
-						if (unit.last_pri_temp < -50 || unit.last_pri_temp > 150) unit.last_pri_temp = pump.temp_in;
+if (1) {
+						if (unit.last_pri_temp < -50 || unit.last_pri_temp > 150) {
+							unit.last_pri_temp = pump.temp_in;
+							dprintf(-1,"NEW last_pri_temp: %s\n", unit.last_pri_temp);
+						}
+}
+if (1) {
 						if (typeof(ac.cic) == 'undefined') ac.cic = (60/ac.interval) + 1;
 						if (ac.cic++ >= (60/ac.interval)) {
-							log_info("charge_main: temp_in: %.1f, last_pri_temp: %.1f\n", pump.temp_in, unit.last_pri_temp);
+							diff = Math.abs(pump.temp_in - unit.last_pri_temp);
+							log_info("charge_main: temp_in: %.1f, last_pri_temp: %.1f, diff: %.1f, interval: %.1f\n", pump.temp_in, unit.last_pri_temp, diff, ac.repri_interval);
 							ac.cic = 1;
 						}
+}
 
-						// if the temp_in is > last_pri_temp +/- .3 degree, do a repri
-						if (unit.mode == AC_MODE_COOL && pump.temp_in > unit.last_pri_temp+0.3) unit.last_pri_temp = pump.temp_in;
-						else if (unit.mode == AC_MODE_HEAT && pump.temp_in < unit.last_pri_temp-0.3) unit.last_pri_temp = pump.temp_in;
+						if ((unit.mode == AC_MODE_COOL && pump.temp_in > unit.last_pri_temp+0.3) || (unit.mode == AC_MODE_HEAT && pump.temp_in < unit.last_pri_temp-0.3)) {
+							unit.last_pri_temp = pump.temp_in;
+							dprintf(-1,"NEW last_pri_temp: %s\n", unit.last_pri_temp);
+						}
 						diff = Math.abs(pump.temp_in - unit.last_pri_temp);
 						dprintf(dlevel,"pri temp diff: %.1f, repri_interval: %.1f\n", diff, ac.repri_interval);
 						if (diff >= ac.repri_interval) {
 							let pri = charge_get_pri();
 							dprintf(dlevel,"NEW pri: %.1f, current_pri: %.1f\n", pri, unit.charge_priority);
-							if (pri != unit.charge_priority) {
+							if (!double_equals(pri,unit.charge_priority)) {
 								unit.charge_priority = pri;
-								if (!pa_client_repri(ac,"unit",name,unit.reserve,pri)) {
+								if (pa_client_repri(ac,"unit",name,unit.reserve,pri)) {
+									// ANY issues with repri/sdconfig, we must stop
+									do_stop = true;
+								} else {
 									unit.last_pri_temp = pump.temp_in;
+									dprintf(-1,"NEW last_pri_temp: %s\n", unit.last_pri_temp);
 								}
+							} else {
+								unit.last_pri_temp = pump.temp_in;
+								dprintf(-1,"NEW last_pri_temp: %s\n", unit.last_pri_temp);
 							}
 						}
 					}
@@ -174,15 +188,11 @@ function charge_main() {
 			} else if (unit.state == UNIT_STATE_STOPPED) {
 				unit.charge_state = CHARGE_STATE_STOPPED;
 			}
+			dprintf(dlevel,"do_stop: %s\n", do_stop);
 			if (!do_stop) continue;
 			unit.charge_state = CHARGE_STATE_STOP;
 		case CHARGE_STATE_STOP:
-			dprintf(dlevel,"min_runtime: %d\n", unit.min_runtime);
-			if (unit.min_runtime) {
-				let diff = time() - unit.charge_start;
-				dprintf(dlevel,"diff: %d\n", diff);
-				if (diff < unit.min_runtime) continue;
-			}
+			// min_runtime is now enforced by UNIT_STATE_MIN_RUNTIME_WAIT
 			unit_stop(name);
 			unit.charge_state = CHARGE_STATE_STOPPED;
 			unit.charging = false;

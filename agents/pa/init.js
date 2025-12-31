@@ -179,18 +179,16 @@ function pa_night_budget_trigger(a,p,o) {
 
 	if (!a) return;
 	dprintf(dlevel,"new night_budget: %.1f, old: %.1f\n", p.value, o);
-	
-	// Check if it's currently nighttime
+
+	// Check if it's currently nighttime - recalculate avail using the new night_budget
 	if (pa_is_night_period()) {
-		dprintf(dlevel,"it's nighttime, updating budget and avail\n");
-		// Update the current budget to the new night_budget value
-		a.budget = p.value;
-		// Recalculate available power
+		dprintf(dlevel,"it's nighttime, recalculating avail with new night_budget\n");
+		// Don't modify a.budget - just recalculate avail based on night_budget
 		if (typeof(a.reserved) != 'undefined') {
-			a.avail = a.budget - a.reserved;
-			dprintf(dlevel,"NEW budget: %.1f, NEW avail: %.1f\n", a.budget, a.avail);
+			a.avail = p.value - a.reserved;
+			dprintf(dlevel,"NEW avail: %.1f (night_budget: %.1f, reserved: %.1f)\n", a.avail, p.value, a.reserved);
 		}
-		log_info("Night budget updated during nighttime: %.1f (avail: %.1f)\n", a.budget, a.avail);
+		log_info("Night budget updated during nighttime: %.1f (avail: %.1f)\n", p.value, a.avail);
 	} else {
 		dprintf(dlevel,"not nighttime, night_budget will be used when night period starts\n");
 	}
@@ -208,6 +206,14 @@ function init_main() {
 	pa.neg_power_time = 0;
 	// XXX before trigger def
 	pa.samples = 0;
+
+	// Initialize data staleness timestamps
+	pa.grid_power_time = 0;
+	pa.battery_power_time = 0;
+	pa.pv_power_time = 0;
+	pa.charge_mode_time = 0;
+	pa.battery_level_time = 0;
+	pa.frequency_time = 0;
 
 	// Initialize location from global location if not set
 	if (!pa.location || pa.location.length == 0) {
@@ -274,16 +280,17 @@ function init_main() {
         [ "night_start", DATA_TYPE_STRING, DEFAULT_NIGHT_START, 0 ],
         [ "day_start", DATA_TYPE_STRING, DEFAULT_DAY_START, 0 ],
         [ "location", DATA_TYPE_STRING, "", 0 ],
+		[ "data_stale_interval", DATA_TYPE_INT, 3, 0 ],
 		[ "interval", DATA_TYPE_INT, 15, CONFIG_FLAG_NOWARN, pa_sample_period_trigger, pa ]
 	];
 	config.add_props(pa, props, pa.driver_name);
 
 	// Configure MQTT functions
 	let funcs = [
-		[ "reserve", pa_reserve, 5 ], 
-		[ "release", pa_release, 4 ], 
-		[ "repri", pa_repri, 5 ], 
-		[ "revoke_all", pa_revoke_all, 0 ], 
+		[ "reserve", pa_reserve, 5 ],
+		[ "release", pa_release, 4 ],
+		[ "repri", pa_repri, 5 ],
+		[ "revoke_all", pa_revoke_all, 1 ],
 	];
 	config.add_funcs(pa, funcs, pa.driver_name);
 

@@ -154,7 +154,7 @@ int jbd_verify(uint8_t *buf, int len) {
 	if (buf[i++] != 0x77) return 1;
 
 	dprintf(3,"good data!\n");
-	bindump(0,buf,len);
+//	bindump(0,buf,len);
 	return 0;
 }
 
@@ -729,14 +729,17 @@ int jbd_read(void *handle, uint32_t *what, void *buf, int buflen) {
 		json_value_t *v = battery_to_flat_json(bp);
 		dprintf(2,"v: %p\n", v);
 		if (v) {
+#if 0
+			{
 			char *j;
-
-			influx_write_json(s->ap->i, "battery", v);
 			j = json_dumps(v,0);
 			if (j) {
 				log_info("%s\n",j);
 				free(j);
 			}
+			}
+#endif
+			influx_write_json(s->ap->i, "battery", v);
 			json_destroy_value(v);
 		}	
 	}

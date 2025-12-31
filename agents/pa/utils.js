@@ -22,6 +22,10 @@ function pa_get_number(data,name,invert) {
 	}
 	pa[name] = val;
 	pa["have_" + name] = found;
+	// Update timestamp when data is received
+	if (found) {
+		pa[name + "_time"] = time();
+	}
 	dprintf(dlevel,"pa.%s: %s\n", name, val);
 }
 
@@ -58,16 +62,20 @@ function pa_process_messages(n,m,t,f) {
 	m.purgemq();
 }
 
-function pa_revoke(res) {
+function pa_revoke(revoke_item) {
 	let dlevel = 1;
 
-	log_info("revoking reservation for: id: %s, amount: %.1f\n", res.id, res.amount);
+	// Handle both old format (just res) and new format ({ res, immediate })
+	let res = revoke_item.res || revoke_item;
+	let immediate = revoke_item.immediate || false;
+
+	log_info("revoking reservation for: id: %s, amount: %.1f, immediate: %s\n", res.id, res.amount, immediate);
 	let arr = res.id.split(PA_ID_DELIMITER);
 	let agent_name = arr[0];
 	let module = arr[1];
 	let item = arr[2];
 	if (typeof(pa.mqtt) == 'undefined') pa.mqtt = mqtt;
-	let r = sdconfig(pa,agent_name,"revoke",module,item,res.amount);
+	let r = sdconfig(pa,agent_name,"revoke",module,item,res.amount,immediate);
 	if (r.status) dprintf(dlevel,"revoke failed: %s\n", r.message);
 	return r.status;
 }

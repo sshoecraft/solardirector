@@ -1146,7 +1146,6 @@ JSObject *js_influx_values_new(JSContext *cx, JSObject *obj, influx_series_t *sp
 	influx_value_t *vp;
 	JSString *str;
 	jsdouble d;
-//	char *p;
 
 	int ldlevel = dlevel;
 
@@ -1155,6 +1154,9 @@ JSObject *js_influx_values_new(JSContext *cx, JSObject *obj, influx_series_t *sp
 	js_values = JS_NewArrayObject(cx, 0, NULL);
 	dprintf(ldlevel,"js_values: %p\n", js_values);
 	if (!js_values) return 0;
+
+	/* Root to protect from GC - allocations in loop can trigger collection */
+	if (!JS_AddRoot(cx, &js_values)) return 0;
 
 	/* Get the time column */
 	time_col = -1;
@@ -1168,14 +1170,28 @@ JSObject *js_influx_values_new(JSContext *cx, JSObject *obj, influx_series_t *sp
 	}
 	dprintf(ldlevel,"value_count: %d\n", sp->value_count);
 	count = 0;
+	vo = NULL;
 	for(i=0; i < sp->value_count; i++) {
 		/* XXX req'd as strange things happen otherwise */
 		if (js_mem_used_pct(cx) == 100) break;
 		vo = JS_NewArrayObject(cx, 0, NULL);
 		dprintf(ldlevel,"vo: %p\n", vo);
 		if (!vo) break;
+
+		/* Root vo to protect it from GC while populating */
+		if (!JS_AddRoot(cx, &vo)) {
+			dprintf(ldlevel,"failed to root vo\n");
+			vo = NULL;
+			break;
+		}
+
 		for(j=0; j < sp->column_count; j++) {
 			vp = sp->values[i][j];
+			if (!vp) {
+				ke = JSVAL_NULL;
+				JS_SetElement(cx, vo, j, &ke);
+				continue;
+			}
 			doconv = 1;
 			/* Automatically convert the time field into a date object */
 			if (j == time_col && sp->convdt) {
@@ -1197,10 +1213,23 @@ JSObject *js_influx_values_new(JSContext *cx, JSObject *obj, influx_series_t *sp
 		}
 		ie = OBJECT_TO_JSVAL(vo);
 		JS_SetElement(cx, js_values, i, &ie);
+
+		/* Unroot vo now that it's safely stored in js_values */
+		JS_RemoveRoot(cx, &vo);
+
+		vo = NULL;
 		count++;
 	}
+
+	/* If loop exited early and vo is still rooted, unroot it */
+	if (vo) JS_RemoveRoot(cx, &vo);
+
 	/* fix up the array object with the real count */
 	dprintf(ldlevel,"returning: %p\n", js_values);
+
+	/* Unroot before returning */
+	JS_RemoveRoot(cx, &js_values);
+
 	return js_values;
 }
 

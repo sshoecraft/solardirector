@@ -10,8 +10,37 @@ function read_main() {
 		pa.revokes.splice(i,1);
 	}
 
-	// Process mqtt messages
-	pa.have_grid_power = pa.have_charge_mode = pa.have_pv_power = pa.have_battery_power = false;
+	// Check for stale data based on timestamps
+	let stale_timeout = pa.data_stale_interval * pa.interval;
+	let now = time();
+
+	// Mark data as stale if it hasn't been updated within the timeout period
+	if (pa.have_grid_power && (now - pa.grid_power_time) > stale_timeout) {
+		dprintf(dlevel,"grid_power data is stale (age: %d seconds)\n", now - pa.grid_power_time);
+		pa.have_grid_power = false;
+	}
+	if (pa.have_battery_power && (now - pa.battery_power_time) > stale_timeout) {
+		dprintf(dlevel,"battery_power data is stale (age: %d seconds)\n", now - pa.battery_power_time);
+		pa.have_battery_power = false;
+	}
+	if (pa.have_pv_power && (now - pa.pv_power_time) > stale_timeout) {
+		dprintf(dlevel,"pv_power data is stale (age: %d seconds)\n", now - pa.pv_power_time);
+		pa.have_pv_power = false;
+	}
+	if (pa.have_charge_mode && (now - pa.charge_mode_time) > stale_timeout) {
+		dprintf(dlevel,"charge_mode data is stale (age: %d seconds)\n", now - pa.charge_mode_time);
+		pa.have_charge_mode = false;
+	}
+	if (pa.have_battery_level && (now - pa.battery_level_time) > stale_timeout) {
+		dprintf(dlevel,"battery_level data is stale (age: %d seconds)\n", now - pa.battery_level_time);
+		pa.have_battery_level = false;
+	}
+	if (pa.have_frequency && (now - pa.frequency_time) > stale_timeout) {
+		dprintf(dlevel,"frequency data is stale (age: %d seconds)\n", now - pa.frequency_time);
+		pa.have_frequency = false;
+	}
+
+	// Process mqtt messages (will update have_* flags and timestamps if new data arrives)
 	pa_process_messages("inverter",pa.inverter_mqtt,pa.inverter_topic,pa_get_inverter_data);
 	pa_process_messages("pvc",pa.pv_mqtt,pa.pv_topic,pa_get_pv_data);
 	pa_process_messages("battery",pa.battery_mqtt,pa.battery_topic,pa_get_battery_data);
@@ -51,7 +80,14 @@ function read_main() {
 		dprintf(dlevel,"have_grid_power: %s, grid_power: %s\n", pa.have_grid_power, pa.grid_power);
 		if (pa.have_grid_power && pa.grid_power < 0.0) {
 			power += pa.grid_power;
-			dprintf(dlevel,"NEW power(grid): %s\n", power);
+			dprintf(dlevel,"NEW power(grid import): %s\n", power);
+		}
+
+		// If we're feeding to the grid and DON'T have PV data, count it directly
+		// (If we have PV data, grid export is counted through pv_contribution below)
+		if (!pa.have_pv_power && pa.have_grid_power && pa.grid_power > 0.0) {
+			power += pa.grid_power;
+			dprintf(dlevel,"NEW power(grid export, no PV data): %s\n", power);
 		}
 
 		// If we're pulling from the batt, power is neg
@@ -144,16 +180,16 @@ function read_main() {
 		pa.avail = -1;
 	}
 
-	// Check battery power limits - only if we have BOTH battery and grid data this cycle
+	// Check battery power limits - only if we have battery data this cycle
 	dprintf(dlevel,"battery_hard_limit: %.1f, battery_soft_limit: %.1f, have_battery_power: %s, have_grid_power: %s\n",
 		pa.battery_hard_limit, pa.battery_soft_limit, pa.have_battery_power, pa.have_grid_power);
-	if (pa.have_battery_power && pa.have_grid_power && pa.battery_power < 0) {
+	if (pa.have_battery_power && pa.battery_power < 0) {
 		let battery_discharge = Math.abs(pa.battery_power);
 		dprintf(dlevel,"battery_discharge: %.1f\n", battery_discharge);
 
-		// Check if we're not pulling from grid (grid_power >= 0)
-		let on_grid = pa.grid_power < 0;
-		dprintf(dlevel,"on_grid: %s (grid_power: %.1f)\n", on_grid, pa.grid_power);
+		// Check if we're pulling from grid (>100W to avoid noise/transients)
+		let on_grid = pa.have_grid_power && pa.grid_power < -100;
+		dprintf(dlevel,"on_grid: %s (have_grid_power: %s, grid_power: %.1f)\n", on_grid, pa.have_grid_power, pa.grid_power);
 
 		if (!on_grid && pa.battery_hard_limit > 0 && battery_discharge > pa.battery_hard_limit) {
 			log_warning("Battery HARD limit exceeded: %.1f W > %.1f W - revoking all reservations\n",
@@ -164,7 +200,7 @@ function read_main() {
 				let res = pa.reservations[i];
 				dprintf(dlevel,"queuing immediate revoke: res[%d]: id: %s, amount: %.1f, pri: %d\n",
 					i, res.id, res.amount, res.pri);
-				pa.revokes.push(res);
+				pa.revokes.push({ res: res, immediate: true });
 				pa.reservations.splice(i, 1);
 				pa.reserved -= res.amount;
 			}
@@ -203,7 +239,7 @@ function read_main() {
 					dprintf(dlevel,"revocation check: res[%d]: id: %s, amount: %.1f, pri: %d\n", i, res.id, res.amount, res.pri);
 					// Dont revoke p1 when approve is true UNLESS we exceed the limit
 					if (res.pri == 1 && approve_p1 && !exceed_limit) continue;
-					pa_revoke(res);
+					pa_revoke({ res: res, immediate: false });
 				}
 			}
 		}
@@ -211,7 +247,8 @@ function read_main() {
 		pa.neg_power_time = 0;
 	}
 
-	let out = sprintf("reserved: %.1f, avail: %.1f", pa.reserved, pa.avail);
+	let out = sprintf("grid: %.1f, battery: %.1f, solar: %.1f, budget: %.1f, reserved: %.1f, avail: %.1f",
+		pa.grid_power, pa.battery_power, pa.pv_power, budget, pa.reserved, pa.avail);
 	if (typeof(pa.last_out) == "undefined") pa.last_out = "";
 	if (out != pa.last_out) {
 		log_info("%s\n", out);

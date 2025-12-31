@@ -1,7 +1,0 @@
-#systemctl daemon-reload
-#systemctl restart sc
-systemctl restart si
-systemctl restart pvc
-systemctl restart btc
-systemctl restart pa
-systemctl restart ac

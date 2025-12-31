@@ -82,7 +82,7 @@ function run_main() {
 //		dumpobj(fan);
 
 		dprintf(dlevel,"fan[%s]: enabled: %d, refs: %d, state: %s\n", name, fan.enabled, fan.refs, fan_statestr(fan.state));
-		if ((fan.error || !fan.enabled || !fan.refs) && fan.state < FAN_STATE_COOLDOWN) continue;
+		if ((fan.error || !fan.enabled || !fan.refs) && fan.state < FAN_STATE_MIN_RUNTIME_WAIT) continue;
 
 		dprintf(dlevel,"fan[%s]: state: %s\n", name, fan_statestr(fan.state));
 		switch(fan.state) {
@@ -91,12 +91,12 @@ function run_main() {
 			// Dont start unless under water temp within limits
 			dprintf(dlevel,"fan[%s]: stop_wt: %s, water_temp: %s\n", name, fan.stop_wt, ac.water_temp);
 			if (fan.stop_wt && ac.water_temp != INVALID_TEMP) {
-				dprintf(dlevel,"mode: %s, water_temp: %d, cool_high_temp: %d, heat_low_temp: %d\n", ac_modestr(ac.mode), ac.water_temp, ac.cool_high_temp, ac.heat_low_temp);
-				dprintf(dlevel,"fan[%s]: wt_warned: %s\n", name, fan.wt_warned);
-//				let th = (fan.wt_thresh / 2);
-//				dprintf(dlevel,"fan[%s]: th: %f\n", name, th);
-//				if ((ac.mode == AC_MODE_COOL && ac.water_temp >= ac.cool_high_temp+th) || (ac.mode == AC_MODE_HEAT && ac.water_temp <= ac.heat_low_temp-th)) {
-				if ((ac.mode == AC_MODE_COOL && ac.water_temp >= ac.cool_high_temp+(fan.wt_thresh - 0.5)) || (ac.mode == AC_MODE_HEAT && ac.water_temp <= ac.heat_low_temp-(fan.wt_thresh + 0.5))) {
+				dprintf(dlevel,"cool_high_temp: %f, heat_low_temp: %f, wt_thresh: %f\n", ac.cool_high_temp, ac.heat_low_temp, fan.wt_thresh);
+				let cool_high = ac.cool_high_temp+(fan.wt_thresh + 0.5);
+				let heat_low = ac.heat_low_temp-(fan.wt_thresh - 0.5);
+				dprintf(dlevel,"mode: %s, water_temp: %f, cool_high: %f, heat_low: %f\n", ac_modestr(ac.mode), ac.water_temp, cool_high, heat_low);
+				if ((ac.mode == AC_MODE_COOL && ac.water_temp >= cool_high) || (ac.mode == AC_MODE_HEAT && ac.water_temp <= heat_low)) {
+					dprintf(dlevel,"fan[%s]: wt_warned: %s\n", name, fan.wt_warned);
 					if (!fan.wt_warned) {
 						log_warning("fan %s not started due to water_temp out of range\n",name);
 						fan.wt_warned = true;
@@ -167,6 +167,7 @@ function run_main() {
 		case FAN_STATE_WAIT_START:
 			if (fan.fan_state == "on") {
 				fan_set_state(name,FAN_STATE_RUNNING);
+				fan.time = time();
 			} else {
 				dprintf(dlevel,"fan[%s]: time: %s, fan.time: %s\n", name, time(), fan.time);
 				diff = time() - fan.time;
@@ -192,23 +193,46 @@ function run_main() {
 			// Stop the fan if the water temp goes out of limits
 			dprintf(dlevel,"fan[%s]: stop_wt: %s, water_temp: %s\n", name, fan.stop_wt, ac.water_temp);
 			if (fan.stop_wt && ac.water_temp != INVALID_TEMP) {
-				dprintf(dlevel,"mode: %s, cool_high_temp: %d, heat_low_temp: %d\n", ac_modestr(ac.mode), ac.water_temp, ac.cool_high_temp, ac.heat_low_temp);
-				if ((ac.mode == AC_MODE_COOL && ac.water_temp >= ac.cool_high_temp+fan.wt_thresh) || (ac.mode == AC_MODE_HEAT && ac.water_temp <= ac.heat_low_temp-fan.wt_thresh)) {
+				let cool_high = ac.cool_high_temp+fan.wt_thresh;
+				let heat_low = ac.heat_low_temp-fan.wt_thresh;
+				dprintf(dlevel,"mode: %s, water_temp: %f, cool_high: %f, heat_low: %f\n", ac_modestr(ac.mode), ac.water_temp, cool_high, heat_low);
+				if ((ac.mode == AC_MODE_COOL && ac.water_temp >= cool_high) || (ac.mode == AC_MODE_HEAT && ac.water_temp <= heat_low)) {
 					fan_set_mode(name,FAN_MODE_NONE)
-					if (!fan.wt_warned) {
-						log_warning("fan %s stopped due to water_temp out of range\n",name);
-						fan.wt_warned = true;
-					}
+					log_warning("fan %s stopped due to water_temp out of range\n",name);
 				}
 			}
 			break;
 
-		// Keep running for <cooldown> seconds
-		case FAN_STATE_COOLDOWN:
+		// Keep running for <min_runtime> or <cooldown> seconds (whichever is longer)
+		case FAN_STATE_MIN_RUNTIME_WAIT:
+			// During MIN_RUNTIME_WAIT, fan is still running so pump must be operational
+			dprintf(dlevel,"fan[%s]: pump.length: %d\n", name, fan.pump.length);
+			if (fan.pump.length) {
+				pump_state = pump_get_state(fan.pump);
+				dprintf(dlevel,"fan[%s]: pump %s state: %s\n", name, fan.pump, pump_statestr(pump_state));
+				if (pump_state != PUMP_STATE_RUNNING) {
+					error_set("fan",name,sprintf("fan %s: required pump %s is not running during min runtime wait",name,fan.pump));
+					fan_set_state(name,FAN_STATE_ERROR);
+					break;
+				}
+			}
+			// Stop the fan if the water temp goes out of limits
+			dprintf(dlevel,"fan[%s]: stop_wt: %s, water_temp: %s\n", name, fan.stop_wt, ac.water_temp);
+			if (fan.stop_wt && ac.water_temp != INVALID_TEMP) {
+				let cool_high = ac.cool_high_temp+fan.wt_thresh;
+				let heat_low = ac.heat_low_temp-fan.wt_thresh;
+				dprintf(dlevel,"mode: %s, water_temp: %f, cool_high: %f, heat_low: %f\n", ac_modestr(ac.mode), ac.water_temp, cool_high, heat_low);
+				if ((ac.mode == AC_MODE_COOL && ac.water_temp >= cool_high) || (ac.mode == AC_MODE_HEAT && ac.water_temp <= heat_low)) {
+					fan_set_mode(name,FAN_MODE_NONE)
+					log_warning("fan %s stopped due to water_temp out of range during min runtime wait\n",name);
+					break;
+				}
+			}
 			dprintf(dlevel,"fan[%s]: time: %s, fan->time: %s\n", name, time(), fan.time);
 			diff = time() - fan.time;
-			dprintf(dlevel,"fan[%s]: diff: %s, cooldown: %s\n", name, diff, fan.cooldown);
-			if (diff >= fan.cooldown) fan_off(name,fan);
+			let runtime_needed = fan.min_runtime > fan.cooldown ? fan.min_runtime : fan.cooldown;
+			dprintf(dlevel,"fan[%s]: diff: %s, min_runtime: %s, cooldown: %s, runtime_needed: %s\n", name, diff, fan.min_runtime, fan.cooldown, runtime_needed);
+			if (diff >= runtime_needed) fan_off(name,fan);
 			break;
 
 		case FAN_STATE_RELEASE:
@@ -275,7 +299,13 @@ function run_main() {
 				dprintf(dlevel,"pump[%s]: diff: %s, primer_timeout: %s\n", name, diff, pump.primer_timeout);
 				if (diff >= pump.primer_timeout) {
 					error_set("pump",name,sprintf("pump %s: timeout waiting for pump %s", name, pump.primer));
-					pump_set_state(name,PUMP_STATE_ERROR);
+					if (primer_state == PUMP_STATE_ERROR)
+						pump_set_state(name,PUMP_STATE_ERROR);
+					else {
+						// Stop the primer and try again
+						pump_stop(pump.primer);
+						pump_set_state(name,PUMP_STATE_START_PRIMER);
+					}
 				}
 			}
 			break;
@@ -485,6 +515,7 @@ function run_main() {
 				unit_set_state(name,UNIT_STATE_ERROR);
 			} else {
 				unit_set_state(name,UNIT_STATE_RUNNING);
+				unit.time = time();
 			}
 			break;
 
@@ -497,8 +528,24 @@ function run_main() {
 			}
 			break;
 
+		case UNIT_STATE_MIN_RUNTIME_WAIT:
+			// During MIN_RUNTIME_WAIT, compressor is still running so pump must be operational
+			pump_state = pump_get_state(unit.pump);
+			dprintf(dlevel,"unit[%s]: pump %s state: %s\n", name, unit.pump, pump_statestr(pump_state));
+			if (pump_state != PUMP_STATE_RUNNING) {
+				error_set("unit",name,sprintf("unit %s: required pump %s is not running during min runtime wait",name,unit.pump));
+				unit_set_state(name,UNIT_STATE_ERROR);
+				break;
+			}
+			dprintf(dlevel,"unit[%s]: time: %s, unit.time: %s\n", name, time(), unit.time);
+			diff = time() - unit.time;
+			dprintf(dlevel,"unit[%s]: diff: %s, min_runtime: %s\n", name, diff, unit.min_runtime);
+			if (diff >= unit.min_runtime) unit_off(name,unit);
+			break;
+
 		case UNIT_STATE_RELEASE:
-			if (!pa_client_release(ac,"unit",name,unit.reserve)) unit_set_state(name,UNIT_STATE_STOPPED);
+			pa_client_release(ac,"unit",name,unit.reserve);
+			unit_set_state(name,UNIT_STATE_STOPPED);
 			break;
 
 		case UNIT_STATE_ERROR:

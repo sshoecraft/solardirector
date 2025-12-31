@@ -83,7 +83,7 @@ if (0) {
 		display(agents);
 }
 		if (count % 60) gc();
-		report_mem(true);
+//		report_mem(true);
 		sleep(client.opts.refresh);
 	}
 

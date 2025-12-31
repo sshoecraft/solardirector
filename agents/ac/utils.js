@@ -46,12 +46,16 @@ function get_sensor(spec,wait) {
 	dprintf(dlevel,"a.length: %d\n", a.length);
 	let driver = a[0];
 	let target = a[1];
+	let offset = (typeof(a[2]) == 'undefined' ? 0 : a[2]);
+	let calib = (typeof(a[3]) == 'undefined' ? 0 : a[3]);
+if (0) {
 	let offset = "";
 	for(let i=2; i < a.length; i++) {
 		if (i > 2) offset += ",";
 		offset += a[i];
 	}
-	dprintf(dlevel,"driver: %s, target: %s, offset: %s\n", driver, target, offset);
+}
+	dprintf(dlevel,"driver: %s, target: %s, offset: %s, calib: %s\n", driver, target, offset, calib);
 
 	let r;
 	switch(driver) {
@@ -65,11 +69,17 @@ function get_sensor(spec,wait) {
 			error_set("utils","get_sensor",sprintf("get_sensor: func driver target '%s' is not a function", target));
 			return;
 		}
+		dprintf(dlevel,"calling %s(%s)\n", target, offset);
 		r = window[target](offset);
 		break;
 	default:
 		error_set("utils","get_sensor",sprintf("get_sensor: driver %s is not supported", driver));
 		return;
+	}
+	dprintf(dlevel,"r: %s(%s)\n", r, typeof(r));
+	if (typeof(r) == 'number') {
+		r += calib;
+		dprintf(dlevel,"NEW r: %s\n", r);
 	}
 	return r;
 }

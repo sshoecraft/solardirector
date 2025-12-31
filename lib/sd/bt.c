@@ -28,6 +28,7 @@ struct bt_session {
         GDBusConnection *dbus_conn;
         char target[32];
         char topts[128];
+        char pin[32];
         char device_path[256];
         char char_read_path[512];
         char char_write_path[512];
@@ -107,21 +108,28 @@ static void *bt_new(void *target, void *topts) {
         bt_session_t *s;
 
         dprintf(5,"target: %s, topts: %s\n", target, topts);
-        
+
         s = calloc(1, sizeof(*s));
         if (!s) {
                 perror("bt_new: malloc");
                 return 0;
         }
-        
+
         strncpy(s->target, target, sizeof(s->target) - 1);
         if (topts) {
                 strncpy(s->topts, topts, sizeof(s->topts) - 1);
+                // Extract PIN from topts (format: "pin" or "uuid,pin")
+                char *pin_str = strchr(s->topts, ',');
+                if (pin_str) {
+                        strncpy(s->pin, pin_str + 1, sizeof(s->pin) - 1);
+                } else {
+                        strncpy(s->pin, s->topts, sizeof(s->pin) - 1);
+                }
         }
-        
+
         pthread_mutex_init(&s->data_lock, NULL);
-        
-        dprintf(5,"target: %s, topts: %s\n", s->target, s->topts);
+
+        dprintf(5,"target: %s, topts: %s, pin: %s\n", s->target, s->topts, s->pin);
         return s;
 }
 
@@ -144,14 +152,103 @@ static int bt_open(void *handle) {
         }
         
         dprintf(1,"Connected to D-Bus\n");
-        
+
         // Convert MAC address for D-Bus path
         mac_to_dbus_path(s->target, mac_path);
-        snprintf(s->device_path, sizeof(s->device_path), 
+        snprintf(s->device_path, sizeof(s->device_path),
                 "/org/bluez/hci0/dev_%s", mac_path);
-        
+
         dprintf(1,"Device path: %s\n", s->device_path);
-        
+
+        // Skip device discovery check - just try to connect directly
+        // This allows connecting to known devices even if not currently advertising
+        dprintf(1,"Will attempt direct connection (no discovery)\n");
+
+        // Try to check if device is already paired (may fail if device not known yet)
+        GVariant *paired_variant = g_dbus_connection_call_sync(s->dbus_conn,
+                "org.bluez",
+                s->device_path,
+                "org.freedesktop.DBus.Properties",
+                "Get",
+                g_variant_new("(ss)", "org.bluez.Device1", "Paired"),
+                NULL,
+                G_DBUS_CALL_FLAGS_NONE,
+                2000,
+                NULL,
+                &error);
+
+        gboolean already_paired = FALSE;
+        if (paired_variant) {
+                GVariant *value;
+                g_variant_get(paired_variant, "(v)", &value);
+                already_paired = g_variant_get_boolean(value);
+                g_variant_unref(value);
+                g_variant_unref(paired_variant);
+                dprintf(1,"Device paired status: %s\n", already_paired ? "yes" : "no");
+        } else {
+                dprintf(1,"Could not check paired status (device may not exist yet): %s\n",
+                        error ? error->message : "unknown");
+                if (error) {
+                        g_error_free(error);
+                        error = NULL;
+                }
+        }
+
+        // If not paired and we have a PIN, try to pair the device (non-fatal if fails)
+        if (!already_paired && strlen(s->pin) > 0) {
+                dprintf(1,"Attempting to pair with PIN: %s\n", s->pin);
+
+                // Trust the device first
+                result = g_dbus_connection_call_sync(s->dbus_conn,
+                        "org.bluez",
+                        s->device_path,
+                        "org.freedesktop.DBus.Properties",
+                        "Set",
+                        g_variant_new("(ssv)", "org.bluez.Device1", "Trusted", g_variant_new_boolean(TRUE)),
+                        NULL,
+                        G_DBUS_CALL_FLAGS_NONE,
+                        2000,
+                        NULL,
+                        &error);
+
+                if (result) {
+                        g_variant_unref(result);
+                        dprintf(1,"Device set as trusted\n");
+                } else {
+                        dprintf(1,"Could not set trusted: %s\n",
+                                error ? error->message : "unknown");
+                        if (error) {
+                                g_error_free(error);
+                                error = NULL;
+                        }
+                }
+
+                // Try to pair (may fail if device not discoverable)
+                result = g_dbus_connection_call_sync(s->dbus_conn,
+                        "org.bluez",
+                        s->device_path,
+                        "org.bluez.Device1",
+                        "Pair",
+                        NULL,
+                        NULL,
+                        G_DBUS_CALL_FLAGS_NONE,
+                        10000, // 10 second timeout for pairing
+                        NULL,
+                        &error);
+
+                if (!result) {
+                        dprintf(1,"Pairing failed: %s (will try to connect anyway)\n",
+                                error ? error->message : "unknown");
+                        if (error) {
+                                g_error_free(error);
+                                error = NULL;
+                        }
+                } else {
+                        dprintf(1,"Device paired successfully\n");
+                        g_variant_unref(result);
+                }
+        }
+
         // Connect to the device
         result = g_dbus_connection_call_sync(s->dbus_conn,
                 "org.bluez",

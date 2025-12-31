@@ -28,11 +28,11 @@ function pa_reserve(agent_name,module,item,str_amount,str_pri) {
 		return 1;
 	}
 
-	// If a reservation exists for the same id + amount delete it
+	// If a reservation exists for the same id delete it
 	for(let i=0; i < pa.reservations.length; i++) {
 		let res = pa.reservations[i];
 		dprintf(dlevel,"check exist: res[%d]: id: %s, amount: %.1f, pri: %d\n", i, res.id, res.amount, res.pri);
-		if (res.id == id && res.amount == amount) {
+		if (res.id == id) {
 			pa.reserved  -= res.amount;
 			pa.reservations.splice(i,1);
 		}
@@ -108,11 +108,12 @@ function pa_release(agent_name,module,item,str_amount) {
 	dprintf(dlevel,"reservation count: %d\n", pa.reservations.length);
 	for(let i=0; i < pa.reservations.length; i++) {
 		let res = pa.reservations[i];
-		if (res.id == id && res.amount == amount) {
-			log_info("removing reservation for: id: %s, amount: %.1f\n", id, amount);
+		// XXX if the reserve= for a unit changes while it has a reservation it will never be able to release it if we match on amount - so we just match on id
+		if (res.id == id) {
+			log_info("removing reservation for: id: %s, amount: %.1f\n", id, pa.amount);
 			dprintf(dlevel,"found\n");
+			pa.reserved -= res.amount;
 			pa.reservations.splice(i,1);
-			pa.reserved -= amount;
 			// XXX no reserves until timeout
 			pa.last_reserve_time = time();
 			r = 0;
@@ -144,7 +145,7 @@ function pa_repri(agent_name,module,item,str_amount,str_pri) {
 	for(let i=0; i < pa.reservations.length; i++) {
 		let res = pa.reservations[i];
 		dprintf(dlevel,"check exist: res[%d]: id: %s, amount: %.1f, pri: %d\n", i, res.id, res.amount, res.pri);
-		if (res.id == id && res.amount == amount) {
+		if (res.id == id) {
 			found = true;
 			res.pri = pri;
 			break;
@@ -198,13 +199,15 @@ function pa_repri(agent_name,module,item,str_amount,str_pri) {
 	return 0;
 }
 
-function pa_revoke_all(res) {
+function pa_revoke_all(immediate_str) {
 	let dlevel = 2;
+
+	let immediate = (immediate_str === "true" || immediate_str === "1");
 
 	for(let i=0; i < pa.reservations.length; i++) {
 		let res = pa.reservations[i];
-		dprintf(dlevel,"revoking: res[%d]: id: %s, amount: %.1f, pri: %d\n", i, res.id, res.amount, res.pri);
-		pa.revokes.push(res);
+		dprintf(dlevel,"revoking: res[%d]: id: %s, amount: %.1f, pri: %d (immediate: %s)\n", i, res.id, res.amount, res.pri, immediate);
+		pa.revokes.push({ res: res, immediate: immediate });
 	}
 	return 0;
 }

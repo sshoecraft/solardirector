@@ -135,7 +135,7 @@ static JSBool js_readbme(JSContext *cx, uintN argc, jsval *vp) {
 		char *name;
 		float *val;
 	} rdata[] = {
-		{ "temp", &data.c },
+		{ "temp", &data.f },
 		{ "humidity", &data.h },
 		{ "pressure", &data.p },
 #if 0
@@ -149,10 +149,16 @@ static JSBool js_readbme(JSContext *cx, uintN argc, jsval *vp) {
 #endif
 	};
 	#define rcount sizeof(rdata)/sizeof(struct _rdata)
+	jsdouble calib;
+
+	calib = 0.0;
+	if (!JS_ConvertArguments(cx, argc, JS_ARGV(cx,vp), "/ d", &calib)) return JS_FALSE;
+	dprintf(dlevel,"calib: %f\n", calib);
 
 	memset(&data,0,sizeof(data));
 	r = readbme(&data);
 	dprintf(dlevel,"r: %d\n", r);
+	if (!r) *rdata[0].val += (float)calib;
 	obj = JS_NewObject(cx,0,0,0);
 	dprintf(dlevel,"obj: %p\n", obj);
 	if (!obj) {

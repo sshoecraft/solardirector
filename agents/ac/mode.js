@@ -116,7 +116,7 @@ function get_wt() {
 
 function mode_auto() {
 
-	let dlevel = -1;
+	let dlevel = 1;
 
 	// Try to determine what the mode should be for the storage
 	let new_mode;
@@ -130,8 +130,10 @@ function mode_auto() {
 	} else {
 		new_mode = AC_MODE_COOL;
 	}
-	ac.mode = new_mode;
-	dprintf(dlevel,"NEW mode: %s(%d)\n", ac_modestr(ac.mode), ac.mode);
+	if (new_mode != ac.mode) {
+		dprintf(dlevel,"NEW mode: %s(%d)\n", ac_modestr(new_mode), new_mode);
+		ac.mode = new_mode;
+	}
 }
 
 function mode_set(mode_str) {

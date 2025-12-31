@@ -86,7 +86,9 @@ function fan_set_mode(name,mode) {
 			fan_stop(name);
 			fan.mode = FAN_MODE_NONE;
 		} else if (fan.state == FAN_STATE_RUNNING) {
-			dprintf(-1,"fan[%s]: (RUNNING) current mode: %s, new mode: %s\n", name, fan_modestr(fan.mode), fan_modestr(mode));
+			dprintf(dlevel,"fan[%s]: (RUNNING) current mode: %s, new mode: %s\n", name, fan_modestr(fan.mode), fan_modestr(mode));
+				fan.mode = mode;
+if (0) {
 			if (fan.mode == FAN_MODE_NONE) {
 				fan.mode = mode;
 			} else {
@@ -94,6 +96,7 @@ function fan_set_mode(name,mode) {
 				error_set("fan",name,sprintf("unable to set fan %s mode from %s to %s: fan is running", name, fan_modestr(fan.mode), fan_modestr(mode)));
 				return 1;
 			}
+}
 		} else {
 			dprintf(dlevel,"fan[%s]: state: %s\n", name, fan_statestr(fan.state));
 			dprintf(dlevel,"ac.mode: %s\n", ac_modestr(ac.mode));
@@ -148,6 +151,10 @@ function fan_off(name,fan) {
 
 	let dlevel = 1;
 
+	// Stop the pump first
+	dprintf(dlevel,"fan[%s]: pump: %s\n", name, fan.pump);
+	if (fan.pump.length) pump_stop(fan.pump);
+
 	dprintf(dlevel,"name: %s, state: %d\n", name, fan.state);
 	let retries = 3;
 	let r;
@@ -169,21 +176,20 @@ function fan_off(name,fan) {
 
 function fan_cooldown(name,fan) {
 
-    let dlevel = -1;
+    let dlevel = 1;
 
-	// Turn the pump off first
-	if (fan.pump.length) pump_stop(fan.pump);
-
-        dprintf(dlevel,"name: %s, cooldown: %d\n", name, fan.cooldown);
-        if (!fan.cooldown) return fan_off(name,fan);
-        fan.time = time();
-        fan_set_state(name,FAN_STATE_COOLDOWN);
+        dprintf(dlevel,"name: %s, min_runtime: %d, cooldown: %d\n", name, fan.min_runtime, fan.cooldown);
+        let runtime_needed = fan.min_runtime > fan.cooldown ? fan.min_runtime : fan.cooldown;
+        if (!runtime_needed) return fan_off(name,fan);
+        // Don't reset fan.time - it was set when fan reached RUNNING state
+        // Keep pump running during MIN_RUNTIME_WAIT - prevents pump cycling
+        fan_set_state(name,FAN_STATE_MIN_RUNTIME_WAIT);
         return 0;
 }
 
 function fan_stop(name) {
-		// XXX if its in cooldown already dont reset time
-		if (fans[name].state == FAN_STATE_COOLDOWN) return 0;
+		// XXX if its in min runtime wait already dont reset time
+		if (fans[name].state == FAN_STATE_MIN_RUNTIME_WAIT) return 0;
         return common_stop(name,"fan",fans,fan_cooldown,false)
 }
 
@@ -217,7 +223,7 @@ function fan_init() {
 	FAN_STATE_START = s++;
 	FAN_STATE_WAIT_START = s++;
 	FAN_STATE_RUNNING = s++;
-	FAN_STATE_COOLDOWN = s++;
+	FAN_STATE_MIN_RUNTIME_WAIT = s++;
 	FAN_STATE_RELEASE = s++;
 	FAN_STATE_ERROR = s++;
 
@@ -234,6 +240,7 @@ function fan_init() {
 		[ "pump", DATA_TYPE_STRING, null, 0 ],
 		[ "start_timeout", DATA_TYPE_INT, 60, 0 ],
 		[ "pump_timeout", DATA_TYPE_INT, 40, 0 ],
+		[ "min_runtime", DATA_TYPE_INT, 600, 0 ],
 		[ "cooldown", DATA_TYPE_INT, 30, 0 ],
 		[ "cooldown_threshold", DATA_TYPE_DOUBLE, 25.0, 0 ],
 		[ "reserve", DATA_TYPE_INT, 0, 0 ],
@@ -291,8 +298,8 @@ function fan_statestr(state) {
 	case FAN_STATE_RUNNING:
 		str = "Running";
 		break;
-	case FAN_STATE_COOLDOWN:
-		str = "Cooldown";
+	case FAN_STATE_MIN_RUNTIME_WAIT:
+		str = "Min Runtime Wait";
 		break;
 	case FAN_STATE_RELEASE:
 		str = "Release";
@@ -333,11 +340,11 @@ function fan_modestr(mode) {
 	return str;
 }
 
-function fan_revoke(name) {
+function fan_revoke(name,amount,immediate) {
 
 	let dlevel = 1;
 
-	dprintf(dlevel,"name: %s\n", name);
+	dprintf(dlevel,"name: %s, amount: %s, immediate: %s\n", name, amount, immediate);
 
 	let fan = fans[name];
 	dprintf(dlevel,"fan: %s\n", fan);
@@ -346,6 +353,14 @@ function fan_revoke(name) {
 		return 1;
 	}
 	dprintf(dlevel,"fan[%s]: state: %s\n", name, fan_statestr(fan.state));
+
+	log_info("revoke request received for fan %s (immediate: %s)\n", name, immediate ? "yes" : "no");
 	fan.refs = 1;
-	fan_force_stop(name);
+
+	// immediate flag bypasses min_runtime
+	if (immediate) {
+		fan_force_stop(name);
+	} else {
+		fan_stop(name);
+	}
 }

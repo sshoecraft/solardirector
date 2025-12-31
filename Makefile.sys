@@ -393,7 +393,7 @@ else
 #$(LINK) $(CFLAGS) $(LDFLAGS) $(LDADD) -o $(PROG) $(OBJS) $(LIBS) $(ENDLIBS)
 $(PROG): $(OBJS) $(DEPS)
 #	$(FULLCC) $(LDADD) -o $(PROG) $(OBJS) $(LIBS) $(ENDLIBS)
-	$(CC) $(CFLAGS) $(LDADD) $(LDFLAGS) -o $(PROG) $(OBJS) $(LIBS) $(ENDLIBS)
+#	$(CC) $(CFLAGS) $(LDADD) $(LDFLAGS) -o $(PROG) $(OBJS) $(LIBS) $(ENDLIBS)
 #	$(LINK) $(LDADD) -o $(PROG) $(OBJS) $(LIBS) $(ENDLIBS)
 	$(LINK) -o $(PROG) $(OBJS) $(LIBS) $(ENDLIBS)
 endif

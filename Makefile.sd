@@ -4,11 +4,13 @@ ID:=$(shell id -u)
 # We use pthreads in a lot of things
 PTHREADS=yes
 
-ifeq ($(ID),0)
 PREFIX?=/opt/sd
-else
-PREFIX?=$(shell echo ~)
-endif
+
+#ifeq ($(ID),0)
+#PREFIX?=/opt/sd
+#else
+#PREFIX?=$(shell echo ~)
+#endif
 
 # Define SRC_ROOT
 current_makefile := $(lastword $(MAKEFILE_LIST))

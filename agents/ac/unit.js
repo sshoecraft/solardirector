@@ -163,7 +163,17 @@ function unit_on(name,unit) {
 }
 
 function unit_start(name) {
-	return common_start(name,"unit",units);
+	let unit = units[name];
+	if (typeof(unit) == 'undefined') {
+		config.errmsg = sprintf("unknown unit: %s", name);
+		return 1;
+	}
+	if (unit.state == UNIT_STATE_MIN_RUNTIME_WAIT) {
+		unit_set_state(name,UNIT_STATE_RUNNING);
+		return 0;
+	} else {
+		return common_start(name,"unit",units);
+	}
 }
 
 function unit_off(name,unit) {
@@ -208,17 +218,31 @@ function unit_off(name,unit) {
 
 	if (unit.reserve) unit_set_state(name,UNIT_STATE_RELEASE);
 	else unit_set_state(name,UNIT_STATE_STOPPED);
+	units[name].charge_state = CHARGE_STATE_STOPPED;
 	unit_mode(name,unit,ac.mode);
 	return 0;
 }
 
-function unit_stop(name) {
+function unit_cooldown(name,unit) {
+
+	let dlevel = 1;
+
+	dprintf(dlevel,"name: %s, min_runtime: %d\n", name, unit.min_runtime);
+	if (!unit.min_runtime) return unit_off(name,unit);
+	// Don't reset unit.time - it was set when unit reached RUNNING state
+	// Keep pump running during MIN_RUNTIME_WAIT - stopping it would freeze/overheat the heat exchanger
+	unit_set_state(name,UNIT_STATE_MIN_RUNTIME_WAIT);
 	units[name].charge_state = CHARGE_STATE_STOPPED;
-	return common_stop(name,"unit",units,unit_off,false)
+	return 0;
 }
 
+function unit_stop(name) {
+	if (units[name].state == UNIT_STATE_MIN_RUNTIME_WAIT) return 0;
+	return common_stop(name,"unit",units,unit_cooldown,false)
+}
+
+
 function unit_force_stop(name) {
-	units[name].charge_state = CHARGE_STATE_STOPPED;
 	if (units[name].pump.length) pump_force_stop(units[name].pump);
 	return common_stop(name,"unit",units,unit_off,true)
 }
@@ -290,6 +314,7 @@ function unit_init() {
 	UNIT_STATE_START = s++;
 	UNIT_STATE_RUNNING = s++;
 	UNIT_STATE_RELEASE = s++;
+	UNIT_STATE_MIN_RUNTIME_WAIT = s++;
 	UNIT_STATE_ERROR = s++;
 
 	// Declare the per-unit props here as a global
@@ -297,6 +322,7 @@ function unit_init() {
 		[ "enabled", DATA_TYPE_BOOL, "true", 0 ],
 		[ "pump", DATA_TYPE_STRING, null, 0 ],
 		[ "pump_timeout", DATA_TYPE_INT, 60, 0 ],
+		[ "min_runtime", DATA_TYPE_INT, 900, 0 ],
 		[ "coolpin", DATA_TYPE_INT, -1, 0 ],
 		[ "heatpin", DATA_TYPE_INT, -1, 0 ],
 		[ "rvpin", DATA_TYPE_INT, -1, 0 ],
@@ -358,6 +384,9 @@ function unit_statestr(state) {
 	case UNIT_STATE_RUNNING:
 		str = "Running";
 		break;
+	case UNIT_STATE_MIN_RUNTIME_WAIT:
+		str = "Min Runtime Wait";
+		break;
 	case UNIT_STATE_RELEASE:
 		str = "Release";
 		break;
@@ -373,11 +402,11 @@ function unit_statestr(state) {
 	return str;
 }
 
-function unit_revoke(name) {
+function unit_revoke(name,amount,immediate) {
 
 	let dlevel = -1;
 
-	dprintf(dlevel,"name: %s\n", name);
+	dprintf(dlevel,"name: %s, amount: %s, immediate: %s\n", name, amount, immediate);
 
 	let unit = units[name];
 	dprintf(dlevel,"unit: %s\n", unit);
@@ -386,7 +415,14 @@ function unit_revoke(name) {
 		return 1;
 	}
 	dprintf(dlevel,"unit[%s]: state: %s\n", name, unit_statestr(unit.state));
-	log_info("revoke request received for unit %s\n", name);
+
+	log_info("revoke request received for unit %s (immediate: %s)\n", name, immediate ? "yes" : "no");
 	unit.refs = 1;
-	return unit_stop(name);
+
+	// immediate flag bypasses min_runtime
+	if (immediate) {
+		return unit_force_stop(name);
+	} else {
+		return unit_stop(name);
+	}
 }

@@ -1,4 +1,0 @@
-paho.mqtt.c
-gattlib
-libcurl4-openssl-dev
-libreadline-gplv2-dev

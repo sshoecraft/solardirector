@@ -609,11 +609,25 @@ static JSBool js_gc(JSContext *cx, uintN argc, jsval *vp) {
 	return JS_TRUE;
 }
 
+#if JS_ARENAMETER
 static JSBool js_memused(JSContext *cx, uintN argc, jsval *vp) {
 //	JS_DumpArenaStats(stdout);
 	*vp = INT_TO_JSVAL(JS_ArenaTotalBytes());
 	return JS_TRUE;
 }
+
+
+static JSBool js_dumpstats(JSContext *cx, uintN argc, jsval *vp) {
+	JSEngine *e = JS_GetPrivate(cx,JS_GetGlobalObject(cx));
+	js_DumpGCStats(e->rt,stdout);
+	return JS_TRUE;
+}
+
+static JSBool js_DumpArenaStats(JSContext *cx, uintN argc, jsval *vp) {
+	JS_DumpArenaStats(stdout);
+	return JS_TRUE;
+}
+#endif
 
 #if 0
 static JSBool js_meminfo(JSContext *cx, uintN argc, jsval *vp) {
@@ -630,17 +644,6 @@ static JSBool js_meminfo(JSContext *cx, uintN argc, jsval *vp) {
 	return JS_TRUE;
 }
 #endif
-
-static JSBool js_dumpstats(JSContext *cx, uintN argc, jsval *vp) {
-	JSEngine *e = JS_GetPrivate(cx,JS_GetGlobalObject(cx));
-	js_DumpGCStats(e->rt,stdout);
-	return JS_TRUE;
-}
-
-static JSBool js_DumpArenaStats(JSContext *cx, uintN argc, jsval *vp) {
-	JS_DumpArenaStats(stdout);
-	return JS_TRUE;
-}
 
 static JSBool js_sysmemused(JSContext *cx, uintN argc, jsval *vp) {
 #if USE_MALLINFO
@@ -920,11 +923,13 @@ JSObject *JS_CreateGlobalObject(JSContext *cx, void *priv) {
 //		JS_FN("setTimeout",js_setTimeout,2,2,0),
 		JS_FN("gc",js_gc,0,0,0),
 		JS_FN("version",js_version,1,1,0),
+#if JS_ARENAMETER
 		JS_FN("memused",js_memused,0,0,0),
 		JS_FN("DumpArenaStats",js_DumpArenaStats,0,0,0),
+		JS_FN("dumpstats",js_dumpstats,0,0,0),
+#endif
 		JS_FN("sysmemused",js_sysmemused,0,0,0),
 //		JS_FN("meminfo",js_meminfo,0,0,0),
-		JS_FN("dumpstats",js_dumpstats,0,0,0),
 		JS_FS_END
 	};
 	JSConstantSpec global_const[] = {

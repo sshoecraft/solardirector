@@ -8,7 +8,7 @@ function cycle_init() {
 
 	let props = [
 		[ "temp_sensor", DATA_TYPE_STRING, "", 0 ],
-		[ "cycle_start", DATA_TYPE_INT, 0, 0 ],
+		[ "cycle_start", DATA_TYPE_FLOAT, 32.0, 0 ],
 		[ "cycle_interval", DATA_TYPE_INT, 1800, 0 ],
 		[ "cycle_duration", DATA_TYPE_INT, 180, 0 ],
 	];
@@ -53,8 +53,8 @@ function cycle_main() {
 	dprintf(dlevel,"temp_sensor length: %d\n", ac.temp_sensor.length);
 	if (ac.temp_sensor.length) {
 		let r = get_sensor(ac.temp_sensor);
-		dprintf(dlevel,"r: %s\n", r);
-//		dumpobj(r);
+		dprintf(dlevel+1,"r: %s\n", r);
+		if (debug >= dlevel) dumpobj(r);
 		if (r && r.status == 0) {
 			ac.temp = r.temp;
 			ac.humidity = r.humidity;
@@ -70,6 +70,7 @@ function cycle_main() {
 	if (ac.temp == INVALID_TEMP) return;
 
 	// Only cycle when below freezing
+	dprintf(dlevel,"cycle_start: %s\n", ac.cycle_start);
 	if (ac.temp >= ac.cycle_start) return;
 
 	let cycle_interval = ac.cycle_interval;
@@ -78,6 +79,8 @@ function cycle_main() {
 	cycle_interval = parseInt(cycle_interval * m);
 	if (cycle_interval < 0) cycle_interval = 0;
 	dprintf(dlevel,"NEW cycle_interval: %d\n", cycle_interval);
+
+	dprintf(dlevel,"cycle: temp (%.1f) below threshold (%.1f), using interval: %d\n", ac.temp, ac.cycle_start, cycle_interval);
 
 	let diff;
 	dprintf(dlevel,"current_time: %s\n", new Date(time() * 1000));
@@ -96,7 +99,7 @@ function cycle_main() {
 			diff = time() - pump.cycle_time;
 			dprintf(dlevel,"diff: %d\n", diff);
 			if (diff >= cycle_interval) {
-				dprintf(dlevel,"*** STARTING PUMP: %s ***\n", name);
+				log_info("Cycling pumkp: %s\n", name);
 				pump_start(name);
 				pump.cycle_state = CYCLE_STATE_WAIT_PUMP;
 			}

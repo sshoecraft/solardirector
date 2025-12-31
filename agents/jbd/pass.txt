@@ -1,0 +1,28 @@
+if you need to send password to bms (no bluetooth-pin here, i have 5x JBD-SP04S020-L4S-120A-B-U (version 0x20), no other)->
+
+if password is 123456 then send DD 5A 06 07 06 01 02 03 04 05 06 FF D8 77
+if password is 000000 then send DD 5A 06 07 06 00 00 00 00 00 00 FF ED 77
+
+the original Android app is first sending DD 5A 06 01 00 FF F9 77, it will work if no password is set
+but in the following log you see, that returned status is 80, not 00 for "ok"
+
+xxx	x.xxx000000	BluetoothLeService	Logcat Text	Logcat Text	142	send:DD 5A 06 01 00 FF F9 77   read:DD 06 80 00 FF 80 77
+
+that means the request is not ok and then the android app ask you for the password, so far BMS Tool and also bms_tools from JBD will fail here to read or set parameters until the passwort isn't cleared
+
+xxx xx.xxx000000	BluetoothLeService	Logcat Text	Logcat Text	160	send:DD 5A 06 07 06 01 02 03 04 05 06 FF D8 77   read:DD 06 00 00 00 00 77 <- this the correct answer
+
+but
+
+DD A5 03 00 FF FD 77
+DD A5 04 00 FF FC 77
+DD A5 05 00 FF FB 77
+
+should work without need of password
+
+in my tests after some time i must resend password to bms, no matter whether per ble or usb serial adapter, but I already had the same appearance with the Android app, but when using the app only a reconnect helps
+
+see also -> https://gitlab.com/bms-tools/bms-tools/-/issues/30
+
+Mein Anliegen ist ansich auch, mehrere Geräte mittels einer App per Bluetooth anzusprechen, gegebenenfalls die Parameter aller BMS zu ändern etc. pp, aber ob ich das schaffe, die eine mir bekannte verfügbare quelloffene App entsprechend anzupassen? Die BLE-Kommunikation ist wohl etwas tricky und schlecht implementiert in Android(zumindest bei älteren Versionen) durch Google, was gleichzeitige Kommunikation betrifft (s.a. https://issuetracker.google.com/issues/37127889). Der Autor obiger App hat die Kommunikation mit mehreren Geräten ansich auch auf seiner ToDo-Liste.
+

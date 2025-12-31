@@ -1,7 +1,9 @@
 
 include("utils.js");
+include("../../lib/sd/utils.js");
 
 ac = {};
 debug = 4;
 
-get_influx_value("solardirector.localdomain|weather|SELECT last(temp_outdoor_f) as temp,last(humidity_outdoor) as humidity,last(barometric_relative_in) as pressure FROM ws2000");
+let r = get_influx_value("solardirector.localdomain|weather|SELECT last(temp_outdoor_f) as temp,last(humidity_outdoor) as humidity,last(barometric_relative_in) as pressure FROM ws2000");
+dumpobj(r);

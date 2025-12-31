@@ -1024,13 +1024,20 @@ func displayHistorical(startDate, endDate time.Time, data []UsageData, firstYear
 	for current.Before(endDate) {
 		monthDay := current.Format("01-02")
 		fmt.Printf("%s ", monthDay)
-		
+
 		for year := firstYear; year <= histEndYear; year++ {
-			dateStr := fmt.Sprintf("%d-%s", year, monthDay)
+			// Determine the actual year for this date
+			actualYear := year
+			if startDate.Year() != endDate.Year() && current.Month() < startDate.Month() {
+				// We're in the second part of a cross-year billing cycle (e.g., January)
+				actualYear = year + 1
+			}
+
+			dateStr := fmt.Sprintf("%d-%s", actualYear, monthDay)
 			usage := getUsageForDate(data, dateStr)
-			
+
 			// Don't show today's data for current year
-			if year == thisYear && dateStr == today.Format("2006-01-02") {
+			if actualYear == thisYear && dateStr == today.Format("2006-01-02") {
 				fmt.Printf("  %7s", "NULL")
 			} else if usage > 0 {
 				totals[year] += usage
@@ -1075,12 +1082,14 @@ func displayHistorical(startDate, endDate time.Time, data []UsageData, firstYear
 func main() {
 	// Get system timezone
 	timezone = getSystemTimezone()
-	
+
 	// Define command line flags
 	var dateArg string
+	var histOnly bool
 	flag.StringVar(&influxHost, "host", DEFAULT_INFLUX_HOST, "InfluxDB host (hostname, hostname:port, or full URL)")
 	flag.StringVar(&influxHost, "H", DEFAULT_INFLUX_HOST, "InfluxDB host (shorthand)")
 	flag.StringVar(&timezone, "tz", timezone, "Timezone for queries (default: system timezone)")
+	flag.BoolVar(&histOnly, "hist", false, "Display only historical usage table")
 	
 	// Parse command line arguments
 	flag.Parse()
@@ -1149,14 +1158,20 @@ func main() {
 	if reportDate.Year() < firstYear {
 		firstYear = reportDate.Year()
 	}
-	
+
 	// Display reports
-	displayUsage(reportDate, allData, firstYear)
-	projected, cost := displayCycle(startDate, endDate, today, allData)
-	displayLastCycle(startDate, allData, projected, cost)
-	displayCycleAverage(startDate, allData, firstYear, today, projected, cost)
-	displayFeed(startDate, endDate, cost)
-	displayHourly(reportDate)
-	displayLastHourly(reportDate)
-	displayHistorical(startDate, endDate, allData, firstYear, today)
+	if histOnly {
+		// Only display historical usage table
+		displayHistorical(startDate, endDate, allData, firstYear, today)
+	} else {
+		// Display full report
+		displayUsage(reportDate, allData, firstYear)
+		projected, cost := displayCycle(startDate, endDate, today, allData)
+		displayLastCycle(startDate, allData, projected, cost)
+		displayCycleAverage(startDate, allData, firstYear, today, projected, cost)
+		displayFeed(startDate, endDate, cost)
+		displayHourly(reportDate)
+		displayLastHourly(reportDate)
+		displayHistorical(startDate, endDate, allData, firstYear, today)
+	}
 }
