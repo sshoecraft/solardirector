@@ -729,16 +729,6 @@ int jbd_read(void *handle, uint32_t *what, void *buf, int buflen) {
 		json_value_t *v = battery_to_flat_json(bp);
 		dprintf(2,"v: %p\n", v);
 		if (v) {
-#if 0
-			{
-			char *j;
-			j = json_dumps(v,0);
-			if (j) {
-				log_info("%s\n",j);
-				free(j);
-			}
-			}
-#endif
 			influx_write_json(s->ap->i, "battery", v);
 			json_destroy_value(v);
 		}	
