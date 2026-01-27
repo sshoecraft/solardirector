@@ -126,13 +126,22 @@ static int btc_agent_init(int argc, char **argv, opt_proctab_t *opts, btc_sessio
 	config_property_t btc_props[] = {
 		/* name, type, dest, dsize, def, flags, scope, values, labels, units, scale, precision, trigger, ctx */
 		{ "log_power", DATA_TYPE_BOOL, &s->log_power, 0, "0", 0, "select", "0, 1", "log output_power from each read", 0, 1, 0 },
-		{ "data_source", DATA_TYPE_STRING, &s->data_source, sizeof(s->data_source), "localhost", 0, 0, 0, 0, 0, 0, 0, btc_data_source_trigger, s },
+		{ "data_source", DATA_TYPE_STRING, &s->data_source, sizeof(s->data_source), 0, 0, 0, 0, 0, 0, 0, 0, btc_data_source_trigger, s },
 		{ "interval", DATA_TYPE_INT, 0, 0, "10" },
 		{ 0 }
 	};
 
 	s->ap = agent_init(argc,argv,btc_version_string,opts,&btc_driver,s,0,btc_props,0);
 	if (!s->ap) return 1;
+
+        dprintf(dlevel,"s: %p, s->ap->m: %p\n", s->m, s->ap->m);
+	if (!s->m && s->ap->m) {
+		char mqtt_info[1024];
+
+		mqtt_get_config(mqtt_info,sizeof(mqtt_info)-1,s->ap->m,0);
+		dprintf(dlevel,"mqtt_info: %s\n", mqtt_info);
+		config_set_property(s->ap->cp,s->ap->instance_name,"data_source",DATA_TYPE_STRING,mqtt_info,strlen(mqtt_info));
+	}
 
 //	agent_set_callback(s->ap, btc_cb, s);
 	return 0;

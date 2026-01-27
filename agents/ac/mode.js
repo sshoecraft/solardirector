@@ -123,7 +123,7 @@ function mode_auto() {
 	// search the air handlers and see how many times each mode was requested over the time period
 	let wt = get_wt();
 	dprintf(dlevel,"wt: %s\n", wt);
-	if (wt != INVALID_TEMP) {
+	if (is_valid_temp(wt)) {
 		dprintf(dlevel,"threshold: %d\n", ac.mode_threshold);
 		if (wt <= ac.mode_threshold) new_mode = AC_MODE_HEAT;
 		else new_mode = AC_MODE_COOL;

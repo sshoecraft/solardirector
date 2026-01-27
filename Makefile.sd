@@ -18,6 +18,11 @@ SRC_ROOT=$(shell echo $$(dirname $(current_makefile)))
 
 include $(SRC_ROOT)/make.opts
 
+# Local user overrides (loaded last so they can override anything)
+ifneq ("$(wildcard ~/.sd_make_opts)","")
+include ~/.sd_make_opts
+endif
+
 ifeq ($(RELEASE),yes)
 DEBUG=no
 DEBUG_MEM=no

@@ -81,7 +81,7 @@ function fan_set_mode(name,mode) {
 		let pump = pumps[fan.pump];
 		if (mode == FAN_MODE_NONE) {
 			dprintf(dlevel,"*** STOPPING FAN ***\n");
-			if (pump.direct_group.length) direct_disable(pump.direct_group);
+//			if (pump.direct_group.length) direct_disable(pump.direct_group);
 			fan.refs = 1;
 			fan_stop(name);
 			fan.mode = FAN_MODE_NONE;
@@ -99,17 +99,56 @@ if (0) {
 }
 		} else {
 			dprintf(dlevel,"fan[%s]: state: %s\n", name, fan_statestr(fan.state));
-			dprintf(dlevel,"ac.mode: %s\n", ac_modestr(ac.mode));
-			if (fan_modestr(mode) != ac_modestr(ac.mode)) {
-				// If the mode doesnt match the storage mode, go direct
-				if (pump.direct_group.length) {
-					if (direct_enable(pump.direct_group))
-						return 1;
+
+			// Check if mode mismatch
+			let mode_mismatch = (fan_modestr(mode) != ac_modestr(ac.mode));
+
+			// Check if water temp out of limits (storage depleted)
+			let water_depleted = false;
+			if (is_valid_temp(ac.water_temp)) {
+				if (fan.direct_group) {
+					// Direct mode fans use exact threshold (no offset)
+					water_depleted = (mode == FAN_MODE_COOL && ac.water_temp >= ac.cool_high_temp) ||
+							 (mode == FAN_MODE_HEAT && ac.water_temp <= ac.heat_low_temp);
+				} else if (fan.stop_wt) {
+					// Non-direct fans use wt_thresh offset
+					let cool_high = ac.cool_high_temp + (fan.wt_thresh + 0.5);
+					let heat_low = ac.heat_low_temp - (fan.wt_thresh - 0.5);
+					water_depleted = (mode == FAN_MODE_COOL && ac.water_temp >= cool_high) ||
+							 (mode == FAN_MODE_HEAT && ac.water_temp <= heat_low);
+				}
+			}
+
+			dprintf(dlevel, "mode_mismatch: %s, water_depleted: %s\n", mode_mismatch, water_depleted);
+
+			// Trigger direct mode if EITHER condition
+			if (mode_mismatch || water_depleted) {
+				if (fan.direct_group) {
+					let dg = directs[fan.direct_group];
+					// If direct is disabled, check if we can fall back to storage mode
+					if (dg && !dg.enabled) {
+						if (mode_mismatch) {
+							// Mode mismatch requires direct - can't fall back
+							dprintf(dlevel, "direct mode disabled and mode mismatch, can't start fan %s\n", name);
+							return 1;
+						}
+						// water_depleted only - fall back to storage mode
+						dprintf(dlevel, "direct mode disabled, starting fan %s in storage mode (water may be depleted)\n", name);
+						// Continue to normal fan start below
+					} else {
+						dprintf(dlevel, "triggering direct mode for fan %s, group %s\n", name, fan.direct_group);
+						let mode_str = (mode == FAN_MODE_COOL) ? "cool" : "heat";
+						if (direct_on(fan.direct_group, mode_str)) return 1;
+						// Direct mode initiated - set mode and return, let state machine handle startup
+						fan.mode = mode;
+						return 0;
+					}
 				} else {
-					error_set("fan",name,sprintf("fan %s requested mode (%s) does not match storage (%s) and direct group not set", name, fan_modestr(mode), ac_modestr(ac.mode)));
+					error_set("fan", name, sprintf("fan %s needs direct mode but no direct_group configured", name));
 					return 1;
 				}
 			}
+
 			dprintf(dlevel,"*** STARTING FAN ***\n");
 			if (!fan_start(name)) fan.mode = mode;
 		}
@@ -151,7 +190,16 @@ function fan_off(name,fan) {
 
 	let dlevel = 1;
 
-	// Stop the pump first
+	// Turn off direct mode if active or pending for this fan
+	if (fan.direct_group) {
+		let dg = directs[fan.direct_group];
+		if (dg && (dg.active_fan == name || dg.pending_fan == name)) {
+			dprintf(dlevel, "fan %s turning off direct mode\n", name);
+			direct_off(fan.direct_group);
+		}
+	}
+
+	// Stop the pump first (in direct mode, this is a no-op since fan pump wasn't started)
 	dprintf(dlevel,"fan[%s]: pump: %s\n", name, fan.pump);
 	if (fan.pump.length) pump_stop(fan.pump);
 
@@ -181,6 +229,11 @@ function fan_cooldown(name,fan) {
         dprintf(dlevel,"name: %s, min_runtime: %d, cooldown: %d\n", name, fan.min_runtime, fan.cooldown);
         let runtime_needed = fan.min_runtime > fan.cooldown ? fan.min_runtime : fan.cooldown;
         if (!runtime_needed) return fan_off(name,fan);
+        // If fan never reached RUNNING (fan.time not set), skip MIN_RUNTIME_WAIT
+        if (!fan.time) {
+                dprintf(dlevel,"fan[%s]: never reached RUNNING, skipping MIN_RUNTIME_WAIT\n", name);
+                return fan_off(name,fan);
+        }
         // Don't reset fan.time - it was set when fan reached RUNNING state
         // Keep pump running during MIN_RUNTIME_WAIT - prevents pump cycling
         fan_set_state(name,FAN_STATE_MIN_RUNTIME_WAIT);
@@ -240,7 +293,7 @@ function fan_init() {
 		[ "pump", DATA_TYPE_STRING, null, 0 ],
 		[ "start_timeout", DATA_TYPE_INT, 60, 0 ],
 		[ "pump_timeout", DATA_TYPE_INT, 40, 0 ],
-		[ "min_runtime", DATA_TYPE_INT, 600, 0 ],
+		[ "min_runtime", DATA_TYPE_INT, 0, 0 ],
 		[ "cooldown", DATA_TYPE_INT, 30, 0 ],
 		[ "cooldown_threshold", DATA_TYPE_DOUBLE, 25.0, 0 ],
 		[ "reserve", DATA_TYPE_INT, 0, 0 ],
@@ -340,9 +393,11 @@ function fan_modestr(mode) {
 	return str;
 }
 
-function fan_revoke(name,amount,immediate) {
+function fan_revoke(name,amount,immediate_str) {
 
 	let dlevel = 1;
+
+	let immediate = getBoolean(immediate_str);
 
 	dprintf(dlevel,"name: %s, amount: %s, immediate: %s\n", name, amount, immediate);
 

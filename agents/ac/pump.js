@@ -115,9 +115,14 @@ function pump_on(name,pump) {
 }
 
 function pump_start(name) {
+	let pump = pumps[name];
+	if (pump && pump.direct) {
+		config.errmsg = sprintf("start_pump: pump %s is in direct mode", name);
+		log_error("%s\n", config.errmsg);
+		return 1;
+	}
 	let r = common_start(name,"pump",pumps);
 	if (!r) {
-		let pump = pumps[name];
 		dprintf(1,"pump[%s]: state: %s\n", name, pump_statestr(pump.state));
 		if (pump.state == PUMP_STATE_COOLDOWN) pump.state = PUMP_STATE_RUNNING;
 	}
@@ -204,7 +209,6 @@ function pump_init() {
 		[ "warmup_threshold", DATA_TYPE_DOUBLE, "10.0", 0 ],
 		[ "cooldown", DATA_TYPE_INT, "0", 0 ],
 		[ "cooldown_threshold", DATA_TYPE_DOUBLE, "10.0", 0 ],
-		[ "direct_group", DATA_TYPE_STRING, "", 0 ],
 		[ "reserve", DATA_TYPE_INT, 0, 0 ],
 		[ "priority", DATA_TYPE_INT, 100, 0 ],
 		[ "error", DATA_TYPE_BOOL, "false", 0, 0 ],

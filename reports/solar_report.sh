@@ -1,7 +1,11 @@
 #!/bin/bash -x
 
-#TO=sshoecraft@earthlink.net
-TO=spshoecraft@gmail.com
+MAILTO=$HOME/.mailto
+if test ! -f $MAILTO; then
+	echo "error: $MAILTO does not exist.  Create that file and put your email address into it"
+	exit 1
+fi
+TO=$(cat $MAILTO)
 
 tmp=/tmp/solar_report.tmp
 rep=/tmp/rep.txt
@@ -14,6 +18,7 @@ elif test "$1" = "weekly"; then
 	:
 else
 day=$(date -d "yesterday" "+%m/%d/%Y")
+export PATH=/opt/sd/bin:/usr/local/bin:$PATH
 /root/bin/rep > $rep
 /root/bin/mkpdf
 fi
@@ -29,8 +34,6 @@ boundary="+++++BOUNDARY++++"
 echo "Content-Type: multipart/mixed; boundary=${boundary}" >> $tmp
 echo "MIME-Version: 1.0" >> $tmp
 echo "From: Solar System <solar@home.net>" >> $tmp
-#echo "To: (people who need to know)" >> $tmp
-#echo "Reply-to: Solar Steve <sshoecraft@earthlink.net>" >> $tmp
 # Usage needs to match output of rep
 v=`cat /tmp/rep.txt 2>/dev/null | grep ^Usage: | awk '{ print $2 }'`
 if test -n "$v"; then
@@ -67,4 +70,4 @@ echo "" >> $tmp
 echo "--${boundary}--" >> $tmp
 
 #cat $tmp
-cat $tmp | /usr/sbin/sendmail $TO
+cat $tmp | /usr/sbin/sendmail "$TO"

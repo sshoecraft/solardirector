@@ -56,11 +56,6 @@ mosquitto_sub -t 'solar/hvac/+/data'  # Watch fan data
 sdconfig ac get interval       # Get main loop interval
 sdconfig ac set cool_high_temp 75.0  # Set cooling threshold
 sdconfig ac list               # List all AC properties
-
-# Add components via JavaScript
-sdconfig ac jsexec 'pump_add("pump1", { pin: 17 })'
-sdconfig ac jsexec 'fan_add("fan1", { topic: "solar/hvac/fan1/data", pump: "pump1" })'
-sdconfig ac jsexec 'unit_add("unit1", { coolpin: 22, heatpin: 23, pump: "pump1" })'
 ```
 
 ### Service Management
@@ -136,9 +131,6 @@ Components use state machines for robust operation:
 ```bash
 # Enable debug logging
 ./ac -c test.json -d 4         # Maximum debug level
-
-# JavaScript debugging
-sdconfig ac jsexec 'dprintf(0, "pumps: %s", JSON.stringify(pumps))'
 
 # CAN bus monitoring
 candump vcan0                  # Watch CAN traffic

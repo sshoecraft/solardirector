@@ -25,6 +25,7 @@ LICENSE file in the root directory of this source tree.
 #define INFLUX_DATABASE_SIZE 64
 #define INFLUX_USERNAME_SIZE 32
 #define INFLUX_PASSWORD_SIZE 32
+#define INFLUX_TOKEN_SIZE 128
 
 #define INFLUX_INIT_BUFSIZE 4096
 #define SESSION_ID_SIZE 128
@@ -36,6 +37,7 @@ struct influx_session {
 	char database[INFLUX_DATABASE_SIZE];
 	char username[INFLUX_USERNAME_SIZE];
 	char password[INFLUX_PASSWORD_SIZE];
+	char token[INFLUX_TOKEN_SIZE];
 	char epoch[16];
 	bool connected;
 	int errcode;
@@ -64,7 +66,8 @@ int influx_parse_config(influx_session_t *s, char *influx_info) {
 	strncpy(s->database,strele(1,",",influx_info),sizeof(s->database)-1);
 	strncpy(s->username,strele(2,",",influx_info),sizeof(s->username)-1);
 	strncpy(s->password,strele(3,",",influx_info),sizeof(s->password)-1);
-	dprintf(dlevel,"endpoint: %s, database: %s, user: %s, pass: %s\n", s->endpoint, s->database, s->username, s->password);
+	strncpy(s->token,strele(4,",",influx_info),sizeof(s->token)-1);
+	dprintf(dlevel,"endpoint: %s, database: %s, user: %s, pass: %s, token: %s\n", s->endpoint, s->database, s->username, s->password, s->token);
 	return 0;
 }
 
@@ -155,13 +158,6 @@ influx_session_t *influx_new(void) {
 	curl_easy_setopt(s->curl, CURLOPT_SSL_VERIFYHOST, 0L);
 	curl_easy_setopt(s->curl, CURLOPT_WRITEFUNCTION, getdata);
 	curl_easy_setopt(s->curl, CURLOPT_WRITEDATA, s);
-
-	if (strlen(s->username)) {
-		curl_easy_setopt(s->curl, CURLOPT_HTTPAUTH, CURLAUTH_BASIC);
-		curl_easy_setopt(s->curl, CURLOPT_USERPWD, s->username);
-		curl_easy_setopt(s->curl, CURLOPT_HTTPAUTH, CURLAUTH_BASIC);
-		curl_easy_setopt(s->curl, CURLOPT_USERPWD, s->password);
-	}
 
 	if (!influx_sessions) influx_sessions = list_create();
 	list_add(influx_sessions, s, 0);
@@ -591,6 +587,11 @@ static int _get_response(influx_session_t *s, influx_response_t *r) {
 	/* Parse the buffer */
 //	dprintf(dlevel,"buffer: %s\n", s->buffer);
 	dprintf(dlevel,"bufidx: %d\n", s->bufidx);
+	/* No body (e.g. 204 No Content) is OK for writes */
+	if (!s->bufidx || !s->buffer || !strlen(s->buffer)) {
+		dprintf(dlevel,"no response body, returning success\n");
+		return 0;
+	}
 	v = json_parse(s->buffer);
 	dprintf(dlevel,"v: %p\n", v);
 	/* May not be valiid json data */
@@ -674,6 +675,22 @@ static influx_response_t *influx_request(influx_session_t *s, char *url, int pos
 		curl_easy_setopt(s->curl, CURLOPT_HTTPHEADER, curl_slist_append(0,cl));
 	}
 #endif
+	/* Set token auth header if token is present (InfluxDB v2) */
+	if (strlen(s->token)) {
+		char auth_header[INFLUX_TOKEN_SIZE + 32];
+		sprintf(auth_header, "Authorization: Token %s", s->token);
+		curl_slist_free_all(s->hs);
+		s->hs = curl_slist_append(0, "Content-Type: application/x-www-form-urlencoded");
+		s->hs = curl_slist_append(s->hs, auth_header);
+		curl_easy_setopt(s->curl, CURLOPT_HTTPHEADER, s->hs);
+	}
+	/* Set basic auth if username/password present (InfluxDB v1.x) */
+	else if (strlen(s->username)) {
+		char userpwd[INFLUX_USERNAME_SIZE + INFLUX_PASSWORD_SIZE + 2];
+		sprintf(userpwd, "%s:%s", s->username, s->password);
+		curl_easy_setopt(s->curl, CURLOPT_HTTPAUTH, CURLAUTH_BASIC);
+		curl_easy_setopt(s->curl, CURLOPT_USERPWD, userpwd);
+	}
 	curl_easy_setopt(s->curl, CURLOPT_VERBOSE, s->verbose);
 	curl_easy_setopt(s->curl, CURLOPT_URL, url);
 	curl_easy_setopt(s->curl, CURLOPT_POST, post);
@@ -1054,6 +1071,8 @@ void influx_add_props(influx_session_t *s, config_t *cp, char *name) {
 //                        0, 0, 0, 1, (char *[]){ "InfluxDB username" }, 0, 1, 0 },
 		{ "influx_password", DATA_TYPE_STRING, s->password, sizeof(s->password)-1, "", 0, },
 //                        0, 0, 0, 1, (char *[]){ "InfluxDB password" }, 0, 1, 0 },
+		{ "influx_token", DATA_TYPE_STRING, s->token, sizeof(s->token)-1, "", 0, },
+//                        0, 0, 0, 1, (char *[]){ "InfluxDB API token (for v2)" }, 0, 1, 0 },
 		{ 0 }
 	};
 
@@ -1584,6 +1603,7 @@ enum INFLUX_PROPERTY_ID {
 	INFLUX_PROPERTY_ID_DATABASE,
 	INFLUX_PROPERTY_ID_USERNAME,
 	INFLUX_PROPERTY_ID_PASSWORD,
+	INFLUX_PROPERTY_ID_TOKEN,
 	INFLUX_PROPERTY_ID_VERBOSE,
 	INFLUX_PROPERTY_ID_ERRMSG,
 	INFLUX_PROPERTY_ID_CONVDT,
@@ -1621,6 +1641,9 @@ static JSBool influx_getprop(JSContext *cx, JSObject *obj, jsval id, jsval *rval
 			break;
 		case INFLUX_PROPERTY_ID_PASSWORD:
 			*rval = type_to_jsval(cx,DATA_TYPE_STRING,s->password,strlen(s->password));
+			break;
+		case INFLUX_PROPERTY_ID_TOKEN:
+			*rval = type_to_jsval(cx,DATA_TYPE_STRING,s->token,strlen(s->token));
 			break;
 		case INFLUX_PROPERTY_ID_VERBOSE:
 			dprintf(dlevel,"verbose: %d\n", s->verbose);
@@ -1675,6 +1698,9 @@ static JSBool influx_setprop(JSContext *cx, JSObject *obj, jsval id, jsval *vp) 
 			break;
 		case INFLUX_PROPERTY_ID_PASSWORD:
 			jsval_to_type(DATA_TYPE_STRING,s->password,sizeof(s->password),cx,*vp);
+			break;
+		case INFLUX_PROPERTY_ID_TOKEN:
+			jsval_to_type(DATA_TYPE_STRING,s->token,sizeof(s->token),cx,*vp);
 			break;
 		case INFLUX_PROPERTY_ID_VERBOSE:
 			jsval_to_type(DATA_TYPE_BOOL,&s->verbose,0,cx,*vp);
@@ -1899,11 +1925,11 @@ static JSBool js_influx_connect(JSContext *cx, uintN argc, jsval *vp) {
 static JSBool js_influx_ctor(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rval) {
 	influx_session_t *s;
 	JSObject *newobj;
-	char *url, *db, *user, *pass;
+	char *url, *db, *user, *pass, *token;
 
 	dprintf(dlevel,"argc: %d\n", argc);
 	if (argc && argc < 2) {
-		JS_ReportError(cx, "INFLUX requires 2 arguments (endpoint:string, database:string) and 2 optional arguments (username:string, password:string)");
+		JS_ReportError(cx, "INFLUX requires 2 arguments (endpoint:string, database:string) and 3 optional arguments (username:string, password:string, token:string)");
 		return JS_FALSE;
 	}
 
@@ -1916,16 +1942,17 @@ static JSBool js_influx_ctor(JSContext *cx, JSObject *obj, uintN argc, jsval *ar
 	s->ctor = true;
 
 	if (argc) {
-		url = db = user = pass = 0;
-		if (!JS_ConvertArguments(cx, argc, argv, "s s / s s", &url, &db, &user, &pass))
+		url = db = user = pass = token = 0;
+		if (!JS_ConvertArguments(cx, argc, argv, "s s / s s s", &url, &db, &user, &pass, &token))
 			return JS_FALSE;
-		dprintf(dlevel,"url: %s, db: %s, user: %s, pass: %s\n", url, db, user, pass);
+		dprintf(dlevel,"url: %s, db: %s, user: %s, pass: %s, token: %s\n", url, db, user, pass, token);
 
 		strncpy(s->endpoint,url,sizeof(s->endpoint)-1);
 		if (!strrchr(s->endpoint,':')) strcat(s->endpoint,":8086");
 		strncpy(s->database,db,sizeof(s->database)-1);
 		if (user) strncpy(s->username,user,sizeof(s->username)-1);
 		if (pass) strncpy(s->password,pass,sizeof(s->password)-1);
+		if (token) strncpy(s->token,token,sizeof(s->token)-1);
 		dprintf(dlevel,"endpoint: %s, database: %s, user: %s, pass: %s\n", s->endpoint, s->database, s->username, s->password);
 	}
 
@@ -1937,13 +1964,14 @@ static JSBool js_influx_ctor(JSContext *cx, JSObject *obj, uintN argc, jsval *ar
 }
 
 static JSObject *js_InitInfluxClass(JSContext *cx, JSObject *global_object) {
-	JSPropertySpec influx_props[] = { 
+	JSPropertySpec influx_props[] = {
 		{ "enabled",		INFLUX_PROPERTY_ID_ENABLED,	JSPROP_ENUMERATE },
 		{ "url",		INFLUX_PROPERTY_ID_URL,		JSPROP_ENUMERATE },
 		{ "endpoint",		INFLUX_PROPERTY_ID_URL,		JSPROP_ENUMERATE },
 		{ "database",		INFLUX_PROPERTY_ID_DATABASE,	JSPROP_ENUMERATE },
 		{ "username",		INFLUX_PROPERTY_ID_USERNAME,	JSPROP_ENUMERATE },
 		{ "password",		INFLUX_PROPERTY_ID_PASSWORD,	JSPROP_ENUMERATE },
+		{ "token",		INFLUX_PROPERTY_ID_TOKEN,	JSPROP_ENUMERATE },
 		{ "connected",		INFLUX_PROPERTY_ID_CONNECTED,	JSPROP_ENUMERATE | JSPROP_READONLY },
 		{ "verbose",		INFLUX_PROPERTY_ID_VERBOSE,	JSPROP_ENUMERATE },
 		{ "epoch",		INFLUX_PROPERTY_ID_EPOCH,	JSPROP_ENUMERATE },

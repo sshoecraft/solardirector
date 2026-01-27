@@ -110,9 +110,13 @@ if (0) {
 	return 0;
 }
 
+function is_valid_temp(temp) {
+	return (typeof(temp) != 'undefined' && temp >= -50 && temp < 150);
+}
+
 function compare_temps(a,b) {
 	dprintf(dlevel,"a: %f, b: %f\n", a, b);
-	if (a == INVALID_TEMP || b == INVALID_TEMP) return -1;
+	if (!is_valid_temp(a) || !is_valid_temp(b)) return -1;
 	let r = 100.0 - ((a > b ? Math.abs(b / a) : Math.abs(a / b)) * 100.0);
 	dprintf(dlevel,"r: %f\n", r);
 	return r;

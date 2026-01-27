@@ -229,6 +229,11 @@ function unit_cooldown(name,unit) {
 
 	dprintf(dlevel,"name: %s, min_runtime: %d\n", name, unit.min_runtime);
 	if (!unit.min_runtime) return unit_off(name,unit);
+	// If unit never reached RUNNING (unit.time not set), skip MIN_RUNTIME_WAIT
+	if (!unit.time) {
+		dprintf(dlevel,"unit[%s]: never reached RUNNING, skipping MIN_RUNTIME_WAIT\n", name);
+		return unit_off(name,unit);
+	}
 	// Don't reset unit.time - it was set when unit reached RUNNING state
 	// Keep pump running during MIN_RUNTIME_WAIT - stopping it would freeze/overheat the heat exchanger
 	unit_set_state(name,UNIT_STATE_MIN_RUNTIME_WAIT);
@@ -243,7 +248,12 @@ function unit_stop(name) {
 
 
 function unit_force_stop(name) {
-	if (units[name].pump.length) pump_force_stop(units[name].pump);
+	let unit = units[name];
+	// Turn off direct mode first to prevent fan from erroring
+	if (unit && unit.direct && unit.direct_group) {
+		direct_off(unit.direct_group);
+	}
+	if (unit && unit.pump.length) pump_force_stop(unit.pump);
 	return common_stop(name,"unit",units,unit_off,true)
 }
 
@@ -322,7 +332,7 @@ function unit_init() {
 		[ "enabled", DATA_TYPE_BOOL, "true", 0 ],
 		[ "pump", DATA_TYPE_STRING, null, 0 ],
 		[ "pump_timeout", DATA_TYPE_INT, 60, 0 ],
-		[ "min_runtime", DATA_TYPE_INT, 900, 0 ],
+		[ "min_runtime", DATA_TYPE_INT, 300, 0 ],
 		[ "coolpin", DATA_TYPE_INT, -1, 0 ],
 		[ "heatpin", DATA_TYPE_INT, -1, 0 ],
 		[ "rvpin", DATA_TYPE_INT, -1, 0 ],
@@ -402,9 +412,11 @@ function unit_statestr(state) {
 	return str;
 }
 
-function unit_revoke(name,amount,immediate) {
+function unit_revoke(name,amount,immediate_str) {
 
 	let dlevel = -1;
+
+	let immediate = getBoolean(immediate_str);
 
 	dprintf(dlevel,"name: %s, amount: %s, immediate: %s\n", name, amount, immediate);
 
@@ -417,6 +429,14 @@ function unit_revoke(name,amount,immediate) {
 	dprintf(dlevel,"unit[%s]: state: %s\n", name, unit_statestr(unit.state));
 
 	log_info("revoke request received for unit %s (immediate: %s)\n", name, immediate ? "yes" : "no");
+
+	// If unit is in direct mode, turn off direct mode first
+	// This prevents the fan from erroring when it sees the pump stop
+	if (unit.direct && unit.direct_group) {
+		dprintf(dlevel,"unit %s is in direct mode, turning off direct mode first\n", name);
+		direct_off(unit.direct_group);
+	}
+
 	unit.refs = 1;
 
 	// immediate flag bypasses min_runtime

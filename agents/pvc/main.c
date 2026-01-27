@@ -33,7 +33,7 @@ static void process_message(pvc_session_t *s, solard_message_t *msg) {
 	pvc_agentinfo_t *info, newinfo;
 	bool have_info;
 
-	int ldlevel = dlevel+1;
+	int ldlevel = dlevel;
 
 	dprintf(ldlevel,"msg: name: %s, func: %s\n", msg->name, msg->func);
 	info = get_agent(s, msg->name);
@@ -119,6 +119,7 @@ static int pvc_data_source_trigger(void *ctx, config_property_t *p, void *old_va
 		dprintf(ldlevel,"sub topic: %s\n", TOPIC);
 		mqtt_sub(s->m,TOPIC);
 	}
+	dprintf(ldlevel,"connected: %d\n", mqtt_connected(s->m));
 	return 0;
 }
 
@@ -126,13 +127,22 @@ static int pvc_agent_init(int argc, char **argv, opt_proctab_t *opts, pvc_sessio
 	config_property_t pvc_props[] = {
 		/* name, type, dest, dsize, def, flags, scope, values, labels, units, scale, precision, trigger, ctx */
 		{ "log_power", DATA_TYPE_BOOL, &s->log_power, 0, "0", 0, "select", "0, 1", "log output_power from each read", 0, 1, 0 },
-		{ "data_source", DATA_TYPE_STRING, &s->data_source, sizeof(s->data_source), "localhost", 0, 0, 0, 0, 0, 0, 0, pvc_data_source_trigger, s },
+		{ "data_source", DATA_TYPE_STRING, &s->data_source, sizeof(s->data_source), 0, 0, 0, 0, 0, 0, 0, 0, pvc_data_source_trigger, s },
 		{ "interval", DATA_TYPE_INT, 0, 0, "10" },
 		{ 0 }
 	};
 
 	s->ap = agent_init(argc,argv,pvc_version_string,opts,&pvc_driver,s,0,pvc_props,0);
 	if (!s->ap) return 1;
+
+	dprintf(dlevel,"s: %p, s->ap->m: %p\n", s->m, s->ap->m);
+	if (!s->m && s->ap->m) {
+		char mqtt_info[1024];
+
+		mqtt_get_config(mqtt_info,sizeof(mqtt_info)-1,s->ap->m,0);
+		dprintf(dlevel,"mqtt_info: %s\n", mqtt_info);
+		config_set_property(s->ap->cp,s->ap->instance_name,"data_source",DATA_TYPE_STRING,mqtt_info,strlen(mqtt_info));
+	}
 
 //	agent_set_callback(s->ap, pvc_cb, s);
 	return 0;

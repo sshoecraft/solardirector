@@ -87,7 +87,7 @@ function charge_main() {
 	let dlevel = 1;
 
 	dprintf(dlevel,"water_temp: %s\n", ac.water_temp);
-	if (ac.water_temp == INVALID_TEMP) return;
+	if (!is_valid_temp(ac.water_temp)) return;
 
 	let low_thresh = ac.cool_low_temp+ac.charge_threshold;
 	let high_thresh = ac.heat_high_temp-ac.charge_threshold;
@@ -112,7 +112,8 @@ function charge_main() {
 		switch(unit.charge_state) {
 		case CHARGE_STATE_STOPPED:
 			if (!do_start) continue;
-			charge_state = CHARGE_STATE_START;
+			if (unit.state == UNIT_STATE_MIN_RUNTIME_WAIT) continue;
+			unit.charge_state = CHARGE_STATE_START;
 		case CHARGE_STATE_START:
 			// Set the charge priority of the unit
 			unit.charge_priority = charge_get_pri();
@@ -144,9 +145,9 @@ function charge_main() {
 			if (unit.state == UNIT_STATE_RUNNING) {
 				if (unit.priority == 0 && unit.reserve) {
 					let pump = pumps[unit.pump];
-					if (pump.settled && pump.temp_in >= -50 && pump.temp_in < 150) {
+					if (pump.settled && is_valid_temp(pump.temp_in)) {
 if (1) {
-						if (unit.last_pri_temp < -50 || unit.last_pri_temp > 150) {
+						if (!is_valid_temp(unit.last_pri_temp)) {
 							unit.last_pri_temp = pump.temp_in;
 							dprintf(-1,"NEW last_pri_temp: %s\n", unit.last_pri_temp);
 						}
@@ -178,7 +179,8 @@ if (1) {
 									unit.last_pri_temp = pump.temp_in;
 									dprintf(-1,"NEW last_pri_temp: %s\n", unit.last_pri_temp);
 								}
-							} else {
+							// This is to keep the repri diff from resetting when we are below/above target
+							} else if ((unit.mode == AC_MODE_COOL && pump.temp_in < ac.cool_high_temp) || (unit.mode == AC_MODE_HEAT && pump.temp_in > ac.heat_low_temp)) {
 								unit.last_pri_temp = pump.temp_in;
 								dprintf(-1,"NEW last_pri_temp: %s\n", unit.last_pri_temp);
 							}

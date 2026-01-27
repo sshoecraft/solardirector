@@ -5,7 +5,7 @@ SCRIPTS=*.js
 
 SERVICE_NAME=ac
 SERVICE_DESC=AC Agent
-SERVICE_ARGS=-i
+SERVICE_ARGS=-i -a
 
 JS=yes
 MQTT=yes

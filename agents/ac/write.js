@@ -31,7 +31,7 @@ function write_main() {
 			let opstr = "";
 			if (which == "fan" && item.state == FAN_STATE_STOPPED && item.refs) {
 				dprintf(dlevel,"water_temp: %s\n", ac.water_temp);
-				if (ac.water_temp != INVALID_TEMP) {
+				if (is_valid_temp(ac.water_temp)) {
 					let cool_thresh = ac.cool_high_temp-ac.charge_threshold;
 					let heat_thresh = ac.heat_low_temp+ac.charge_threshold;
 					dprintf(dlevel,"mode: %s, water_temp: %d, cool_thresh: %d, heat_thresh: %d\n", ac_modestr(ac.mode), ac.water_temp, cool_thresh, heat_thresh);

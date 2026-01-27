@@ -4,6 +4,53 @@
 // Include helper functions
 //include(script_dir+"/utils.js");
 
+// Check if battery usage exceeds limits
+// amount > 0: check if current discharge + amount would exceed limit
+// amount <= 0: check if current discharge exceeds limit
+// Returns: 0 = not over, 1 = over soft limit, 2 = over hard limit
+//
+// Uses actual battery discharge (pa.battery_power), not pa.reserved,
+// because unreserved loads (mini splits, etc.) also draw from battery.
+//
+// Handles all combinations:
+// - Only soft limit set: checks soft only
+// - Only hard limit set: checks hard only
+// - Both set: checks both (hard first since more severe)
+// - Neither set: returns 0
+function pa_over_battery_limit(amount) {
+	// No limits configured at all - not over
+	if (pa.battery_soft_limit <= 0 && pa.battery_hard_limit <= 0) return 0;
+
+	// No battery data or not discharging meaningfully - not over
+	if (!pa.have_battery_power || pa.battery_power >= -100) return 0;
+
+	// Current battery discharge (positive value)
+	let current_discharge = Math.abs(pa.battery_power);
+
+	// What to check: current discharge, or current + new reservation
+	let check_total = (amount > 0) ? current_discharge + amount : current_discharge;
+
+	// Check hard limit first (more severe)
+	if (pa.battery_hard_limit > 0 && check_total > pa.battery_hard_limit) {
+		if (amount > 0) {
+			config.errmsg = sprintf("reservation would exceed battery hard limit (%.1f + %.1f = %.1f > %.1f)",
+				current_discharge, amount, check_total, pa.battery_hard_limit);
+		}
+		return 2;
+	}
+
+	// Check soft limit
+	if (pa.battery_soft_limit > 0 && check_total > pa.battery_soft_limit) {
+		if (amount > 0) {
+			config.errmsg = sprintf("reservation would exceed battery soft limit (%.1f + %.1f = %.1f > %.1f)",
+				current_discharge, amount, check_total, pa.battery_soft_limit);
+		}
+		return 1;
+	}
+
+	return 0;
+}
+
 function pa_reserve(agent_name,module,item,str_amount,str_pri) {
 	let dlevel = 1;
 
@@ -28,11 +75,13 @@ function pa_reserve(agent_name,module,item,str_amount,str_pri) {
 		return 1;
 	}
 
-	// If a reservation exists for the same id delete it
+	// If a reservation exists for the same id delete it (track amount for limit check)
+	let existing_amount = 0;
 	for(let i=0; i < pa.reservations.length; i++) {
 		let res = pa.reservations[i];
 		dprintf(dlevel,"check exist: res[%d]: id: %s, amount: %.1f, pri: %d\n", i, res.id, res.amount, res.pri);
 		if (res.id == id) {
+			existing_amount = res.amount;
 			pa.reserved  -= res.amount;
 			pa.reservations.splice(i,1);
 		}
@@ -48,6 +97,9 @@ function pa_reserve(agent_name,module,item,str_amount,str_pri) {
 			return 1;
 		}
 	}
+
+	// Check if reservation would exceed battery limits (only check ADDITIONAL power)
+	if (pa_over_battery_limit(amount - existing_amount)) return 1;
 
 	dprintf(dlevel,"budget: %d, avail: %.1f\n", pa.budget, pa.avail);
 
@@ -161,6 +213,9 @@ function pa_repri(agent_name,module,item,str_amount,str_pri) {
 			dprintf(dlevel,"denying new reservation via repri: %s\n", config.errmsg);
 			return 1;
 		}
+
+		// Check if reservation would exceed battery limits
+		if (pa_over_battery_limit(amount)) return 1;
 
 		// Check P1 limit when in deficit (no-budget mode only)
 		let approve_p1 = pa.approve_p1;

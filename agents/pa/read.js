@@ -180,35 +180,23 @@ function read_main() {
 		pa.avail = -1;
 	}
 
-	// Check battery power limits - only if we have battery data this cycle
-	dprintf(dlevel,"battery_hard_limit: %.1f, battery_soft_limit: %.1f, have_battery_power: %s, have_grid_power: %s\n",
-		pa.battery_hard_limit, pa.battery_soft_limit, pa.have_battery_power, pa.have_grid_power);
-	if (pa.have_battery_power && pa.battery_power < 0) {
-		let battery_discharge = Math.abs(pa.battery_power);
-		dprintf(dlevel,"battery_discharge: %.1f\n", battery_discharge);
-
-		// Check if we're pulling from grid (>100W to avoid noise/transients)
-		let on_grid = pa.have_grid_power && pa.grid_power < -100;
-		dprintf(dlevel,"on_grid: %s (have_grid_power: %s, grid_power: %.1f)\n", on_grid, pa.have_grid_power, pa.grid_power);
-
-		if (!on_grid && pa.battery_hard_limit > 0 && battery_discharge > pa.battery_hard_limit) {
-			log_warning("Battery HARD limit exceeded: %.1f W > %.1f W - revoking all reservations\n",
-				battery_discharge, pa.battery_hard_limit);
-
-			// Queue all reservations for immediate revocation
-			for(let i = pa.reservations.length - 1; i >= 0; i--) {
-				let res = pa.reservations[i];
-				dprintf(dlevel,"queuing immediate revoke: res[%d]: id: %s, amount: %.1f, pri: %d\n",
-					i, res.id, res.amount, res.pri);
-				pa.revokes.push({ res: res, immediate: true });
-				pa.reservations.splice(i, 1);
-				pa.reserved -= res.amount;
-			}
-		} else if (!on_grid && pa.battery_soft_limit > 0 && battery_discharge > pa.battery_soft_limit) {
-			dprintf(dlevel,"Battery SOFT limit exceeded: %.1f W > %.1f W - setting avail negative\n",
-				battery_discharge, pa.battery_soft_limit);
-			pa.avail = -1;
+	// Check battery power limits
+	let over = pa_over_battery_limit(0);
+	if (over == 2) {
+		// Hard limit exceeded - revoke all immediately
+		log_warning("Battery HARD limit exceeded - revoking all reservations\n");
+		for(let i = pa.reservations.length - 1; i >= 0; i--) {
+			let res = pa.reservations[i];
+			dprintf(dlevel,"queuing immediate revoke: res[%d]: id: %s, amount: %.1f, pri: %d\n",
+				i, res.id, res.amount, res.pri);
+			pa.revokes.push({ res: res, immediate: true });
+			pa.reservations.splice(i, 1);
+			pa.reserved -= res.amount;
 		}
+	} else if (over == 1) {
+		// Soft limit exceeded - set avail negative
+		dprintf(dlevel,"Battery SOFT limit exceeded - setting avail negative\n");
+		pa.avail = -1;
 	}
 
 	// If we run out of power for X seconds, start revoking

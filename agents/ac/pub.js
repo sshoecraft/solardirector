@@ -18,7 +18,8 @@ function pub_main() {
 //	ac_data.cycle_time = (ac.cycle_end_time ? new Date(ac.cycle_end_time*1000) : "");
 //	ac_data.sample_time = ac.sample_end_time;
 //	ac_data.sample_time = (ac.sample_end_time ? new Date(ac.sample_end_time*1000) : "");
-	ac_data.water_temp = ac.water_temp;
+	dprintf(dlevel,"water_temp: %s - valid: %s\n", ac.water_temp, is_valid_temp(ac.water_temp));
+	if (is_valid_temp(ac.water_temp)) ac_data.water_temp = ac.water_temp;
 	influx.write("ac",ac_data);
 	pub.ac = ac_data;
 
@@ -39,7 +40,15 @@ function pub_main() {
 		fan_data.running = 0;
 		if (fan.error) fan_data.state = "Error";
 		else if (!fan.enabled) fan_data.state = "Disabled";
-		else if ((fan.heat_state == "on" || fan.cool_state == "on") && fan.stop_wt && fan.wt_warned) fan_data.state = "Temp";
+		else if ((fan.heat_state == "on" || fan.cool_state == "on") && fan.stop_wt && fan.wt_warned && fan.state != FAN_STATE_RUNNING) {
+			// Check if in direct mode - if so, show actual state not "Temp"
+			let in_direct = false;
+			if (fan.direct_group) {
+				let dg = directs[fan.direct_group];
+				if (dg && dg.active && dg.active_fan == name) in_direct = true;
+			}
+			fan_data.state = in_direct ? fan_statestr(fan.state) : "Temp";
+		}
 		else fan_data.state = fan_statestr(fan.state);
 		fan_data.error = 0;
 		fan_data.mode = ac_modestr(fan.mode);
@@ -84,6 +93,25 @@ function pub_main() {
 		if (pump_data.temp_out < -50 || pump_data.temp_out > 150) delete pump_data.temp_out;
 		if (influx && influx.enabled && influx.connected) influx.write("pumps",pump_data);
 		pub.pumps.push(pump_data);
+	}
+
+	// Direct groups
+	pub.directs = [];
+	for(let name in directs) {
+		let dg = directs[name];
+		let dg_data = {};
+		dg_data.name = name;
+		dg_data.enabled = dg.enabled ? 1 : 0;
+		if (!dg.enabled) dg_data.state = "Disabled";
+		else dg_data.state = direct_statestr(dg.state);
+		dg_data.active = dg.active ? 1 : 0;
+		dg_data.pin = dg.pin;
+		dg_data.pin_state = (dg.pin >= 0) ? digitalRead(dg.pin) : 0;
+		dg_data.fan = dg.active_fan || dg.pending_fan || "";
+		dg_data.unit = dg.unit;
+		dg_data.mode = fan_modestr(dg.mode);
+		if (influx && influx.enabled && influx.connected) influx.write("directs",dg_data);
+		pub.directs.push(dg_data);
 	}
 
 	// Units

@@ -51,7 +51,7 @@ static int combine_data(pvc_session_t *s, solard_pvinverter_t *pv) {
 	strcpy(pv->name,"pvcombiner");
 	time(&cur);
 	count = 0;
-    dprintf(ldlevel,"agent_count: %d\n", list_count(s->agents));
+    	dprintf(ldlevel,"agent_count: %d\n", list_count(s->agents));
 	list_reset(s->agents);
 	while((info = list_get_next(s->agents)) != 0) {
 		if (strcmp(info->role,SOLARD_ROLE_PVINVERTER) != 0) continue;

@@ -5,7 +5,7 @@ function read_main() {
 
 	// See if any unit pumps are running set water temp from one
 	let have_temp = false;
-	for (name in units) {
+	for (let name in units) {
 		let unit = units[name];
 		dprintf(dlevel,"unit[%s]: pump: %s\n", name, unit.pump);
 		if (!unit.pump.length) continue;
@@ -15,7 +15,7 @@ function read_main() {
 		// Pump settled will only be set if it has a valid temp_in sensor
 		dprintf(dlevel,"pump[%s]: state: %s, settled: %s\n", unit.pump, pump_statestr(pump.state), pump.settled);
 		if (pump.state == PUMP_STATE_RUNNING) {
-			if (pump.settled && pump.temp_in >= -50 && pump.temp_in < 150) ac.water_temp = pump.temp_in;
+			if (pump.settled && is_valid_temp(pump.temp_in)) ac.water_temp = pump.temp_in;
 			have_temp = true;
 			break;
 		}
@@ -25,7 +25,7 @@ function read_main() {
 //	dlevel = -1;
 	dprintf(dlevel,"have_temp: %s\n", have_temp);
 	if (!have_temp) {
-		for (name in fans) {
+		for (let name in fans) {
 			let fan = fans[name];
 			dprintf(dlevel,"fan[%s]: pump: %s\n", name, fan.pump);
 			if (!fan.pump.length) continue;
@@ -33,7 +33,7 @@ function read_main() {
 			dprintf(dlevel,"pump[%s]: %s\n", fan.pump, pump);
 			if (typeof(pump) == "undefined") continue;
 			dprintf(dlevel,"pump[%s]: state: %s\n", fan.pump, pump_statestr(pump.state));
-			if (pump.state == PUMP_STATE_RUNNING && pump.settled && pump.temp_in >= -50 && pump.temp_in < 150) {
+			if (pump.state == PUMP_STATE_RUNNING && pump.settled && is_valid_temp(pump.temp_in)) {
 				ac.water_temp = pump.temp_in;
 				have_temp = true;
 				break;
@@ -43,5 +43,6 @@ function read_main() {
 
 	run(script_dir+"/cycle.js");
 	run(script_dir+"/sample.js");
+	direct_main();
 	run(script_dir+"/charge.js");
 }

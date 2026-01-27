@@ -57,21 +57,29 @@ function run_main() {
 			dprintf(dlevel,"fan[%s]: mode: %s\n", name, fan_modestr(fan.mode));
 			if (data.heat_state == "on") {
 				if (fan.heat_state != "on") {
-					log_info("fan[%s] heat_state: %s -> %s\n", name, fan.heat_state, data.heat_state);
-					if (!fan_set_mode(name,FAN_MODE_HEAT)) fan.heat_state = data.heat_state;
+					if (!fan_set_mode(name,FAN_MODE_HEAT)) {
+						log_info("fan[%s] heat_state: %s -> %s\n", name, fan.heat_state, data.heat_state);
+						fan.heat_state = data.heat_state;
+					}
 				}
 			} else if (data.cool_state == "on") {
 				if (fan.cool_state != "on") {
-					log_info("fan[%s] cool_state: %s -> %s\n", name, fan.cool_state, data.cool_state);
-					if (!fan_set_mode(name,FAN_MODE_COOL)) fan.cool_state = data.cool_state;
+					if (!fan_set_mode(name,FAN_MODE_COOL)) {
+						log_info("fan[%s] cool_state: %s -> %s\n", name, fan.cool_state, data.cool_state);
+						fan.cool_state = data.cool_state;
+					}
 				}
 			}
 			if (data.heat_state == "off" && fan.heat_state == "on") {
-				log_info("fan[%s] heat_state: %s -> %s\n", name, fan.heat_state, data.heat_state);
-				if (!fan_set_mode(name,FAN_MODE_NONE)) fan.heat_state = data.heat_state;
+				if (!fan_set_mode(name,FAN_MODE_NONE)) {
+					log_info("fan[%s] heat_state: %s -> %s\n", name, fan.heat_state, data.heat_state);
+					fan.heat_state = data.heat_state;
+				}
 			} else if (data.cool_state == "off" && fan.cool_state == "on") {
-				log_info("fan[%s] cool_state: %s -> %s\n", name, fan.cool_state, data.cool_state);
-				if (!fan_set_mode(name,FAN_MODE_NONE)) fan.cool_state = data.cool_state;
+				if (!fan_set_mode(name,FAN_MODE_NONE)) {
+					log_info("fan[%s] cool_state: %s -> %s\n", name, fan.cool_state, data.cool_state);
+					fan.cool_state = data.cool_state;
+				}
 			}
 		}
 	}
@@ -88,9 +96,33 @@ function run_main() {
 		switch(fan.state) {
 		// Start the pump first
 		case FAN_STATE_STOPPED:
-			// Dont start unless under water temp within limits
-			dprintf(dlevel,"fan[%s]: stop_wt: %s, water_temp: %s\n", name, fan.stop_wt, ac.water_temp);
-			if (fan.stop_wt && ac.water_temp != INVALID_TEMP) {
+			// Check direct mode FIRST (before water temp check)
+			if (fan.direct_group) {
+				let dg = directs[fan.direct_group];
+				if (dg) {
+					// Check for error state
+					if (dg.state == DIRECT_STATE_ERROR && dg.pending_fan == name) {
+						dprintf(dlevel, "fan %s: direct mode in error state\n", name);
+						fan_set_state(name, FAN_STATE_ERROR);
+						break;
+					}
+					// Check if pending (waiting for direct setup)
+					if (dg.pending_fan == name && !dg.active) {
+						dprintf(dlevel, "fan %s waiting for direct mode setup, state=%s\n", name, direct_statestr(dg.state));
+						break;
+					}
+					// Check if active - skip pump startup
+					if (dg.active && dg.active_fan == name) {
+						dprintf(dlevel, "fan %s in direct mode, skipping pump startup\n", name);
+						fan_set_state(name, FAN_STATE_START);
+						break;
+					}
+				}
+			}
+			// Dont start unless water temp within limits (only for non-direct fans)
+			// Direct group fans skip this check - fan_set_mode() handles direct mode triggering
+			dprintf(dlevel,"fan[%s]: stop_wt: %s, water_temp: %s, direct_group: %s\n", name, fan.stop_wt, ac.water_temp, fan.direct_group);
+			if (!fan.direct_group && fan.stop_wt && is_valid_temp(ac.water_temp)) {
 				dprintf(dlevel,"cool_high_temp: %f, heat_low_temp: %f, wt_thresh: %f\n", ac.cool_high_temp, ac.heat_low_temp, fan.wt_thresh);
 				let cool_high = ac.cool_high_temp+(fan.wt_thresh + 0.5);
 				let heat_low = ac.heat_low_temp-(fan.wt_thresh - 0.5);
@@ -107,6 +139,9 @@ function run_main() {
 				}
 			}
 			dprintf(dlevel,"fan.pump: %s\n", fan.pump);
+			// Reset fan.time when starting new cycle - ensures MIN_RUNTIME_WAIT check works
+			fan.time = 0;
+			// Normal path
 			if (fan.reserve) fan_set_state(name,FAN_STATE_RESERVE);
 			else if (fan.pump.length) fan_set_state(name,FAN_STATE_START_PUMP);
 			else fan_set_state(name,FAN_STATE_START);
@@ -114,6 +149,23 @@ function run_main() {
 
 		// Reserve power
 		case FAN_STATE_RESERVE:
+			// Check direct mode before continuing
+			if (fan.direct_group) {
+				let dg = directs[fan.direct_group];
+				if (dg) {
+					// If direct mode is active for this fan, skip pump startup
+					if (dg.active && dg.active_fan == name) {
+						dprintf(dlevel, "fan %s in direct mode during reserve, skipping pump startup\n", name);
+						fan_set_state(name, FAN_STATE_START);
+						break;
+					}
+					// If direct mode is pending for this fan, wait
+					if (dg.pending_fan == name && !dg.active) {
+						dprintf(dlevel, "fan %s waiting for direct mode during reserve\n", name);
+						break;
+					}
+				}
+			}
 			if (!pa_client_reserve(ac,"fan",name,fan.reserve,fan.priority))  {
 				if (fan.pump.length) fan_set_state(name,FAN_STATE_START_PUMP);
 				else fan_set_state(name,FAN_STATE_START);
@@ -122,6 +174,14 @@ function run_main() {
 
 		// Start the pump
 		case FAN_STATE_START_PUMP:
+			// Check if pump is disabled or in direct mode - not an error, just can't start
+			let pump = pumps[fan.pump];
+			if (pump && (!pump.enabled || pump.direct)) {
+				log_warning("fan %s: pump %s is %s, cannot start\n", name, fan.pump, pump.direct ? "in direct mode" : "disabled");
+				if (fan.reserve) fan_set_state(name, FAN_STATE_RELEASE);
+				else fan_set_state(name, FAN_STATE_STOPPED);
+				break;
+			}
 			if (pump_start(fan.pump)) {
 				error_set("fan",name,sprintf("fan %s: unable to start pump: %s", name, fan.pump));
 				fan_set_state(name,FAN_STATE_ERROR);
@@ -135,8 +195,22 @@ function run_main() {
 		case FAN_STATE_WAIT_PUMP:
 			pump_state = pump_get_state(fan.pump);
 			dprintf(dlevel,"fan[%s]: pump_state: %s\n", name, pump_statestr(pump_state));
-			if (pump_state == PUMP_STATE_RUNNING) {
+
+			// Pump reached ERROR - propagate immediately
+			if (pump_state == PUMP_STATE_ERROR) {
+				error_set("fan",name,sprintf("fan %s: pump %s entered error state", name, fan.pump));
+				fan_set_state(name,FAN_STATE_ERROR);
+
+			// Pump is RUNNING - proceed to start
+			} else if (pump_state == PUMP_STATE_RUNNING) {
 				fan_set_state(name,FAN_STATE_START);
+
+			// Pump is in valid transitional states (making progress) - keep waiting
+			} else if (pump_state == PUMP_STATE_WARMUP || pump_state == PUMP_STATE_FLOW || pump_state == PUMP_STATE_COOLDOWN) {
+				dprintf(dlevel,"fan[%s]: pump in transitional state %s, continuing to wait\n", name, pump_statestr(pump_state));
+				// Don't timeout - pump is making progress
+
+			// Pump is in other states - apply timeout logic
 			} else {
 				dprintf(dlevel,"fan[%s]: time: %s, fan.pump_start_time: %s\n", name, time(), fan.pump_start_time);
 				diff = time() - fan.pump_start_time;
@@ -183,22 +257,88 @@ function run_main() {
 		case FAN_STATE_RUNNING:
 			dprintf(dlevel,"fan[%s]: pump.length: %d\n", name, fan.pump.length);
 			if (fan.pump.length) {
-				pump_state = pump_get_state(fan.pump);
-				dprintf(dlevel,"fan[%s]: pump %s state: %s\n", name, fan.pump, pump_statestr(pump_state));
-				if (pump_state != PUMP_STATE_RUNNING) {
-					error_set("fan",name,sprintf("fan %s: required pump %s is not running",name,fan.pump));
-					fan_set_state(name,FAN_STATE_ERROR);
+				// Check direct mode status
+				let pump_name = fan.pump;
+				let in_direct_transition = false;
+				if (fan.direct_group) {
+					let dg = directs[fan.direct_group];
+					if (dg) {
+						// In transition - fan pump is being stopped, don't error
+						if (dg.pending_fan == name && !dg.active) {
+							dprintf(dlevel, "fan %s in direct transition, state=%s\n", name, direct_statestr(dg.state));
+							in_direct_transition = true;
+							// Check for error in direct state machine
+							if (dg.state == DIRECT_STATE_ERROR) {
+								fan_set_state(name, FAN_STATE_ERROR);
+								break;
+							}
+						}
+						// Active - monitor AC pump instead
+						if (dg.active && dg.active_fan == name) {
+							pump_name = direct_get_pump(fan.direct_group);
+						}
+					}
+				}
+				// Only check pump state if not in transition
+				if (!in_direct_transition) {
+					pump_state = pump_get_state(pump_name);
+					dprintf(dlevel,"fan[%s]: pump %s state: %s\n", name, pump_name, pump_statestr(pump_state));
+					if (pump_state != PUMP_STATE_RUNNING) {
+						// Pump stopped while fan running - stop fan gracefully
+						log_warning("fan %s: pump %s stopped, stopping fan\n", name, pump_name);
+						fan_set_mode(name, FAN_MODE_NONE);
+						break;
+					}
 				}
 			}
-			// Stop the fan if the water temp goes out of limits
+			// Check water temp - trigger direct mode if out of limits
 			dprintf(dlevel,"fan[%s]: stop_wt: %s, water_temp: %s\n", name, fan.stop_wt, ac.water_temp);
-			if (fan.stop_wt && ac.water_temp != INVALID_TEMP) {
-				let cool_high = ac.cool_high_temp+fan.wt_thresh;
-				let heat_low = ac.heat_low_temp-fan.wt_thresh;
-				dprintf(dlevel,"mode: %s, water_temp: %f, cool_high: %f, heat_low: %f\n", ac_modestr(ac.mode), ac.water_temp, cool_high, heat_low);
-				if ((ac.mode == AC_MODE_COOL && ac.water_temp >= cool_high) || (ac.mode == AC_MODE_HEAT && ac.water_temp <= heat_low)) {
-					fan_set_mode(name,FAN_MODE_NONE)
-					log_warning("fan %s stopped due to water_temp out of range\n",name);
+			if (is_valid_temp(ac.water_temp)) {
+				let temp_exceeded = false;
+				if (fan.direct_group) {
+					// Direct mode fans use exact threshold
+					temp_exceeded = (ac.mode == AC_MODE_COOL && ac.water_temp >= ac.cool_high_temp) ||
+							(ac.mode == AC_MODE_HEAT && ac.water_temp <= ac.heat_low_temp);
+				} else if (fan.stop_wt) {
+					// Non-direct fans use wt_thresh offset
+					let cool_high = ac.cool_high_temp + fan.wt_thresh;
+					let heat_low = ac.heat_low_temp - fan.wt_thresh;
+					temp_exceeded = (ac.mode == AC_MODE_COOL && ac.water_temp >= cool_high) ||
+							(ac.mode == AC_MODE_HEAT && ac.water_temp <= heat_low);
+				}
+				dprintf(dlevel,"mode: %s, water_temp: %f, temp_exceeded: %s\n", ac_modestr(ac.mode), ac.water_temp, temp_exceeded);
+				if (temp_exceeded) {
+					// If direct mode available and not already active/pending, trigger it
+					if (fan.direct_group) {
+						let dg = directs[fan.direct_group];
+						// If direct is disabled, just keep running in storage mode
+						if (dg && !dg.enabled) {
+							dprintf(dlevel, "fan %s water temp exceeded but direct disabled, continuing in storage mode\n", name);
+							// Don't stop - let it run
+						} else if (dg && !dg.active && dg.pending_fan != name) {
+							dprintf(dlevel, "fan %s triggering direct mode due to water temp\n", name);
+							let mode_str = (fan.mode == FAN_MODE_COOL) ? "cool" : "heat";
+							if (direct_on(fan.direct_group, mode_str)) {
+								// Failed to enable direct - stop the fan
+								fan_set_mode(name, FAN_MODE_NONE);
+								if (!fan.direct_failed_warned) {
+									log_warning("fan %s stopped due to water_temp out of range (direct mode failed)\n", name);
+									fan.direct_failed_warned = true;
+								}
+							} else {
+								// Direct mode started - clear warning flag
+								fan.direct_failed_warned = false;
+							}
+						}
+						// else: already in direct or pending, just continue
+					} else {
+						// No direct mode - stop the fan
+						fan_set_mode(name, FAN_MODE_NONE);
+						if (!fan.wt_warned) {
+							log_warning("fan %s stopped due to water_temp out of range\n", name);
+							fan.wt_warned = true;
+						}
+					}
 				}
 			}
 			break;
@@ -208,24 +348,79 @@ function run_main() {
 			// During MIN_RUNTIME_WAIT, fan is still running so pump must be operational
 			dprintf(dlevel,"fan[%s]: pump.length: %d\n", name, fan.pump.length);
 			if (fan.pump.length) {
-				pump_state = pump_get_state(fan.pump);
-				dprintf(dlevel,"fan[%s]: pump %s state: %s\n", name, fan.pump, pump_statestr(pump_state));
-				if (pump_state != PUMP_STATE_RUNNING) {
-					error_set("fan",name,sprintf("fan %s: required pump %s is not running during min runtime wait",name,fan.pump));
-					fan_set_state(name,FAN_STATE_ERROR);
-					break;
+				// Check direct mode status
+				let pump_name = fan.pump;
+				let in_direct_transition = false;
+				if (fan.direct_group) {
+					let dg = directs[fan.direct_group];
+					if (dg) {
+						// In transition - fan pump is being stopped, don't error
+						if (dg.pending_fan == name && !dg.active) {
+							in_direct_transition = true;
+						}
+						// Active - monitor AC pump instead
+						if (dg.active && dg.active_fan == name) {
+							pump_name = direct_get_pump(fan.direct_group);
+						}
+					}
+				}
+				// Only check pump state if not in transition
+				if (!in_direct_transition) {
+					pump_state = pump_get_state(pump_name);
+					dprintf(dlevel,"fan[%s]: pump %s state: %s\n", name, pump_name, pump_statestr(pump_state));
+					if (pump_state != PUMP_STATE_RUNNING) {
+						// Pump stopped during min runtime wait - just skip to release
+						// Don't error - pump may have been stopped by cycle.js or other reasons
+						dprintf(dlevel,"fan[%s]: pump stopped during min runtime wait, skipping to release\n", name);
+						if (fan.reserve) fan_set_state(name, FAN_STATE_RELEASE);
+						else fan_set_state(name, FAN_STATE_STOPPED);
+						break;
+					}
 				}
 			}
 			// Stop the fan if the water temp goes out of limits
-			dprintf(dlevel,"fan[%s]: stop_wt: %s, water_temp: %s\n", name, fan.stop_wt, ac.water_temp);
-			if (fan.stop_wt && ac.water_temp != INVALID_TEMP) {
-				let cool_high = ac.cool_high_temp+fan.wt_thresh;
-				let heat_low = ac.heat_low_temp-fan.wt_thresh;
-				dprintf(dlevel,"mode: %s, water_temp: %f, cool_high: %f, heat_low: %f\n", ac_modestr(ac.mode), ac.water_temp, cool_high, heat_low);
-				if ((ac.mode == AC_MODE_COOL && ac.water_temp >= cool_high) || (ac.mode == AC_MODE_HEAT && ac.water_temp <= heat_low)) {
-					fan_set_mode(name,FAN_MODE_NONE)
-					log_warning("fan %s stopped due to water_temp out of range during min runtime wait\n",name);
-					break;
+			// Skip this check if in direct mode (already bypassing storage)
+			let in_direct = false;
+			if (fan.direct_group) {
+				let dg = directs[fan.direct_group];
+				if (dg && dg.active && dg.active_fan == name) in_direct = true;
+			}
+			dprintf(dlevel,"fan[%s]: stop_wt: %s, water_temp: %s, in_direct: %s\n", name, fan.stop_wt, ac.water_temp, in_direct);
+			if (!in_direct && is_valid_temp(ac.water_temp)) {
+				let temp_exceeded = false;
+				if (fan.direct_group) {
+					// Direct mode fans use exact threshold
+					temp_exceeded = (ac.mode == AC_MODE_COOL && ac.water_temp >= ac.cool_high_temp) ||
+							(ac.mode == AC_MODE_HEAT && ac.water_temp <= ac.heat_low_temp);
+				} else if (fan.stop_wt) {
+					// Non-direct fans use wt_thresh offset
+					let cool_high = ac.cool_high_temp + fan.wt_thresh;
+					let heat_low = ac.heat_low_temp - fan.wt_thresh;
+					temp_exceeded = (ac.mode == AC_MODE_COOL && ac.water_temp >= cool_high) ||
+							(ac.mode == AC_MODE_HEAT && ac.water_temp <= heat_low);
+				}
+				dprintf(dlevel,"mode: %s, water_temp: %f, temp_exceeded: %s\n", ac_modestr(ac.mode), ac.water_temp, temp_exceeded);
+				if (temp_exceeded) {
+					// If direct mode available and enabled, trigger it instead of stopping
+					if (fan.direct_group) {
+						let dg = directs[fan.direct_group];
+						// Skip if direct is disabled - just continue with time check
+						if (dg && !dg.enabled) {
+							dprintf(dlevel, "fan %s water temp exceeded but direct disabled, continuing min runtime wait\n", name);
+							// Don't bypass - just continue to time check below
+						} else if (dg && !dg.active && dg.pending_fan != name) {
+							dprintf(dlevel, "fan %s triggering direct mode during min runtime wait\n", name);
+							let mode_str = (fan.mode == FAN_MODE_COOL) ? "cool" : "heat";
+							direct_on(fan.direct_group, mode_str);
+							break;
+						}
+					} else {
+						// No direct group configured - bypass min runtime and stop
+						log_warning("fan %s stopped due to water_temp out of range during min runtime wait - bypassing min runtime\n",name);
+						let runtime_needed = fan.min_runtime > fan.cooldown ? fan.min_runtime : fan.cooldown;
+						fan.time = time() - runtime_needed - 1;
+						break;
+					}
 				}
 			}
 			dprintf(dlevel,"fan[%s]: time: %s, fan->time: %s\n", name, time(), fan.time);
@@ -297,7 +492,11 @@ function run_main() {
 				dprintf(dlevel+2,"pump[%s]: time: %s, pump.time: %s\n", name, time(), pump.time);
 				diff = time() - pump.time;
 				dprintf(dlevel,"pump[%s]: diff: %s, primer_timeout: %s\n", name, diff, pump.primer_timeout);
-				if (diff >= pump.primer_timeout) {
+				// If primer went back to STOPPED after we've been waiting (shared primer force-stopped), retry immediately
+				if (primer_state == PUMP_STATE_STOPPED && diff > 2) {
+					dprintf(dlevel,"pump[%s]: primer was stopped externally after %d seconds, retrying immediately\n", name, diff);
+					pump_set_state(name,PUMP_STATE_START_PRIMER);
+				} else if (diff >= pump.primer_timeout) {
 					error_set("pump",name,sprintf("pump %s: timeout waiting for pump %s", name, pump.primer));
 					if (primer_state == PUMP_STATE_ERROR)
 						pump_set_state(name,PUMP_STATE_ERROR);
@@ -416,7 +615,7 @@ function run_main() {
 			if (pump.temp_in_sensor) {
 				pump.temp_in = get_sensor(pump.temp_in_sensor,false);
 				dprintf(dlevel,"pump[%s]: temp_in: %.1f\n", name, pump.temp_in);
-				if (typeof(pump.temp_in) != 'undefined' && pump.temp_in >= -50 && pump.temp_in < 150) {
+				if (is_valid_temp(pump.temp_in)) {
 					dprintf(dlevel,"pump[%s]: settled: %s\n", name, pump.settled);
 					if (!pump.settled) {
 						diff = time() - pump.start_time;
@@ -466,14 +665,16 @@ function run_main() {
 		switch(unit.state) {
 		case UNIT_STATE_STOPPED:
 			dprintf(dlevel,"unit[%s]: reserve: %d, pump: %s\n", name, unit.reserve, unit.pump);
+			// Reset unit.time when starting new cycle - ensures MIN_RUNTIME_WAIT check works
+			unit.time = 0;
 			if (unit.reserve) unit_set_state(name,UNIT_STATE_RESERVE);
 			else unit_set_state(name,UNIT_STATE_START_PUMP);
 			break;
 
 		// Reserve power
 		case UNIT_STATE_RESERVE:
-			dprintf(dlevel,"unit[%s]: charging: %s, charge_priority: %d, priority: %d\n", name, unit.charging, unit.charge_priority, unit.priority);
-			let pri = unit.priority ? unit.priority : (unit.charging ? unit.charge_priority : 100);
+			dprintf(dlevel,"unit[%s]: direct: %s, direct_priority: %d, charging: %s, charge_priority: %d, priority: %d\n", name, unit.direct, unit.direct_priority, unit.charging, unit.charge_priority, unit.priority);
+			let pri = unit.direct ? unit.direct_priority : (unit.priority ? unit.priority : (unit.charging ? unit.charge_priority : 100));
 			dprintf(dlevel,"pri: %d\n", pri);
 			if (!pa_client_reserve(ac,"unit",name,unit.reserve,pri)) unit_set_state(name,UNIT_STATE_START_PUMP);
 			break;
@@ -493,8 +694,22 @@ function run_main() {
 		case UNIT_STATE_WAIT_PUMP:
 			pump_state = pump_get_state(unit.pump);
 			dprintf(dlevel,"unit[%s]: pump_state: %s\n", name, pump_statestr(pump_state));
-			if (pump_state == PUMP_STATE_RUNNING) {
+
+			// Pump reached ERROR - propagate immediately
+			if (pump_state == PUMP_STATE_ERROR) {
+				error_set("unit",name,sprintf("unit %s: pump %s entered error state", name, unit.pump));
+				unit_set_state(name,UNIT_STATE_ERROR);
+
+			// Pump is RUNNING - proceed to start
+			} else if (pump_state == PUMP_STATE_RUNNING) {
 				unit_set_state(name,UNIT_STATE_START);
+
+			// Pump is in valid transitional states (making progress) - keep waiting
+			} else if (pump_state == PUMP_STATE_WARMUP || pump_state == PUMP_STATE_FLOW || pump_state == PUMP_STATE_COOLDOWN) {
+				dprintf(dlevel,"unit[%s]: pump in transitional state %s, continuing to wait\n", name, pump_statestr(pump_state));
+				// Don't timeout - pump is making progress
+
+			// Pump is in other states - apply timeout logic
 			} else {
 				dprintf(dlevel+2,"unit[%s]: time: %s, unit.time: %s\n", name, time(), unit.time);
 				diff = time() - unit.time;
@@ -523,8 +738,9 @@ function run_main() {
 			pump_state = pump_get_state(unit.pump);
 			dprintf(dlevel,"unit[%s]: unit %s state: %s\n", name, unit.pump, pump_statestr(pump_state));
 			if (pump_state != PUMP_STATE_RUNNING) {
-				error_set("unit",name,sprintf("unit %s: required pump %s is not running",name,unit.pump));
-				unit_set_state(name,UNIT_STATE_ERROR);
+				// Pump stopped while unit running - force stop unit
+				log_warning("unit %s: pump %s stopped, force stopping unit\n", name, unit.pump);
+				unit_force_stop(name);
 			}
 			break;
 
@@ -533,8 +749,9 @@ function run_main() {
 			pump_state = pump_get_state(unit.pump);
 			dprintf(dlevel,"unit[%s]: pump %s state: %s\n", name, unit.pump, pump_statestr(pump_state));
 			if (pump_state != PUMP_STATE_RUNNING) {
-				error_set("unit",name,sprintf("unit %s: required pump %s is not running during min runtime wait",name,unit.pump));
-				unit_set_state(name,UNIT_STATE_ERROR);
+				// Pump stopped during min runtime wait - force stop unit immediately
+				log_warning("unit %s: pump %s stopped during min runtime wait, force stopping\n", name, unit.pump);
+				unit_force_stop(name);
 				break;
 			}
 			dprintf(dlevel,"unit[%s]: time: %s, unit.time: %s\n", name, time(), unit.time);

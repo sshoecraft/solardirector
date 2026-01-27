@@ -49,6 +49,7 @@ function init_main() {
 		"pump",
 		"fan",
 		"unit",
+		"direct",	// must load after fan and unit
 		"cycle",
 		"sample",
 		"charge",

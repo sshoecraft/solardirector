@@ -67,7 +67,7 @@ function cycle_main() {
 
 	// Dont bother if we dont have a valid temp
 	dprintf(dlevel,"temp: %s\n", ac.temp);
-	if (ac.temp == INVALID_TEMP) return;
+	if (!is_valid_temp(ac.temp)) return;
 
 	// Only cycle when below freezing
 	dprintf(dlevel,"cycle_start: %s\n", ac.cycle_start);
@@ -90,7 +90,6 @@ function cycle_main() {
 		dprintf(dlevel,"pump: direct: %s, enabled: %s, state: %s\n",
 			pump.direct, pump.enabled, pump_statestr(pump.state));
                 if (pump.direct || !pump.enabled || pump.error) continue;
-		if (pump_is_primer(name)) continue;
 		if (typeof(pump.cycle_state) == "undefined") pump.cycle_state = CYCLE_STATE_STOPPED;
 		dprintf(dlevel,"cycle_state: %s\n", cycle_statestr(pump.cycle_state));
 		switch(pump.cycle_state) {
@@ -99,7 +98,7 @@ function cycle_main() {
 			diff = time() - pump.cycle_time;
 			dprintf(dlevel,"diff: %d\n", diff);
 			if (diff >= cycle_interval) {
-				log_info("Cycling pumkp: %s\n", name);
+				log_info("Cycling pump: %s\n", name);
 				pump_start(name);
 				pump.cycle_state = CYCLE_STATE_WAIT_PUMP;
 			}
@@ -123,7 +122,6 @@ function cycle_main() {
 				pump_stop(name);
 				pump.cycle_state = CYCLE_STATE_STOPPED;
 				pump.cycle_time = time();
-//				jconfig_save("pump",pumps,pump_props);
 			}
 			break;
 		}
