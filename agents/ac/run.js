@@ -90,7 +90,7 @@ function run_main() {
 //		dumpobj(fan);
 
 		dprintf(dlevel,"fan[%s]: enabled: %d, refs: %d, state: %s\n", name, fan.enabled, fan.refs, fan_statestr(fan.state));
-		if ((fan.error || !fan.enabled || !fan.refs) && fan.state < FAN_STATE_MIN_RUNTIME_WAIT) continue;
+		if ((fan.error || !fan.enabled || !fan.refs) && fan.state < FAN_STATE_RELEASE) continue;
 
 		dprintf(dlevel,"fan[%s]: state: %s\n", name, fan_statestr(fan.state));
 		switch(fan.state) {
@@ -343,93 +343,6 @@ function run_main() {
 			}
 			break;
 
-		// Keep running for <min_runtime> or <cooldown> seconds (whichever is longer)
-		case FAN_STATE_MIN_RUNTIME_WAIT:
-			// During MIN_RUNTIME_WAIT, fan is still running so pump must be operational
-			dprintf(dlevel,"fan[%s]: pump.length: %d\n", name, fan.pump.length);
-			if (fan.pump.length) {
-				// Check direct mode status
-				let pump_name = fan.pump;
-				let in_direct_transition = false;
-				if (fan.direct_group) {
-					let dg = directs[fan.direct_group];
-					if (dg) {
-						// In transition - fan pump is being stopped, don't error
-						if (dg.pending_fan == name && !dg.active) {
-							in_direct_transition = true;
-						}
-						// Active - monitor AC pump instead
-						if (dg.active && dg.active_fan == name) {
-							pump_name = direct_get_pump(fan.direct_group);
-						}
-					}
-				}
-				// Only check pump state if not in transition
-				if (!in_direct_transition) {
-					pump_state = pump_get_state(pump_name);
-					dprintf(dlevel,"fan[%s]: pump %s state: %s\n", name, pump_name, pump_statestr(pump_state));
-					if (pump_state != PUMP_STATE_RUNNING) {
-						// Pump stopped during min runtime wait - just skip to release
-						// Don't error - pump may have been stopped by cycle.js or other reasons
-						dprintf(dlevel,"fan[%s]: pump stopped during min runtime wait, skipping to release\n", name);
-						if (fan.reserve) fan_set_state(name, FAN_STATE_RELEASE);
-						else fan_set_state(name, FAN_STATE_STOPPED);
-						break;
-					}
-				}
-			}
-			// Stop the fan if the water temp goes out of limits
-			// Skip this check if in direct mode (already bypassing storage)
-			let in_direct = false;
-			if (fan.direct_group) {
-				let dg = directs[fan.direct_group];
-				if (dg && dg.active && dg.active_fan == name) in_direct = true;
-			}
-			dprintf(dlevel,"fan[%s]: stop_wt: %s, water_temp: %s, in_direct: %s\n", name, fan.stop_wt, ac.water_temp, in_direct);
-			if (!in_direct && is_valid_temp(ac.water_temp)) {
-				let temp_exceeded = false;
-				if (fan.direct_group) {
-					// Direct mode fans use exact threshold
-					temp_exceeded = (ac.mode == AC_MODE_COOL && ac.water_temp >= ac.cool_high_temp) ||
-							(ac.mode == AC_MODE_HEAT && ac.water_temp <= ac.heat_low_temp);
-				} else if (fan.stop_wt) {
-					// Non-direct fans use wt_thresh offset
-					let cool_high = ac.cool_high_temp + fan.wt_thresh;
-					let heat_low = ac.heat_low_temp - fan.wt_thresh;
-					temp_exceeded = (ac.mode == AC_MODE_COOL && ac.water_temp >= cool_high) ||
-							(ac.mode == AC_MODE_HEAT && ac.water_temp <= heat_low);
-				}
-				dprintf(dlevel,"mode: %s, water_temp: %f, temp_exceeded: %s\n", ac_modestr(ac.mode), ac.water_temp, temp_exceeded);
-				if (temp_exceeded) {
-					// If direct mode available and enabled, trigger it instead of stopping
-					if (fan.direct_group) {
-						let dg = directs[fan.direct_group];
-						// Skip if direct is disabled - just continue with time check
-						if (dg && !dg.enabled) {
-							dprintf(dlevel, "fan %s water temp exceeded but direct disabled, continuing min runtime wait\n", name);
-							// Don't bypass - just continue to time check below
-						} else if (dg && !dg.active && dg.pending_fan != name) {
-							dprintf(dlevel, "fan %s triggering direct mode during min runtime wait\n", name);
-							let mode_str = (fan.mode == FAN_MODE_COOL) ? "cool" : "heat";
-							direct_on(fan.direct_group, mode_str);
-							break;
-						}
-					} else {
-						// No direct group configured - bypass min runtime and stop
-						log_warning("fan %s stopped due to water_temp out of range during min runtime wait - bypassing min runtime\n",name);
-						let runtime_needed = fan.min_runtime > fan.cooldown ? fan.min_runtime : fan.cooldown;
-						fan.time = time() - runtime_needed - 1;
-						break;
-					}
-				}
-			}
-			dprintf(dlevel,"fan[%s]: time: %s, fan->time: %s\n", name, time(), fan.time);
-			diff = time() - fan.time;
-			let runtime_needed = fan.min_runtime > fan.cooldown ? fan.min_runtime : fan.cooldown;
-			dprintf(dlevel,"fan[%s]: diff: %s, min_runtime: %s, cooldown: %s, runtime_needed: %s\n", name, diff, fan.min_runtime, fan.cooldown, runtime_needed);
-			if (diff >= runtime_needed) fan_off(name,fan);
-			break;
-
 		case FAN_STATE_RELEASE:
 			pa_client_release(ac,"fan",name,fan.reserve);
 			fan_set_state(name,FAN_STATE_STOPPED);
@@ -659,7 +572,12 @@ function run_main() {
 //		dumpobj(unit);
 
 		dprintf(dlevel,"unit[%s]: enabled: %d, refs: %d\n", name, unit.enabled, unit.refs);
-		if ((unit.error || !unit.enabled || !unit.refs) && unit.state < UNIT_STATE_RELEASE) continue;
+		// RESET_VALVE / WAIT_VALVE_RESET are appended after ERROR but are
+		// startup states - treat them like the other pre-RELEASE states so a
+		// unit that loses its refs mid-valve-reset isn't advanced into START_PUMP.
+		let in_startup = (unit.state < UNIT_STATE_RELEASE ||
+			unit.state == UNIT_STATE_RESET_VALVE || unit.state == UNIT_STATE_WAIT_VALVE_RESET);
+		if ((unit.error || !unit.enabled || !unit.refs) && in_startup) continue;
 
 		dprintf(dlevel,"unit[%s]: mode: %s, state: %s\n", name, ac_modestr(unit.mode), unit_statestr(unit.state));
 		switch(unit.state) {
@@ -667,16 +585,57 @@ function run_main() {
 			dprintf(dlevel,"unit[%s]: reserve: %d, pump: %s\n", name, unit.reserve, unit.pump);
 			// Reset unit.time when starting new cycle - ensures MIN_RUNTIME_WAIT check works
 			unit.time = 0;
+			unit.run_started = false;
+			unit.valve_reset_start = 0;
 			if (unit.reserve) unit_set_state(name,UNIT_STATE_RESERVE);
-			else unit_set_state(name,UNIT_STATE_START_PUMP);
+			else unit_set_state(name,UNIT_STATE_RESET_VALVE);
 			break;
 
 		// Reserve power
 		case UNIT_STATE_RESERVE:
-			dprintf(dlevel,"unit[%s]: direct: %s, direct_priority: %d, charging: %s, charge_priority: %d, priority: %d\n", name, unit.direct, unit.direct_priority, unit.charging, unit.charge_priority, unit.priority);
-			let pri = unit.direct ? unit.direct_priority : (unit.priority ? unit.priority : (unit.charging ? unit.charge_priority : 100));
+			dprintf(dlevel,"unit[%s]: in_direct: %s, in_direct_priority: %d, charging: %s, charge_priority: %d, priority: %d\n", name, unit.in_direct, unit.in_direct_priority, unit.charging, unit.charge_priority, unit.priority);
+			let pri = unit.in_direct ? unit.in_direct_priority : (unit.priority ? unit.priority : (unit.charging ? unit.charge_priority : 100));
 			dprintf(dlevel,"pri: %d\n", pri);
-			if (!pa_client_reserve(ac,"unit",name,unit.reserve,pri)) unit_set_state(name,UNIT_STATE_START_PUMP);
+			if (!pa_client_reserve(ac,"unit",name,unit.reserve,pri)) unit_set_state(name,UNIT_STATE_RESET_VALVE);
+			break;
+
+		// Sticky-valve reset: toggle the stage-2 (pin2) valve on the unit's
+		// direct group before the pump starts (water off). The motorized
+		// auto-return valve can fail to mechanically return to its default
+		// position after a cycle; cycling pin2 (on, hold, off) resets it.
+		// Skipped if the unit has no direct group / no pin2 configured.
+		// Best-effort: a valve-control error is logged but does not abort.
+		case UNIT_STATE_RESET_VALVE:
+			let dgrp = (unit.in_direct_group && unit.in_direct_group.length) ? directs[unit.in_direct_group] : null;
+			if (!dgrp || dgrp.pin2 < 0) {
+				dprintf(dlevel,"unit[%s]: no stage-2 valve, skipping valve reset\n", name);
+				unit_set_state(name,UNIT_STATE_START_PUMP);
+				break;
+			}
+			if (dg_valve2_on(unit.in_direct_group)) {
+				log_warning("unit %s: valve reset: unable to set pin2 on: %s\n", name, config.errmsg);
+				unit_set_state(name,UNIT_STATE_START_PUMP);
+				break;
+			}
+			unit.valve_reset_start = time();
+			log_info("unit %s: stage-2 valve reset: pin2 on, holding %ds\n", name, dgrp.valve_reset_time);
+			unit_set_state(name,UNIT_STATE_WAIT_VALVE_RESET);
+			break;
+
+		// Hold pin2 for valve_reset_time, then turn it off and start the pump
+		case UNIT_STATE_WAIT_VALVE_RESET:
+			let vdgrp = directs[unit.in_direct_group];
+			let vhold = (vdgrp && vdgrp.valve_reset_time) ? vdgrp.valve_reset_time : 10;
+			diff = time() - unit.valve_reset_start;
+			dprintf(dlevel,"unit[%s]: valve reset elapsed=%d, hold=%d\n", name, diff, vhold);
+			if (diff >= vhold) {
+				if (dg_valve2_off(unit.in_direct_group)) {
+					log_warning("unit %s: valve reset: unable to set pin2 off: %s\n", name, config.errmsg);
+				}
+				log_info("unit %s: stage-2 valve reset complete: pin2 off\n", name);
+				unit.valve_reset_start = 0;
+				unit_set_state(name,UNIT_STATE_START_PUMP);
+			}
 			break;
 
 		// Start the pump
@@ -741,23 +700,64 @@ function run_main() {
 				// Pump stopped while unit running - force stop unit
 				log_warning("unit %s: pump %s stopped, force stopping unit\n", name, unit.pump);
 				unit_force_stop(name);
-			}
-			break;
-
-		case UNIT_STATE_MIN_RUNTIME_WAIT:
-			// During MIN_RUNTIME_WAIT, compressor is still running so pump must be operational
-			pump_state = pump_get_state(unit.pump);
-			dprintf(dlevel,"unit[%s]: pump %s state: %s\n", name, unit.pump, pump_statestr(pump_state));
-			if (pump_state != PUMP_STATE_RUNNING) {
-				// Pump stopped during min runtime wait - force stop unit immediately
-				log_warning("unit %s: pump %s stopped during min runtime wait, force stopping\n", name, unit.pump);
-				unit_force_stop(name);
 				break;
 			}
-			dprintf(dlevel,"unit[%s]: time: %s, unit.time: %s\n", name, time(), unit.time);
-			diff = time() - unit.time;
-			dprintf(dlevel,"unit[%s]: diff: %s, min_runtime: %s\n", name, diff, unit.min_runtime);
-			if (diff >= unit.min_runtime) unit_off(name,unit);
+			// Vapor low-temp safety - prevent heat exchanger freeze-up
+			// Check every loop iteration (not gated by run_started timer)
+			if (unit.vapor_temp_sensor && unit.vapor_temp_sensor.length) {
+				let vapor_temp = get_sensor(unit.vapor_temp_sensor, false);
+				if (is_valid_temp(vapor_temp) && vapor_temp < ac.vapor_low_temp) {
+					log_error("unit %s: vapor temp %.1f below limit %.1f - stopping to prevent freeze\n", name, vapor_temp, ac.vapor_low_temp);
+					error_set("unit", name, sprintf("unit %s: vapor temp %.1f below %.1f (freeze protection)", name, vapor_temp, ac.vapor_low_temp));
+					unit_set_state(name, UNIT_STATE_ERROR);
+					break;
+				}
+			}
+			// Flow verification - after 300 seconds of running, ensure temp_in
+			// and temp_out have a meaningful differential (proves flow through heat exchanger)
+			// Skip in direct mode - flow is proven by temp change in RUNNING_OPEN
+			// and the water temp gate. In a hot closed loop the delta naturally
+			// narrows at equilibrium, causing false positives.
+			if (unit.in_direct) break;
+			if (typeof(unit.run_started) == 'undefined') unit.run_started = false;
+			if (!unit.run_started) {
+				unit.run_time = time();
+				unit.run_started = true;
+			} else {
+				diff = time() - unit.run_time;
+				if (diff >= 300) {
+					let pump = pumps[unit.pump];
+					if (pump && pump.temp_in_sensor && pump.temp_out_sensor) {
+						let temp_in = get_sensor(pump.temp_in_sensor, false);
+						let temp_out = get_sensor(pump.temp_out_sensor, false);
+						if (is_valid_temp(temp_in) && is_valid_temp(temp_out)) {
+							// Flow detection: if there's a significant temp difference
+							// between in and out, water is flowing. Direction doesn't
+							// matter - sensor placement and loop state can flip the sign.
+							let delta = Math.abs(temp_in - temp_out);
+							let threshold = 2.0;
+							dprintf(-1,"unit[%s]: flow check: mode: %s, temp_in: %.1f, temp_out: %.1f, delta: %.1f, threshold: %.1f\n", name, ac_modestr(unit.mode), temp_in, temp_out, delta, threshold);
+							if (delta < threshold) {
+								log_error("unit %s: no flow detected (mode %s, temp_in %.1f, temp_out %.1f, delta %.1f < threshold %.1f)\n", name, ac_modestr(unit.mode), temp_in, temp_out, delta, threshold);
+								error_set("unit", name, sprintf("unit %s: no flow detected (temp_in/temp_out delta too low)", name));
+								unit_set_state(name, UNIT_STATE_ERROR);
+								break;
+							} else {
+								log_info("unit %s: flow verified (temp_in %.1f, temp_out %.1f, delta %.1f)\n", name, temp_in, temp_out, delta);
+								unit.run_started = false;
+							}
+						}
+					}
+				}
+			}
+			// Stop unit when storage reaches target temperature
+			if (is_valid_temp(ac.water_temp) && ((ac.mode == AC_MODE_COOL && ac.water_temp <= ac.cool_low_temp-.5) || (ac.mode == AC_MODE_HEAT && ac.water_temp >= ac.heat_high_temp+.5))) {
+				log_warning("unit %s: stopping - storage has reached temp (%s)\n", name, ac.water_temp);
+				// If in direct mode, transition fan to storage (keep fan running)
+				if (unit.in_direct && unit.in_direct_group) direct_off(unit.in_direct_group, false);
+				unit.refs = 1;
+				unit_stop(name);
+			}
 			break;
 
 		case UNIT_STATE_RELEASE:

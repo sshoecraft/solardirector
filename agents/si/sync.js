@@ -44,29 +44,21 @@ function sync_main() {
 				do_save = true;
 			}
 			if (!si.cluster_config) {
-				si.cluster_config = vals.ClstCfg;
-				si.phases = 1;
-				if (vals.ClstCfg == "1Phase2") {
-					si.units = 2;
-				} else if (vals.ClstCfg == "1Phase3") {
-					si.units = 3;
-				} else if (vals.ClstCfg == "1Phase4") {
-					si.units = 4;
+				if (vals.ClstCfg == "1Phase1") {
+					si.cluster_config = CLUSTER_CONFIG_1PHASE1;
+				} else if (vals.ClstCfg == "1Phase2") {
+					si.cluster_config = CLUSTER_CONFIG_1PHASE2;
 				} else if (vals.ClstCfg == "2Phase2") {
-					si.phases = 2;
-					si.units = 2;
+					si.cluster_config = CLUSTER_CONFIG_2PHASE2;
 				} else if (vals.ClstCfg == "2Phase4") {
-					si.phases = 2;
-					si.units = 4;
+					si.cluster_config = CLUSTER_CONFIG_2PHASE4;
 				} else if (vals.ClstCfg == "3Phase") {
-					si.phases = 3;
-					si.units = 3;
+					si.cluster_config = CLUSTER_CONFIG_3PHASE;
 				} else {
 					printf("warning: unknown ClstCfg: %s\n", vals.ClstCfg);
-					si.phases = 1;
-					si.units = 1;
+					si.cluster_config = CLUSTER_CONFIG_UNKNOWN;
 				}
-				log_verbose("Setting phases to: %d, and units to: %d\n", si.phases, si.units);
+				log_verbose("Setting cluster_config to: %d (from SMANET.ClstCfg: %s)\n", si.cluster_config, vals.ClstCfg);
 				do_save = true;
 			}
 			if (do_save) config.save();

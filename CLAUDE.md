@@ -57,6 +57,20 @@ make -C agents/si              # Build specific agent
 make -C utils/sdconfig         # Build utilities
 ```
 
+### NFS Shared Source / Local Build Cache
+The source tree is NFS-shared across multiple machines (Mac M4, x86 Linux, RPi4, RPi3).
+To avoid full clean+rebuild when switching machines, set `BUILDROOT` in `~/.sd_make_opts`
+on each machine to redirect all build artifacts (.o, .a, .so, executables) to local disk:
+
+```bash
+# Add to ~/.sd_make_opts on each machine:
+BUILDROOT=$(HOME)/.build/sd
+```
+
+Build artifacts go to `~/.sd/build/<target>-<arch>/` (e.g., `linux-aarch64/`, `macos-arm64/`).
+Source files, headers, and scripts stay on NFS. Each machine builds independently without
+conflicting with other architectures. Without BUILDROOT, behavior is unchanged (in-tree build).
+
 ### Configuration Management
 ```bash
 # List agent variables and functions

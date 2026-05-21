@@ -408,6 +408,7 @@ int si_agent_init(int argc, char **argv, opt_proctab_t *si_opts, si_session_t *s
 		/* name, type, dest, dsize, def, flags, scope, values, labels, units, scale, precision, trigger, ctx */
 		{ "readonly", DATA_TYPE_BOOL, &s->readonly, 0, "yes", 0, 0, 0, 0, 0, 0, 1, set_readonly, s },
 		{ "charge_mode", DATA_TYPE_INT, &s->charge_mode, 0, "0", 0, "select", "0, 1, 2", "Off,CC,CV", 0, 0, 0 },
+		{ "cluster_config", DATA_TYPE_INT, &s->cluster_config, 0, "0", 0, "select", "0, 1, 2, 3, 4, 5", "Unknown,1Phase1,1Phase2,2Phase2,2Phase4,3Phase", 0, 0, 0 },
 		{ "charge_voltage", DATA_TYPE_DOUBLE, &s->charge_voltage, 0, 0, CONFIG_FLAG_PRIVATE },
 		{ "charge_amps", DATA_TYPE_DOUBLE, &s->charge_amps, 0, 0, CONFIG_FLAG_PRIVATE, },
 		{ "zero_ca", DATA_TYPE_BOOL, &s->zero_ca, 0, "yes", 0, 0, 0, 0, 0, 0, 1 },

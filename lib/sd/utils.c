@@ -83,7 +83,7 @@ void bindump(char *label,void *bptr,int len) {
 char *trim(char *string) {
 	register char *src,*dest;
 
-	if (*string) return 0;
+	if (!string) return 0;
 	if (!*string) return string;
 	src = dest = string;
 	while(isspace((int)*src) && *src != '\t' && *src) src++;

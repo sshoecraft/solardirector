@@ -1,5 +1,0 @@
-
-function t3(argv) {
-	printf("running...\n");
-	print(typeof argv);
-}

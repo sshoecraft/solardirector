@@ -46,8 +46,8 @@ function get_sensor(spec,wait) {
 	dprintf(dlevel,"a.length: %d\n", a.length);
 	let driver = a[0];
 	let target = a[1];
-	let offset = (typeof(a[2]) == 'undefined' ? 0 : a[2]);
-	let calib = (typeof(a[3]) == 'undefined' ? 0 : a[3]);
+	let offset = (typeof(a[2]) == 'undefined' ? 0 : parseFloat(a[2]));
+	let calib = (typeof(a[3]) == 'undefined' ? 0 : parseFloat(a[3]));
 if (0) {
 	let offset = "";
 	for(let i=2; i < a.length; i++) {

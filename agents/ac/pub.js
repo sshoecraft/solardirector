@@ -105,11 +105,13 @@ function pub_main() {
 		if (!dg.enabled) dg_data.state = "Disabled";
 		else dg_data.state = direct_statestr(dg.state);
 		dg_data.active = dg.active ? 1 : 0;
-		dg_data.pin = dg.pin;
-		dg_data.pin_state = (dg.pin >= 0) ? digitalRead(dg.pin) : 0;
+		dg_data.pin1 = dg.pin1;
+		dg_data.pin1_state = (dg.pin1 >= 0) ? digitalRead(dg.pin1) : 0;
+		dg_data.pin2 = dg.pin2;
+		dg_data.pin2_state = (dg.pin2 >= 0) ? digitalRead(dg.pin2) : 0;
 		dg_data.fan = dg.active_fan || dg.pending_fan || "";
 		dg_data.unit = dg.unit;
-		dg_data.mode = fan_modestr(dg.mode);
+		dg_data.mode = fan_modestr(dg.target_mode || dg.mode);
 		if (influx && influx.enabled && influx.connected) influx.write("directs",dg_data);
 		pub.directs.push(dg_data);
 	}
@@ -126,7 +128,15 @@ function pub_main() {
 		else if (!unit.enabled) unit_data.state = "Disabled";
 		else unit_data.state = unit_statestr(unit.state);
 		unit_data.error = 0;
-		unit_data.mode = ac_modestr(unit.mode);
+		// Report mode based on actual rvpin state if available, else use unit.mode
+		if (unit.rvpin >= 0) {
+			let rv_state = digitalRead(unit.rvpin);
+			// rvcool=false: LOW=cool, HIGH=heat; rvcool=true: HIGH=cool, LOW=heat
+			let actual_mode = unit.rvcool ? (rv_state ? AC_MODE_COOL : AC_MODE_HEAT) : (rv_state ? AC_MODE_HEAT : AC_MODE_COOL);
+			unit_data.mode = ac_modestr(actual_mode);
+		} else {
+			unit_data.mode = ac_modestr(unit.mode);
+		}
 
 		// Temps
 		dprintf(dlevel+1,"unit[%s]: liquid_temp_sensor: %s\n", name, unit.liquid_temp_sensor);

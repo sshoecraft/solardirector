@@ -261,10 +261,12 @@ int si_can_get_data(si_session_t *s) {
 		}
 //		dprintf(dlevel,"ac2_current: %.1f, ac2_power: %.1f\n", s->data.ac2_current, s->data.ac2_power);
 	} else if (s->input.source == CURRENT_SOURCE_CALCULATED) {
-		double n,t,a;
+		double t;
+		bool have_l1,have_l2,have_l3;
 
-		n = t = a = 0.0;
+//		n = t = a = 0.0;
 //		dprintf(dlevel,"active_grid: l1: %lf, l2: %lf, l3: %lf\n", s->data.active_grid_l1, s->data.active_grid_l2, s->data.active_grid_l3);
+#if 0
 		if (!double_equals(s->data.active_grid_l1,0.0)) { t += s->data.active_grid_l1; n++; }
 		if (!double_equals(s->data.active_grid_l2,0.0)) { t += s->data.active_grid_l2; n++; }
 		if (!double_equals(s->data.active_grid_l3,0.0)) { t += s->data.active_grid_l3; n++; }
@@ -273,6 +275,57 @@ int si_can_get_data(si_session_t *s) {
 		dprintf(dlevel,"a: %f, t: %f, n: %f\n", a, t, n);
 
 		s->data.ac2_power = (t + a) * (-1);
+#endif
+		t = 0.0;
+		if (!double_equals(s->data.active_grid_l1,0.0)) {
+			t += s->data.active_grid_l1;
+			have_l1 = true;
+		} else {
+			have_l1 = false;
+		}
+		if (!double_equals(s->data.active_grid_l2,0.0)) {
+			t += s->data.active_grid_l2;
+			have_l2 = true;
+		} else {
+			have_l2 = false;
+		}
+		if (!double_equals(s->data.active_grid_l3,0.0)) {
+			t += s->data.active_grid_l3;
+			have_l3 = true;
+		} else {
+			have_l3 = false;
+		}
+		switch(s->cluster_config) {
+		case CLUSTER_CONFIG_UNKNOWN:
+			if (have_l1 && have_l2 && have_l3) {
+				// get the combined voltages of all 3 
+				double combined = s->data.ac1_voltage_l1 + s->data.ac1_voltage_l2 + s->data.ac1_voltage_l3;
+				dprintf(dlevel,"combined: %2.1f\n", combined);
+				if (combined > 200.0 && combined < 220.0) {
+					// Assume 3PHASE
+					s->data.ac2_power = t;
+				} else {
+					// Assume 2PHASE4 - add the missing value
+					s->data.ac2_power = (t + (t / 3));
+				}
+			} else {
+				// Rest are just a straight calc
+				s->data.ac2_power = t;
+			}
+			break;
+		case CLUSTER_CONFIG_2PHASE4:
+			if (have_l1 && have_l2 && have_l3) {
+				s->data.ac2_power = (t + (t / 3));
+			} else {
+				s->data.ac2_power = t;
+			}
+			break;
+		default:
+			// Rest use straight value
+			s->data.ac2_power = t;
+			break;
+		}
+		if (!double_equals(s->data.ac2_power,0.0)) s->data.ac2_power *= (-1);
 		s->data.ac2_current = s->data.ac2_power / s->data.ac2_voltage;
 		dprintf(dlevel,"ac2_current: %.1f, ac2_power: %.1f\n", s->data.ac2_current, s->data.ac2_power);
 	}
@@ -288,17 +341,59 @@ int si_can_get_data(si_session_t *s) {
 		}
 //		dprintf(dlevel,"ac1_current: %.1f, ac1_power: %.1f\n", s->data.ac1_current, s->data.ac1_power);
 	} else if (s->output.source == CURRENT_SOURCE_CALCULATED) {
-		double n,t,a;
+		double t;
+		bool have_l1,have_l2,have_l3;
 
-		n = t = a = 0.0;
-		if (!double_equals(s->data.active_si_l1,0.0)) { t += s->data.active_si_l1; n++; }
-		if (!double_equals(s->data.active_si_l2,0.0)) { t += s->data.active_si_l2; n++; }
-		if (!double_equals(s->data.active_si_l3,0.0)) { t += s->data.active_si_l3; n++; }
-		if (n) a = t / n;
-		else a = 0;
-//		dprintf(dlevel,"a: %f, t: %f, n: %f\n", a, t, n);
-
-		s->data.ac1_power = (t + a) * (-1);
+		t = 0.0;
+		if (!double_equals(s->data.active_si_l1,0.0)) {
+			t += s->data.active_si_l1;
+			have_l1 = true;
+		} else {
+			have_l1 = false;
+		}
+		if (!double_equals(s->data.active_si_l2,0.0)) {
+			t += s->data.active_si_l2;
+			have_l2 = true;
+		} else {
+			have_l2 = false;
+		}
+		if (!double_equals(s->data.active_si_l3,0.0)) {
+			t += s->data.active_si_l3;
+			have_l3 = true;
+		} else {
+			have_l3 = false;
+		}
+		switch(s->cluster_config) {
+		case CLUSTER_CONFIG_UNKNOWN:
+			if (have_l1 && have_l2 && have_l3) {
+				// get the combined voltages of all 3
+				double combined = s->data.ac1_voltage_l1 + s->data.ac1_voltage_l2 + s->data.ac1_voltage_l3;
+				dprintf(dlevel,"combined: %2.1f\n", combined);
+				if (combined > 200.0 && combined < 220.0) {
+					// Assume 3PHASE
+					s->data.ac1_power = t;
+				} else {
+					// Assume 2PHASE4 - add the missing value
+					s->data.ac1_power = (t + (t / 3));
+				}
+			} else {
+				// Rest are just a straight calc
+				s->data.ac1_power = t;
+			}
+			break;
+		case CLUSTER_CONFIG_2PHASE4:
+			if (have_l1 && have_l2 && have_l3) {
+				s->data.ac1_power = (t + (t / 3));
+			} else {
+				s->data.ac1_power = t;
+			}
+			break;
+		default:
+			// Rest use straight value
+			s->data.ac1_power = t;
+			break;
+		}
+		if (!double_equals(s->data.ac1_power,0.0)) s->data.ac1_power *= (-1);
 		s->data.ac1_current = s->data.ac1_power / s->data.ac1_voltage;
 		dprintf(dlevel,"ac1_current: %.1f, ac1_power: %.1f\n", s->data.ac1_current, s->data.ac1_power);
 	}

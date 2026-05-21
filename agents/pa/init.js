@@ -264,6 +264,7 @@ function init_main() {
 		[ "buffer", DATA_TYPE_INT, 0, 0 ],
 		[ "samples", DATA_TYPE_INT, 0, CONFIG_FLAG_PRIVATE, pa_samples_trigger, pa ],
 		[ "sample_period", DATA_TYPE_INT, 90, 0, pa_sample_period_trigger, pa ],
+		[ "bypass", DATA_TYPE_BOOL, "no", 0 ],
 		[ "reserve_delay", DATA_TYPE_INT, 180, 0 ],
 		[ "protect_charge", DATA_TYPE_BOOL, "no", 0, 0 ],
 		[ "approve_p1", DATA_TYPE_BOOL, "no", 0 ],

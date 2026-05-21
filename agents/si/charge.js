@@ -363,8 +363,6 @@ function charge_init() {
 		[ "charge_feed", DATA_TYPE_BOOL, "false", 0 ],
 		// Start feeding when starting grid
 		[ "grid_feed", DATA_TYPE_BOOL, "false", 0 ],
-		[ "empty_command", DATA_TYPE_STRING, "", 0 ],
-		[ "full_command", DATA_TYPE_STRING, "", 0 ],
 		[ "cc_feed", DATA_TYPE_BOOL, "false", 0 ],
 		[ "cc_command", DATA_TYPE_STRING, "", 0 ],
 		[ "cv_method", DATA_TYPE_INT, CV_METHOD_DYNAMIC.toString(), 0 ],
@@ -492,7 +490,7 @@ function cvremain(start, end) {
 	} else {
 		hours = mins = diff = 0;
 	}
-	printf("CV Time remaining: %02d:%02d:%02d\n",hours,mins,diff);
+	dprintf(dlevel,"CV Time remaining: %02d:%02d:%02d\n",hours,mins,diff);
 }
 
 function charge_start_cv(force) {
@@ -510,6 +508,8 @@ function charge_start_cv(force) {
 	si.charge_mode = 2;
 	config.save();
 	si.cv_start_time = time();
+	si.cv_start_ah = si.battery_ah;
+	dprintf(dlevel, "CV start: battery_ah=%.1f\n", si.cv_start_ah);
 	si.start_temp = data.battery_temp;
 	si.baidx = si.bafull = 0;
 	dprintf(0,"charge_feed: %s, cv_feed: %s\n", si.charge_feed, si.cv_feed);
@@ -524,6 +524,22 @@ function charge_end() {
 	if (si.mirror) return;
 
 	si.signal("Battery","Full");
+
+	// ANCHOR: Reset battery_ah to known value at full
+	si.battery_ah = si.charge_end_ah;
+	si.anchor_set_this_interval = true;
+	dprintf(0, "Anchored battery_ah to charge_end_ah: %.1f Ah (%.1f%%)\n",
+		si.battery_ah, (si.battery_ah / si.battery_capacity) * 100.0);
+
+	// EMA: Complete charge cycle
+	if (typeof(soc_complete_charge_cycle) == "function") {
+		soc_complete_charge_cycle();
+	}
+
+	// EMA: Start discharge cycle tracking (will be discharging next)
+	if (typeof(soc_start_discharge_cycle) == "function") {
+		soc_start_discharge_cycle();
+	}
 
 	charge_stop();
 
@@ -759,6 +775,22 @@ function charge_main()  {
 	// Battery is "empty", start charging
 	} else if (battery_is_empty()) {
 		si.signal("Battery","Empty");
+
+		// ANCHOR: Reset battery_ah to known value at empty
+		si.battery_ah = si.charge_start_ah;
+		si.anchor_set_this_interval = true;
+		dprintf(0, "Anchored battery_ah to charge_start_ah: %.1f Ah (%.1f%%)\n",
+			si.battery_ah, (si.battery_ah / si.battery_capacity) * 100.0);
+
+		// EMA: Complete discharge cycle if we were discharging
+		if (typeof(soc_complete_discharge_cycle) == "function") {
+			soc_complete_discharge_cycle();
+		}
+
+		// EMA: Start tracking charge cycle
+		if (typeof(soc_start_charge_cycle) == "function") {
+			soc_start_charge_cycle();
+		}
 
 		charge_start();
 

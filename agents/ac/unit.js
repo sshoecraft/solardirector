@@ -71,6 +71,9 @@ function _unit_init(name,unit) {
 	dprintf(dlevel,"unit[%s]: state: %s, mode: %s, refs: %d\n", name, unit_statestr(unit.state), ac_modestr(unit.mode), unit.refs)
 	unit.error = false;
 	unit.charging = false;
+	unit.in_direct_pending = false;
+	unit.in_direct = false;
+	unit.run_started = false;
 	return 0;
 }
 
@@ -128,8 +131,21 @@ function unit_on(name,unit) {
 
 	let dlevel = 1;
 
-	unit.mode = ac.mode;
-	dprintf(dlevel,"unit[%s]: mode: %s\n", name, ac_modestr(unit.mode));
+	// In direct mode, unit_mode() already set the correct mode and rvpin
+	if (!unit.in_direct) unit.mode = ac.mode;
+	dprintf(dlevel,"unit[%s]: mode: %s%s\n", name, ac_modestr(unit.mode), unit.in_direct ? " (direct)" : "");
+
+	// Always ensure rvpin matches mode before starting compressor
+	if (!unit.rvevery && unit.rvpin >= 0) {
+		if (unit.mode == AC_MODE_COOL) {
+			if (set_pin(unit.rvpin, unit.rvcool ? HIGH : LOW))
+				return unit_error(name,sprintf("unit %s: unable to set reversing valve!", name));
+		} else if (unit.mode == AC_MODE_HEAT) {
+			if (set_pin(unit.rvpin, unit.rvcool ? LOW : HIGH))
+				return unit_error(name,sprintf("unit %s: unable to set reversing valve!", name));
+		}
+	}
+
 	if (unit.mode == AC_MODE_COOL) {
 		dprintf(dlevel,"unit[%s]: coolpin: %d\n", name, unit.coolpin);
 		if (unit.coolpin >= 0 && set_pin(unit.coolpin,HIGH))
@@ -137,7 +153,6 @@ function unit_on(name,unit) {
 		dprintf(dlevel,"unit[%s]: rvevery: %s, rvcool: %s\n", name, unit.rvevery, unit.rvcool);
 		if (unit.rvevery && unit.rvcool) {
 			dprintf(dlevel,"unit[%s]: rvpin: %d\n", name, unit.rvpin);
-			// if rvevery is set, then rvpin must be set ... ?
 			if (unit.rvpin < 0)
 				return unit_error(name,sprintf("unit %s: rvevery is set but rvpin is %d",name,unit.rvpin));
 			if (set_pin(unit.rvpin,HIGH))
@@ -150,7 +165,6 @@ function unit_on(name,unit) {
 		dprintf(dlevel,"unit[%s]: rvevery: %s, rvcool: %s\n", name, unit.rvevery, unit.rvcool);
 		if (unit.rvevery && !unit.rvcool) {
 			dprintf(dlevel,"unit[%s]: rvpin: %d\n", name, unit.rvpin);
-			// if rvevery is set, then rvpin must be set ... ?
 			if (unit.rvpin < 0)
 				return unit_error(name,sprintf("unit %s: rvevery is set but rvpin is %d",name,unit.rvpin));
 			if (set_pin(unit.rvpin,HIGH))
@@ -168,12 +182,7 @@ function unit_start(name) {
 		config.errmsg = sprintf("unknown unit: %s", name);
 		return 1;
 	}
-	if (unit.state == UNIT_STATE_MIN_RUNTIME_WAIT) {
-		unit_set_state(name,UNIT_STATE_RUNNING);
-		return 0;
-	} else {
-		return common_start(name,"unit",units);
-	}
+	return common_start(name,"unit",units);
 }
 
 function unit_off(name,unit) {
@@ -219,30 +228,17 @@ function unit_off(name,unit) {
 	if (unit.reserve) unit_set_state(name,UNIT_STATE_RELEASE);
 	else unit_set_state(name,UNIT_STATE_STOPPED);
 	units[name].charge_state = CHARGE_STATE_STOPPED;
+	unit.run_started = false;
 	unit_mode(name,unit,ac.mode);
 	return 0;
 }
 
 function unit_cooldown(name,unit) {
-
-	let dlevel = 1;
-
-	dprintf(dlevel,"name: %s, min_runtime: %d\n", name, unit.min_runtime);
-	if (!unit.min_runtime) return unit_off(name,unit);
-	// If unit never reached RUNNING (unit.time not set), skip MIN_RUNTIME_WAIT
-	if (!unit.time) {
-		dprintf(dlevel,"unit[%s]: never reached RUNNING, skipping MIN_RUNTIME_WAIT\n", name);
-		return unit_off(name,unit);
-	}
-	// Don't reset unit.time - it was set when unit reached RUNNING state
-	// Keep pump running during MIN_RUNTIME_WAIT - stopping it would freeze/overheat the heat exchanger
-	unit_set_state(name,UNIT_STATE_MIN_RUNTIME_WAIT);
-	units[name].charge_state = CHARGE_STATE_STOPPED;
-	return 0;
+	// MIN_RUNTIME_WAIT removed - let thermostat handle minimum runtime
+	return unit_off(name,unit);
 }
 
 function unit_stop(name) {
-	if (units[name].state == UNIT_STATE_MIN_RUNTIME_WAIT) return 0;
 	return common_stop(name,"unit",units,unit_cooldown,false)
 }
 
@@ -250,9 +246,10 @@ function unit_stop(name) {
 function unit_force_stop(name) {
 	let unit = units[name];
 	// Turn off direct mode first to prevent fan from erroring
-	if (unit && unit.direct && unit.direct_group) {
-		direct_off(unit.direct_group);
+	if (unit && unit.in_direct && unit.in_direct_group) {
+		direct_off(unit.in_direct_group);
 	}
+	if (unit) unit.run_started = false;
 	if (unit && unit.pump.length) pump_force_stop(unit.pump);
 	return common_stop(name,"unit",units,unit_off,true)
 }
@@ -281,6 +278,8 @@ function unit_mode(name,unit,mode) {
 	}
 
 	dprintf(dlevel,"unit[%s]: unit.mode: %d, mode: %d\n", name, unit.mode, mode);
+
+	// Check if mode change is allowed
 	if (unit.mode != mode) {
 		dprintf(-1,"unit[%s]: state: %s\n", name, unit_statestr(unit.state));
 		if (unit.state == UNIT_STATE_RUNNING) {
@@ -288,26 +287,29 @@ function unit_mode(name,unit,mode) {
 			log_error("%s\n",config.errmsg);
 			return 1;
 		}
-		if (unit.direct) {
+		if (unit.in_direct) {
 			config.errmsg = sprintf("unit_mode: unit %s mode cannot be changed while in direct mode", name);
 			log_error("%s\n",config.errmsg);
 			return 1;
 		}
-		if (mode == AC_MODE_COOL) {
-			if (unit.rvpin >= 0 && set_pin(unit.rvpin,unit.rvcool ? HIGH : LOW)) {
-				config.errmsg = sprintf("unable to set rvpin for unit %s!\n", name);
-				error_set("unit",name,config.errmsg);
-				return 1;
-			}
-			unit.mode = AC_MODE_COOL;
-		} else if (mode == AC_MODE_HEAT) {
-			if (unit.rvpin >= 0 && set_pin(unit.rvpin,unit.rvcool ? LOW : HIGH)) {
-				config.errmsg = sprintf("unable to set rvpin for unit %s!\n", name);
-				error_set("unit",name,config.errmsg);
-				return 1;
-			}
-			unit.mode = AC_MODE_HEAT;
+	}
+
+	// Always set rvpin to ensure hardware matches requested mode
+	// (unit.mode may match but rvpin could be in wrong position from startup)
+	if (mode == AC_MODE_COOL) {
+		if (unit.rvpin >= 0 && set_pin(unit.rvpin,unit.rvcool ? HIGH : LOW)) {
+			config.errmsg = sprintf("unable to set rvpin for unit %s!\n", name);
+			error_set("unit",name,config.errmsg);
+			return 1;
 		}
+		unit.mode = AC_MODE_COOL;
+	} else if (mode == AC_MODE_HEAT) {
+		if (unit.rvpin >= 0 && set_pin(unit.rvpin,unit.rvcool ? LOW : HIGH)) {
+			config.errmsg = sprintf("unable to set rvpin for unit %s!\n", name);
+			error_set("unit",name,config.errmsg);
+			return 1;
+		}
+		unit.mode = AC_MODE_HEAT;
 	}
 	return 0;
 }
@@ -324,8 +326,12 @@ function unit_init() {
 	UNIT_STATE_START = s++;
 	UNIT_STATE_RUNNING = s++;
 	UNIT_STATE_RELEASE = s++;
-	UNIT_STATE_MIN_RUNTIME_WAIT = s++;
 	UNIT_STATE_ERROR = s++;
+	// Sticky-valve reset states - run between RESERVE and START_PUMP on every
+	// unit start (direct mode or charge.js storage run). Appended here rather
+	// than inserted to preserve the numeric values of the states above.
+	UNIT_STATE_RESET_VALVE = s++;
+	UNIT_STATE_WAIT_VALVE_RESET = s++;
 
 	// Declare the per-unit props here as a global
 	unit_props = [
@@ -394,14 +400,17 @@ function unit_statestr(state) {
 	case UNIT_STATE_RUNNING:
 		str = "Running";
 		break;
-	case UNIT_STATE_MIN_RUNTIME_WAIT:
-		str = "Min Runtime Wait";
-		break;
 	case UNIT_STATE_RELEASE:
 		str = "Release";
 		break;
 	case UNIT_STATE_ERROR:
 		str = "Error";
+		break;
+	case UNIT_STATE_RESET_VALVE:
+		str = "Reset valve";
+		break;
+	case UNIT_STATE_WAIT_VALVE_RESET:
+		str = "Wait valve reset";
 		break;
 	default:
 		str = sprintf("Unknown(%d)",state);
@@ -432,9 +441,9 @@ function unit_revoke(name,amount,immediate_str) {
 
 	// If unit is in direct mode, turn off direct mode first
 	// This prevents the fan from erroring when it sees the pump stop
-	if (unit.direct && unit.direct_group) {
+	if (unit.in_direct && unit.in_direct_group) {
 		dprintf(dlevel,"unit %s is in direct mode, turning off direct mode first\n", name);
-		direct_off(unit.direct_group);
+		direct_off(unit.in_direct_group);
 	}
 
 	unit.refs = 1;

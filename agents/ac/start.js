@@ -7,12 +7,16 @@ function start_main() {
 	// Stop all direct groups FIRST - coordinates fan/unit/valve shutdown
 	for(let name in directs) {
 		let dg = directs[name];
-		dprintf(dlevel,"direct[%s]: pin: %d, state: %s\n", name, dg.pin, direct_statestr(dg.state));
-		dg_valve_off(name);
+		dprintf(dlevel,"direct[%s]: pin1: %d, pin2: %d, state: %s\n", name, dg.pin1, dg.pin2, direct_statestr(dg.state));
+		// Stop primer if configured
+		if (dg.primer && dg.primer.length) pump_stop(dg.primer);
+		dg_valves_off(name);
 		dg.state = DIRECT_STATE_STOPPED;
 		dg.active = false;
 		dg.pending_fan = "";
 		dg.active_fan = "";
+		dg.initial_temp = INVALID_TEMP;
+		dg.primer_start_time = 0;
 	}
 
 	// Stop all units

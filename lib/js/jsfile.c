@@ -613,16 +613,11 @@ js_canonicalPath(JSContext *cx, char *oldpath)
     jsint back = 0;
     unsigned int i = 0, j = strlen(path)-1;
 
-	dprintf(dlevel,"oldpath: %p\n", oldpath);
-
     /* This is probably optional */
-	trim(path);
-#if 0
     while (i < j && path[i] == ' ')
         i++;
     while (j >= 0 && path[j] == ' ')
         j--;
-#endif
 
     tmp = JS_malloc(cx, j-i+2);
     if (!tmp)

@@ -223,26 +223,11 @@ function fan_off(name,fan) {
 }
 
 function fan_cooldown(name,fan) {
-
-    let dlevel = 1;
-
-        dprintf(dlevel,"name: %s, min_runtime: %d, cooldown: %d\n", name, fan.min_runtime, fan.cooldown);
-        let runtime_needed = fan.min_runtime > fan.cooldown ? fan.min_runtime : fan.cooldown;
-        if (!runtime_needed) return fan_off(name,fan);
-        // If fan never reached RUNNING (fan.time not set), skip MIN_RUNTIME_WAIT
-        if (!fan.time) {
-                dprintf(dlevel,"fan[%s]: never reached RUNNING, skipping MIN_RUNTIME_WAIT\n", name);
-                return fan_off(name,fan);
-        }
-        // Don't reset fan.time - it was set when fan reached RUNNING state
-        // Keep pump running during MIN_RUNTIME_WAIT - prevents pump cycling
-        fan_set_state(name,FAN_STATE_MIN_RUNTIME_WAIT);
-        return 0;
+	// MIN_RUNTIME_WAIT removed - let thermostat handle minimum runtime
+	return fan_off(name,fan);
 }
 
 function fan_stop(name) {
-		// XXX if its in min runtime wait already dont reset time
-		if (fans[name].state == FAN_STATE_MIN_RUNTIME_WAIT) return 0;
         return common_stop(name,"fan",fans,fan_cooldown,false)
 }
 
@@ -276,7 +261,6 @@ function fan_init() {
 	FAN_STATE_START = s++;
 	FAN_STATE_WAIT_START = s++;
 	FAN_STATE_RUNNING = s++;
-	FAN_STATE_MIN_RUNTIME_WAIT = s++;
 	FAN_STATE_RELEASE = s++;
 	FAN_STATE_ERROR = s++;
 
@@ -350,9 +334,6 @@ function fan_statestr(state) {
 		break;
 	case FAN_STATE_RUNNING:
 		str = "Running";
-		break;
-	case FAN_STATE_MIN_RUNTIME_WAIT:
-		str = "Min Runtime Wait";
 		break;
 	case FAN_STATE_RELEASE:
 		str = "Release";

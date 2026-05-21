@@ -234,7 +234,7 @@ func getFirstYear() int {
 func collectData(startDate, endDate time.Time) ([]UsageData, error) {
 	// Query to get daily sum of negative input power (converted to kWh)
 	query := fmt.Sprintf(
-		"select sum(input_power)*-0.0000027778 from inverter where input_power < 0 and time >= '%s 00:00:00' and time < '%s 23:59:59' group by time(1d) fill(null)",
+		"select sum(grid_consumed) from inverter where time >= '%s 00:00:00' and time < '%s 23:59:59' group by time(1d) fill(null)",
 		startDate.Format("2006-01-02"), endDate.Format("2006-01-02"),
 	)
 
@@ -302,7 +302,7 @@ func getFeedForRange(startDate, endDate time.Time) float64 {
 	
 	for current.Before(endDate) {
 		query := fmt.Sprintf(
-			"select sum(input_power)*0.0000027778 from inverter where input_power > 0 and time > '%s 00:00:00' and time < '%s 23:59:59'",
+			"select sum(input_power) from inverter where input_power > 0 and time > '%s 00:00:00' and time < '%s 23:59:59'",
 			current.Format("2006-01-02"), current.Format("2006-01-02"),
 		)
 		
@@ -854,7 +854,7 @@ func displayFeed(startDate, endDate time.Time, cost float64) {
 
 func displayHourly(reportDate time.Time) {
 	query := fmt.Sprintf(
-		"select sum(input_power)*-0.0000027778 from inverter where input_power < 0 and time > '%s 00:00:00' and time < '%s 23:59:59' group by time(1h) fill(0)",
+		"select sum(grid_consumed) from inverter where time > '%s 00:00:00' and time < '%s 23:59:59' group by time(1h) fill(0)",
 		reportDate.Format("2006-01-02"), reportDate.Format("2006-01-02"),
 	)
 
@@ -889,7 +889,7 @@ func displayHourly(reportDate time.Time) {
 						ts, _ = time.Parse(time.RFC3339, v)
 					}
 				}
-				
+
 				// Parse value
 				var usage float64
 				if value[1] != nil {
@@ -900,7 +900,7 @@ func displayHourly(reportDate time.Time) {
 						usage = float64(v)
 					}
 				}
-				
+
 				// Fix -0.00 display issue
 				if usage < 0.005 && usage > -0.005 {
 					usage = 0.0
@@ -916,7 +916,7 @@ func displayHourly(reportDate time.Time) {
 			}
 		}
 	}
-	
+
 	fmt.Printf("%-25s %6.2f\n", "Total:", total)
 }
 
@@ -924,7 +924,7 @@ func displayLastHourly(reportDate time.Time) {
 	lastYear := reportDate.AddDate(-1, 0, 0)
 
 	query := fmt.Sprintf(
-		"select sum(input_power)*-0.0000027778 from inverter where input_power < 0 and time > '%s 00:00:00' and time < '%s 23:59:59' group by time(1h) fill(0)",
+		"select sum(grid_consumed) from inverter where time > '%s 00:00:00' and time < '%s 23:59:59' group by time(1h) fill(0)",
 		lastYear.Format("2006-01-02"), lastYear.Format("2006-01-02"),
 	)
 
@@ -1047,18 +1047,39 @@ func displayHistorical(startDate, endDate time.Time, data []UsageData, firstYear
 			}
 		}
 		fmt.Println()
-		
-		// Handle leap year
+
+		// After Feb 28, always show Feb 29 row for leap year data
 		if monthDay == "02-28" {
-			// Check if next day would be Feb 29
+			leapDay := "02-29"
+			fmt.Printf("%s ", leapDay)
+
+			for year := firstYear; year <= histEndYear; year++ {
+				actualYear := year
+				if startDate.Year() != endDate.Year() && current.Month() < startDate.Month() {
+					actualYear = year + 1
+				}
+
+				dateStr := fmt.Sprintf("%d-%s", actualYear, leapDay)
+				usage := getUsageForDate(data, dateStr)
+
+				if actualYear == thisYear && dateStr == today.Format("2006-01-02") {
+					fmt.Printf("  %7s", "NULL")
+				} else if usage > 0 {
+					totals[year] += usage
+					fmt.Printf("  %7.2f", usage)
+				} else {
+					fmt.Printf("  %7s", "NULL")
+				}
+			}
+			fmt.Println()
+
+			// Skip to March 1
 			nextDay := current.AddDate(0, 0, 1)
 			if nextDay.Day() == 29 {
-				current = nextDay.AddDate(0, 0, 1) // Skip to March 1
+				current = nextDay.AddDate(0, 0, 1)
 			} else {
 				current = nextDay
 			}
-		} else if monthDay == "02-29" {
-			current = current.AddDate(0, 0, 2) // Skip to March 1
 		} else {
 			current = current.AddDate(0, 0, 1)
 		}

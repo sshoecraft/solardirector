@@ -69,9 +69,22 @@ function cycle_main() {
 	dprintf(dlevel,"temp: %s\n", ac.temp);
 	if (!is_valid_temp(ac.temp)) return;
 
-	// Only cycle when below freezing
+	// Temp recovered above threshold — stop any pumps still in a cycle
 	dprintf(dlevel,"cycle_start: %s\n", ac.cycle_start);
-	if (ac.temp >= ac.cycle_start) return;
+	if (ac.temp >= ac.cycle_start) {
+		for(let name in pumps) {
+			let pump = pumps[name];
+			if (pump.direct || !pump.enabled) continue;
+			if (typeof(pump.cycle_state) == "undefined") continue;
+			if (pump.cycle_state == CYCLE_STATE_STOPPED) continue;
+			log_info("Cycle exit: stopping pump %s (temp %.1f >= %.1f)\n",
+				name, ac.temp, ac.cycle_start);
+			pump_stop(name);
+			pump.cycle_state = CYCLE_STATE_STOPPED;
+			pump.cycle_time = time();
+		}
+		return;
+	}
 
 	let cycle_interval = ac.cycle_interval;
 	let m = ac.temp / ac.cycle_start;
@@ -80,7 +93,12 @@ function cycle_main() {
 	if (cycle_interval < 0) cycle_interval = 0;
 	dprintf(dlevel,"NEW cycle_interval: %d\n", cycle_interval);
 
-	dprintf(dlevel,"cycle: temp (%.1f) below threshold (%.1f), using interval: %d\n", ac.temp, ac.cycle_start, cycle_interval);
+	// If the off-time would be less than 2x the on-time, run continuously
+	// rather than thrash the pumps with rapid start/stop cycles. The
+	// threshold check above will stop them once the temp recovers.
+	let continuous = (cycle_interval < ac.cycle_duration * 2);
+	dprintf(dlevel,"cycle: temp (%.1f) below threshold (%.1f), interval: %d, continuous: %s\n",
+		ac.temp, ac.cycle_start, cycle_interval, continuous);
 
 	let diff;
 	dprintf(dlevel,"current_time: %s\n", new Date(time() * 1000));
@@ -105,20 +123,16 @@ function cycle_main() {
 			break;
 		case CYCLE_STATE_WAIT_PUMP:
 			if (pump.state == PUMP_STATE_RUNNING) {
-				pump.cycle_state = SAMPLE_STATE_RUNNING;
+				pump.cycle_state = CYCLE_STATE_RUNNING;
 				pump.cycle_start_time = time();
 			}
 			break;
 		case CYCLE_STATE_RUNNING:
 			dprintf(dlevel,"cycle_start_time: %d\n", pump.cycle_start_time);
 			diff = time() - pump.cycle_start_time;
-			dprintf(dlevel,"diff: %d, cycle_duration: %d\n", diff, ac.cycle_duration);
-			// Only stop if duration is exceeded or
-			// the time it takes to start the pump is less than the interval
-			let adj = ac.cycle_duration+pump.wait_time;
-			dprintf(dlevel,"cycle_interval: %d, pump.wait_time: %d, adjusted duration: %d\n",
-				cycle_interval, pump.wait_time, adj);
-			if (diff >= ac.cycle_duration && cycle_interval > adj) {
+			dprintf(dlevel,"diff: %d, cycle_duration: %d, continuous: %s\n",
+				diff, ac.cycle_duration, continuous);
+			if (!continuous && diff >= ac.cycle_duration) {
 				pump_stop(name);
 				pump.cycle_state = CYCLE_STATE_STOPPED;
 				pump.cycle_time = time();

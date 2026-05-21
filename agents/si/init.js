@@ -48,6 +48,7 @@ function init_main() {
 		"feed",
 		"grid",
 		"gen",
+		"soc_table",
 		"soc",
 		"current",
 	];

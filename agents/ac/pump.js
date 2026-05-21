@@ -156,13 +156,25 @@ function pump_cooldown(name,pump) {
 }
 
 function pump_stop(name) {
+	let pump = pumps[name];
+	if (!pump) {
+		config.errmsg = sprintf("stop_pump: pump %s not found", name);
+		log_error("%s\n", config.errmsg);
+		return 1;
+	}
 	// XXX if it's in CD already skip it
-	if (pumps[name].state == PUMP_STATE_COOLDOWN) return 0;
+	if (pump.state == PUMP_STATE_COOLDOWN) return 0;
 	return common_stop(name,"pump",pumps,pump_cooldown,false)
 }
 
 function pump_force_stop(name) {
-	if (pumps[name].primer.length) pump_stop(pumps[name].primer);
+	let pump = pumps[name];
+	if (!pump) {
+		config.errmsg = sprintf("force_stop_pump: pump %s not found", name);
+		log_error("%s\n", config.errmsg);
+		return 1;
+	}
+	if (pump.primer.length) pump_stop(pump.primer);
 	return common_stop(name,"pump",pumps,pump_off,true)
 }
 

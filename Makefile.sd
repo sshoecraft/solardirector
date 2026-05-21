@@ -56,19 +56,23 @@ endif
 ifeq ($(INFLUX),yes)
 	_NI=-influx
 endif
+# Library directory: local build cache if BUILDROOT set, else source tree
+# Uses lazy evaluation (=) so _BUILD_BASE from Makefile.sys resolves at use time
+_SD_LIBDIR = $(if $(_BUILD_BASE),$(_BUILD_BASE),$(SRC_ROOT))
+
 LIBSDNAME=sd$(_NJ)$(_NM)$(_NI)
 ifneq ($(LIBSD),yes)
 	CFLAGS+=-I$(SRC_ROOT)/lib/sd
-	LIBS+=-L$(SRC_ROOT)/lib/sd -l$(LIBSDNAME)$(LIBSUFFIX)
-	DEPS+=$(SRC_ROOT)/lib/sd/lib$(LIBSDNAME)$(LIBSUFFIX)$(LIBEXT)
+	LIBS+=-L$(_SD_LIBDIR)/lib/sd -l$(LIBSDNAME)$(LIBSUFFIX)
+	DEPS+=$(_SD_LIBDIR)/lib/sd/lib$(LIBSDNAME)$(LIBSUFFIX)$(LIBEXT)
 	MATH=yes
 endif
 
 ifeq ($(JS),yes)
 	CFLAGS+=-I$(SRC_ROOT)/lib/js -DJS
-	LIBS+=-L$(SRC_ROOT)/lib/js -ljs
+	LIBS+=-L$(_SD_LIBDIR)/lib/js -ljs
 	MATH=yes
-	DEPS+=$(SRC_ROOT)/lib/js/libjs$(LIBEXT)
+	DEPS+=$(_SD_LIBDIR)/lib/js/libjs$(LIBEXT)
 	ifneq "$(findstring win,$(TARGET))" ""
 		CFLAGS+=-DXP_WIN
 	else
@@ -79,8 +83,8 @@ endif
 
 ifeq ($(SMANET),yes)
 	CFLAGS+=-I$(SRC_ROOT)/lib/smanet -DSMANET
-	LIBS+=-L$(SRC_ROOT)/lib/smanet -lsmanet$(_NJ)
-	DEPS+=$(SRC_ROOT)/lib/smanet/libsmanet$(_NJ)$(LIBEXT)
+	LIBS+=-L$(_SD_LIBDIR)/lib/smanet -lsmanet$(_NJ)
+	DEPS+=$(_SD_LIBDIR)/lib/smanet/libsmanet$(_NJ)$(LIBEXT)
 	NEED_LIBSD=yes
 endif
 
@@ -105,19 +109,19 @@ ifeq ($(WPI),yes)
 	CFLAGS+=-I$(SRC_ROOT)/lib/wpi
 	ifneq ("$(wildcard /usr/local/include/wiringPi.h)","")
 		CFLAGS+=-DWPI
-		LIBS+=-L$(SRC_ROOT)/lib/wpi -lwpi$(_NJ) -lwiringPi -lwiringPiDev
-		DEPS+=$(SRC_ROOT)/lib/wpi/libwpi$(_NJ)$(LIBEXT)
+		LIBS+=-L$(_SD_LIBDIR)/lib/wpi -lwpi$(_NJ) -lwiringPi -lwiringPiDev
+		DEPS+=$(_SD_LIBDIR)/lib/wpi/libwpi$(_NJ)$(LIBEXT)
 	endif
 endif
 
 
 ifeq ($(NEED_LIBSD),yes)
-	LIBS+=-L$(SRC_ROOT)/lib/sd -l$(LIBSDNAME)$(LIBSUFFIX)
+	LIBS+=-L$(_SD_LIBDIR)/lib/sd -l$(LIBSDNAME)$(LIBSUFFIX)
 endif
 
 include $(SRC_ROOT)/Makefile.sys
 
-main.o: $(SRCS)
-	@mkdir -p .deps
-	@echo "#define __SD_BUILD $$(date '+%Y%m%d%H%M')" > __sd_build.h
-	$(COMPILE) -c main.c
+$(_OP)main$(OBJSUFFIX).o: $(SRCS)
+	@mkdir -p $(DEPDIR)
+	@echo "#define __SD_BUILD $$(date '+%Y%m%d%H%M')" > $(_OP)__sd_build.h
+	$(CC) -MT $@ -MMD -MP -MF $(DEPDIR)/main$(OBJSUFFIX).d $(CFLAGS) -c main.c -o $@

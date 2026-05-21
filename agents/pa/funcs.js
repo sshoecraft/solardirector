@@ -39,8 +39,9 @@ function pa_over_battery_limit(amount) {
 		return 2;
 	}
 
-	// Check soft limit
-	if (pa.battery_soft_limit > 0 && check_total > pa.battery_soft_limit) {
+	// Soft limit check disabled - let the read cycle handle it
+	// (revoke after timeout) so the inverter can switch to grid
+	if (0 && pa.battery_soft_limit > 0 && check_total > pa.battery_soft_limit) {
 		if (amount > 0) {
 			config.errmsg = sprintf("reservation would exceed battery soft limit (%.1f + %.1f = %.1f > %.1f)",
 				current_discharge, amount, check_total, pa.battery_soft_limit);
@@ -65,6 +66,28 @@ function pa_reserve(agent_name,module,item,str_amount,str_pri) {
 	if (pri > 100) pri = 100;
 	dprintf(dlevel,"id: %s, amount: %s, priority: %d\n", id, amount, pri);
 
+	// Bypass mode - approve all requests, just track them
+	if (pa.bypass) {
+		// Still remove existing reservation for same id
+		for(let i=0; i < pa.reservations.length; i++) {
+			if (pa.reservations[i].id == id) {
+				pa.reserved -= pa.reservations[i].amount;
+				pa.reservations.splice(i,1);
+				break;
+			}
+		}
+		log_info("bypass: adding reservation for: id: %s, amount: %.1f, pri: %d\n", id, amount, pri);
+		let newres = {};
+		newres.id = id;
+		newres.amount = amount;
+		newres.pri = pri;
+		newres.marked = false;
+		pa.reservations.push(newres);
+		pa.reserved += amount;
+		pa.last_reserve_time = time();
+		return 0;
+	}
+
 	// Check battery level if configured
 	dprintf(dlevel,"battery_level_min: %.1f, have_battery_level: %s, battery_level: %.1f\n",
 		pa.battery_level_min, pa.have_battery_level, pa.battery_level);
@@ -87,12 +110,14 @@ function pa_reserve(agent_name,module,item,str_amount,str_pri) {
 		}
 	}
 
-	if (!pa.budget) {
-		// Deny everything until last_reserve_time + reserve_delay has passed
+	let budget = (pa.night_budget && pa_is_night_period()) ? pa.night_budget : pa.budget;
+	dprintf(dlevel,"pa.budget: %.1f, night_budget: %.1f, effective budget: %.1f\n", pa.budget, pa.night_budget, budget);
+	if (!budget) {
+		// Enforce delay after reserve/release, but skip if enough power is already available
 		dprintf(dlevel,"last_reserve_time: %s\n", pa.last_reserve_time);
 		let diff = time() - pa.last_reserve_time;
-		dprintf(dlevel,"diff: %d, reserve_delay: %d\n", diff, pa.reserve_delay);
-		if (diff < pa.reserve_delay) {
+		dprintf(dlevel,"diff: %d, reserve_delay: %d, avail: %.1f, amount: %.1f\n", diff, pa.reserve_delay, pa.avail, amount);
+		if (diff < pa.reserve_delay && pa.avail < amount) {
 			config.errmsg = sprintf("waiting for %d seconds before next reserve", pa.reserve_delay - diff);
 			return 1;
 		}
@@ -112,7 +137,7 @@ function pa_reserve(agent_name,module,item,str_amount,str_pri) {
 	let r = 0;
 	if (pa.avail >= amount || approve_p1 && pri == 1) {
 		// Check P1 limit when in deficit (no-budget mode only)
-		if (!pa.budget && pri == 1 && approve_p1 && pa.avail < amount && pa.limit > 0) {
+		if (!budget && pri == 1 && approve_p1 && pa.avail < amount && pa.limit > 0) {
 			// Calculate total deficit after approval
 			let current_deficit = pa.avail < 0 ? Math.abs(pa.avail) : 0;
 			let additional_deficit = amount - (pa.avail > 0 ? pa.avail : 0);
@@ -180,6 +205,7 @@ function pa_release(agent_name,module,item,str_amount) {
 function pa_repri(agent_name,module,item,str_amount,str_pri) {
 	let dlevel = -1;
 
+	let budget = (pa.night_budget && pa_is_night_period()) ? pa.night_budget : pa.budget;
 	dprintf(dlevel,"agent_name: %s, module: %s, item: %s, amount: %s, pri: %s\n", agent_name, module, item, str_amount, str_pri);
 
 	let id = agent_name;
@@ -223,7 +249,7 @@ function pa_repri(agent_name,module,item,str_amount,str_pri) {
 			approve_p1 = pa.night_approve_p1;
 		}
 		
-		if (!pa.budget && pri == 1 && approve_p1 && pa.avail < amount && pa.limit > 0) {
+		if (!budget && pri == 1 && approve_p1 && pa.avail < amount && pa.limit > 0) {
 			// Calculate total deficit after approval
 			let current_deficit = pa.avail < 0 ? Math.abs(pa.avail) : 0;
 			let additional_deficit = amount - (pa.avail > 0 ? pa.avail : 0);

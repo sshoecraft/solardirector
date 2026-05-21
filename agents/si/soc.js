@@ -42,14 +42,11 @@ function soc_open_battcp() {
 		dprintf(dlevel,"size: %d\n", battcp.size);
 		if (battcp.size) {
 			var cpinfo = battcp.readln().split(",");
-//			dumpobj(cpinfo);
 			let i = 0;
 			si.battery_ah = parseFloat(cpinfo[i++]);
 			si.battery_in = parseFloat(cpinfo[i++]);
 			si.battery_out = parseFloat(cpinfo[i++]);
-			si.battery_empty = (cpinfo[i++] == 'true');
-			si.battery_full = (cpinfo[i++] == 'true');
-			dprintf(0,"Restored: ah: %f, in: %f, out: %f, empty: %s, full: %s\n", si.battery_ah, si.battery_in, si.battery_out, si.battery_empty, si.battery_full);
+			dprintf(0,"Restored: ah: %f, in: %f, out: %f\n", si.battery_ah, si.battery_in, si.battery_out);
 		}
 	}
 }
@@ -61,116 +58,15 @@ function soc_checkpoint() {
 
 	// Checkpoint total power
 	if (si.battcp) {
-		if (typeof(battcp) == "undefined" || !battcp.exists) open_battcp();
+		if (typeof(battcp) == "undefined" || !battcp.exists) soc_open_battcp();
 		if (battcp.isOpen) {
 			battcp.seek(0);
-			let line = sprintf("%f,%f,%f,%s,%s\n",si.battery_ah,si.battery_in,si.battery_out,si.battery_empty,si.battery_full);
+			let line = sprintf("%f,%f,%f\n",si.battery_ah,si.battery_in,si.battery_out);
 			dprintf(dlevel,"line: %s", line);
 			battcp.write(line);
 			battcp.flush();
 		}
 	}
-}
-
-function soc_battery_empty() {
-
-	let dlevel = -1;
-
-	dprintf(dlevel,"battery_ah: %f, charge_start_ah: %f\n", si.battery_ah, si.charge_start_ah);
-
-	dprintf(dlevel,"battery_full: %s\n", si.battery_full);
-	if (si.battery_full) {
-		let ov = si.discharge_efficiency;
-		dprintf(dlevel,"ov: %f\n", ov);
-		let m = si.charge_start_ah / si.battery_ah;
-		dprintf(dlevel,"m: %f\n", m);
-		val = ov * m;
-		dprintf(dlevel,"val: %f\n", val);
-		if (val > 1.0) val = 1.0;
-		if (influx.enabled && influx.connected) influx.write(si.discharge_efficiency_table,{} = { value: val });
-		let nv = soc_kf_deff.filter(val,1);
-		dprintf(dlevel,"nv: %f, ov: %f\n", nv, ov);
-		if (!double_equals(nv,ov)) {
-			log_verbose("Setting discharge_effiency to: %f\n", nv);
-			si.discharge_efficiency = nv;
-			config.save();
-		}
-	}
-	si.battery_full = false;
-	si.battery_empty = true;
-
-	dprintf(dlevel,"empty_command: %s\n", si.empty_command);
-	if (si.empty_command.length > 0) system(si.empty_command);
-
-	// Start counting all over again
-	si.battery_ah = si.charge_start_ah;
-}
-
-function soc_battery_full() {
-
-	let dlevel = -1;
-
-	dprintf(dlevel,"battery_ah: %f, charge_end_ah: %f\n", si.battery_ah, si.charge_end_ah);
-
-	dprintf(dlevel,"battery_empty: %s\n", si.battery_empty);
-	if (si.battery_empty) {
-		let ov = si.charge_factor;
-		let m = si.charge_end_ah / si.battery_ah;
-		dprintf(dlevel,"m: %f\n", m);
-		val = ov * m;
-		dprintf(dlevel,"val: %f\n", val);
-		if (influx.enabled && influx.connected) influx.write(si.charge_factor_table,{} = { value: val });
-		let nv = soc_kf_ceff.filter(val,1);
-		dprintf(dlevel,"nv: %f, ov: %f\n", nv, ov);
-		if (!double_equals(nv,ov)) {
-			log_verbose("Setting charge_effiency to: %f\n", nv);
-			si.charge_factor = nv;
-			config.save();
-		}
-	}
-	si.battery_empty = false;
-	si.battery_full = true;
-
-	dprintf(dlevel,"full_command: %s\n", si.full_command);
-	if (si.full_command.length > 0) system(si.full_command);
-
-	// pin AH to charge end (fix SOC)
-	si.battery_ah = si.charge_end_ah;
-}
-
-// Prime efficiency kalman filter
-function soc_prime_kf(kf,table_name,prop) {
-
-	let dlevel = 1;
-
-	dprintf(dlevel,"table_name: %s, prop.name: %s\n", table_name, prop.name);
-
-	if (!influx) return;
-	dprintf(dlevel,"influx: enabled: %s, connected: %s\n", influx.enabled, influx.connected);
-	if (influx.enabled && influx.connected) {
-		let query = "SELECT value FROM " + table_name + " ORDER BY time";
-		dprintf(dlevel,"query: %s\n", query);
-		let results = influx2arr(influx.query(query));
-		dprintf(dlevel,"results: %s\n", results);
-		let nv,ov;
-		nv = ov = prop.value;
-		dprintf(dlevel,"ov: %f\n", ov);
-		if (results) {
-			let count = results.length;
-			dprintf(dlevel,"count: %d\n", count);
-			for(let i=0; i < count; i++) {
-				dprintf(dlevel,"results[%d].value: %f\n", i, results[i].value);
-				nv = kf.filter(results[i].value,1);
-			}
-			dprintf(dlevel,"nv: %f, ov: %f\n", nv, ov);
-			if (!double_equals(nv,ov)) {
-				log_warning("computed initial %s (%f) != saved value (%f)\n", prop.name, nv, ov);
-				prop.value = nv;
-				config.save();
-			}
-		}
-	}
-	dprintf(dlevel,"done!\n");
 }
 
 function soc_event_handler(name,module,action) {
@@ -180,14 +76,7 @@ function soc_event_handler(name,module,action) {
 	dprintf(dlevel,"name: %s, agent.name: %s\n", name, agent.name);
 	if (name != agent.name) return;
 
-	dprintf(dlevel,"module: %s\n", module);
-	if (module == "Battery") {
-		dprintf(dlevel,"action: %s\n", action);
-		if (action == "Full") soc_battery_full();
-		else if (action == "Empty") soc_battery_empty();
-	}
-
-	// Any change in charge status reset the time remaining kalman filter */
+	// Any change in charge status reset the time remaining kalman filter
 	if (module == "Charge" && soc_kf_secs) soc_kf_secs.reset();
 }
 
@@ -198,44 +87,154 @@ function soc_init() {
 	SI_SOC_TOTAL = 2;
 
 	var soc_props = [
-		[ "discharge_efficiency_table", DATA_TYPE_STRING, "si_discharge_efficiency", 0 ],
-		[ "discharge_efficiency", DATA_TYPE_DOUBLE, 0.945, 0 ],
-		[ "charge_factor_table", DATA_TYPE_STRING, "si_charge_factor", 0 ],
-		[ "charge_factor", DATA_TYPE_DOUBLE, 1.04, 0 ],
 		[ "battery_capacity", DATA_TYPE_DOUBLE, null, 0, soc_battery_capacity_trigger ],
 		[ "battery_ah", DATA_TYPE_DOUBLE, NaN, CONFIG_FLAG_PRIVATE ],
 		[ "battery_level", DATA_TYPE_DOUBLE, "0.0", CONFIG_FLAG_PRIVATE ],
 		[ "battcp", DATA_TYPE_BOOL, "true", 0 ],
 		[ "soc_type", DATA_TYPE_INT, SI_SOC_USABLE.toString(), 0 ],
 	];
-	var soc_funcs = [
-		[ "battery_empty", soc_battery_empty, 0 ],
-		[ "battery_full", soc_battery_full, 0 ],
-	];
 
 	config.add_props(si,soc_props,si.driver_name);
-	config.add_funcs(si,soc_funcs,si.driver_name);
 
 	event.handler(soc_event_handler,"si","all","all");
 
-	si.battery_empty = false;
-	si.battery_full = false;
 	si.battery_in = 0.0;
 	si.battery_out = 0.0;
 	si.battery_ah = NaN;
 	si.remain_time = "";
 	si.remain_text = "";
+	si.anchor_set_this_interval = false;
 
 	if (si.battcp) soc_open_battcp();
 
 	soc_kf_secs = new KalmanFilter();
-	soc_kf_deff = new KalmanFilter(1.5);
-	soc_kf_ceff = new KalmanFilter(1.5);
+}
 
-	soc_prime_kf(soc_kf_deff,si.discharge_efficiency_table,config.get_property("discharge_efficiency"));
-	log_verbose("Initial discharge efficiency: %f\n", si.discharge_efficiency);
-	soc_prime_kf(soc_kf_ceff,si.charge_factor_table,config.get_property("charge_factor"));
-	log_verbose("Initial charge_factor: %f\n", si.charge_factor);
+// Cycle tracking state for adaptive table learning
+var cycle_state = {
+	in_cycle: false,
+	cycle_type: "",               // "charge" or "discharge"
+	start_time: 0,
+	start_voltage: 0.0,
+	start_ah: 0.0,
+	integrated_ah: 0.0,
+	curve_points: [],             // recorded voltage→Ah curve during this cycle
+	last_sample_bin: "",          // avoid duplicate samples in same voltage bin
+	cv_curve_points: [],          // recorded current→Ah curve during CV phase
+	cv_last_sample_bin: ""        // avoid duplicate samples in same current bin
+};
+
+// Snap voltage to nearest 0.25V bin key
+function soc_voltage_bin(v) {
+	return (Math.round(v / 0.25) * 0.25).toFixed(2);
+}
+
+// Start tracking a charge cycle (called on Battery.Empty event)
+function soc_start_charge_cycle() {
+	var dlevel = 1;
+
+	if (!si.battery_capacity) return;
+
+	cycle_state.in_cycle = true;
+	cycle_state.cycle_type = "charge";
+	cycle_state.start_time = time();
+	cycle_state.start_voltage = data.battery_voltage || 0;
+	cycle_state.start_ah = si.battery_ah;
+	cycle_state.integrated_ah = 0.0;
+	cycle_state.curve_points = [];
+	cycle_state.last_sample_bin = "";
+	cycle_state.cv_curve_points = [];
+	cycle_state.cv_last_sample_bin = "";
+
+	dprintf(dlevel, "Cycle: Started charge cycle tracking (battery_ah=%.1f)\n", si.battery_ah);
+}
+
+// Complete a charge cycle and update adaptive table (called on Battery.Full event)
+function soc_complete_charge_cycle() {
+	var dlevel = 1;
+
+	if (!cycle_state.in_cycle || cycle_state.cycle_type != "charge") {
+		dprintf(dlevel, "Cycle: Not in charge cycle, ignoring Full event\n");
+		return;
+	}
+
+	var duration_secs = time() - cycle_state.start_time;
+	var duration_mins = duration_secs / 60.0;
+	var observed_ah = cycle_state.integrated_ah;
+
+	dprintf(0, "Cycle: Completed charge cycle: %.1f Ah in %.0f minutes (%d curve points)\n",
+		observed_ah, duration_mins, cycle_state.curve_points.length);
+
+	// Validate cycle (must be >30 min and >10% capacity)
+	if (duration_mins < 30 || observed_ah < si.battery_capacity * 0.1) {
+		log_warning("Cycle: Charge cycle too short or insufficient Ah (%.0f min, %.1f Ah), discarding\n",
+			duration_mins, observed_ah);
+		cycle_state.in_cycle = false;
+		return;
+	}
+
+	// Fold voltage curve into adaptive table
+	if (typeof(fold_cycle_into_table) == "function") {
+		fold_cycle_into_table("charge", cycle_state.curve_points);
+	}
+
+	// Fold CV current curve into adaptive CV table
+	if (typeof(fold_cv_into_table) == "function" && cycle_state.cv_curve_points.length > 0) {
+		fold_cv_into_table(cycle_state.cv_curve_points);
+		dprintf(dlevel, "Cycle: Folded %d CV curve points\n", cycle_state.cv_curve_points.length);
+	}
+
+	cycle_state.in_cycle = false;
+}
+
+// Start tracking a discharge cycle (called on Battery.Full event)
+function soc_start_discharge_cycle() {
+	var dlevel = 1;
+
+	if (!si.battery_capacity) return;
+
+	cycle_state.in_cycle = true;
+	cycle_state.cycle_type = "discharge";
+	cycle_state.start_time = time();
+	cycle_state.start_voltage = data.battery_voltage || 0;
+	cycle_state.start_ah = si.battery_ah;
+	cycle_state.integrated_ah = 0.0;
+	cycle_state.curve_points = [];
+	cycle_state.last_sample_bin = "";
+
+	dprintf(dlevel, "Cycle: Started discharge cycle tracking (battery_ah=%.1f)\n", si.battery_ah);
+}
+
+// Complete a discharge cycle and update adaptive table (called on Battery.Empty event)
+function soc_complete_discharge_cycle() {
+	var dlevel = 1;
+
+	if (!cycle_state.in_cycle || cycle_state.cycle_type != "discharge") {
+		dprintf(dlevel, "Cycle: Not in discharge cycle, ignoring Empty event\n");
+		return;
+	}
+
+	var duration_secs = time() - cycle_state.start_time;
+	var duration_mins = duration_secs / 60.0;
+	var observed_ah = cycle_state.integrated_ah;
+
+	dprintf(0, "Cycle: Completed discharge cycle: %.1f Ah in %.0f minutes (%d curve points)\n",
+		observed_ah, duration_mins, cycle_state.curve_points.length);
+
+	// Validate cycle (must be >30 min and >10% capacity)
+	if (duration_mins < 30 || observed_ah < si.battery_capacity * 0.1) {
+		log_warning("Cycle: Discharge cycle too short or insufficient Ah (%.0f min, %.1f Ah), discarding\n",
+			duration_mins, observed_ah);
+		cycle_state.in_cycle = false;
+		return;
+	}
+
+	// Fold curve into adaptive table
+	if (typeof(fold_cycle_into_table) == "function") {
+		fold_cycle_into_table("discharge", cycle_state.curve_points);
+	}
+
+	cycle_state.in_cycle = false;
 }
 
 function report_remain(func,secs) {
@@ -279,11 +278,6 @@ function report_remain(func,secs) {
 			if (mins == 1) s += "1 minute";
 			else s += sprintf("%d minutes", mins);
 		}
-if (0) {
-		if (s.length) s += ", ";
-		if (secs == 1) s+= "1 second";
-		else s += sprintf("%d seconds", secs);
-}
 	} else {
 		s = "~";
 		t = "~";
@@ -297,14 +291,71 @@ function init_battery_ah() {
 
 	let dlevel = 0;
 
-	// XXX use a table for the initial val?
+	// Use table lookup (accurate for NMC chemistry)
+	if (typeof(soc_table_get_raw_soc) == "function") {
+		let table_soc = soc_table_get_raw_soc();
+		if (!isNaN(table_soc)) {
+			si.battery_ah = si.battery_capacity * (table_soc / 100.0);
+			dprintf(dlevel, "initial battery_ah (from table): %f\n", si.battery_ah);
+			return;
+		}
+	}
+
+	// Fallback to linear interpolation
 	dprintf(dlevel,"battery_voltage: %f, min_voltage: %f, max_voltage: %f\n",
 		data.battery_voltage, si.min_voltage, si.max_voltage);
 	let vsoc = ((data.battery_voltage - si.min_voltage) / (si.max_voltage - si.min_voltage)) * 0.85;
 	dprintf(dlevel,"vsoc: %f\n", vsoc);
 	si.battery_ah = si.battery_capacity * vsoc;
 	if (!si.battery_ah) si.battery_ah = 0;
-	dprintf(dlevel,"initial battery_ah: %f\n", si.battery_ah);
+	dprintf(dlevel,"initial battery_ah (fallback): %f\n", si.battery_ah);
+}
+
+var soc_checkpoint_validated = false;
+
+function validate_checkpoint() {
+	// Validate checkpoint against OCV table
+	// If they differ by more than 20%, checkpoint is garbage - use table value
+
+	let dlevel = 0;
+
+	if (soc_checkpoint_validated) return;
+	soc_checkpoint_validated = true;
+
+	// Need table function and valid voltage (table is optional, skip if not available)
+	if (typeof(soc_table_get_raw_soc) != "function") return;
+	if (!si_isvrange(data.battery_voltage)) return;
+	if (!si.battery_capacity) return;
+
+	// Get what battery_ah SHOULD be based on table/voltage
+	let table_soc = soc_table_get_raw_soc();
+	if (isNaN(table_soc)) return;
+
+	let table_ah = si.battery_capacity * (table_soc / 100.0);
+	let checkpoint_ah = si.battery_ah;
+
+	dprintf(dlevel, "Validating checkpoint: checkpoint_ah: %.1f, table_ah: %.1f\n", checkpoint_ah, table_ah);
+
+	// If checkpoint is NaN, just use table
+	if (isNaN(checkpoint_ah)) {
+		si.battery_ah = table_ah;
+		dprintf(dlevel, "Checkpoint was NaN, using table value: %.1f Ah\n", table_ah);
+		return;
+	}
+
+	// Calculate difference as percentage of capacity
+	let diff_pct = Math.abs(checkpoint_ah - table_ah) / si.battery_capacity * 100.0;
+	dprintf(dlevel, "Checkpoint vs table difference: %.1f%%\n", diff_pct);
+
+	// If more than 20% different, checkpoint is garbage
+	if (diff_pct > 20.0) {
+		log_warning("Checkpoint (%.1f Ah / %.1f%%) vs OCV table (%.1f Ah / %.1f%%) differ by %.1f%% - using table value\n",
+			checkpoint_ah, (checkpoint_ah / si.battery_capacity) * 100.0,
+			table_ah, table_soc, diff_pct);
+		si.battery_ah = table_ah;
+	} else {
+		dprintf(dlevel, "Checkpoint validated OK (%.1f%% difference)\n", diff_pct);
+	}
 }
 
 function soc_main() {
@@ -317,83 +368,85 @@ function soc_main() {
 		return;
 	}
 
+	// Validate checkpoint against OCV table on first run
+	validate_checkpoint();
+
 	// Set initial battery_ah
 	dprintf(dlevel,"battery_ah: %f\n", si.battery_ah);
 	if (isNaN(si.battery_ah)) init_battery_ah();
 
-	// XXX If CC charging and the battery was NOT empty, adjust ah
-	dprintf(dlevel,"charge_mode: %d, si.battery_empty: %s\n", si.charge_mode, si.battery_empty);
-	if (si.charge_mode == 1 && si.battery_empty == false) {
-		dprintf(dlevel,"battery_voltage: %f, min_voltage: %f\n", data.battery_voltage, si.min_voltage);
-		let rel = data.battery_voltage - si.min_voltage;
-		dprintf(dlevel,"rel: %f, spread: %f\n", rel, si.spread);
-		pct = rel / si.spread;
-		dprintf(dlevel,"pct: %f\n", pct);
-		dprintf(dlevel,"charge_factor: %f\n", si.charge_factor);
-		let mult = .85 * si.charge_factor;
-		dprintf(dlevel,"mult: %f\n", mult);
-		adj = pct * mult;
-		dprintf(dlevel,"adj: %f\n", adj);
-		dprintf(dlevel,"battery_capacity: %f\n", si.battery_capacity);
-		si.battery_ah = si.battery_capacity * adj;
-		dprintf(dlevel,"new battery_ah: %f\n", si.battery_ah);
+	// Raw coulomb counting
+	let amps = data.battery_current;
+	dprintf(dlevel, "amps: %f\n", amps);
+	let ah = amps * (si.interval / 3600);
+	dprintf(dlevel, "ah: %f\n", ah);
+	si.battery_ah -= ah;
+	dprintf(dlevel, "battery_ah after coulomb: %f\n", si.battery_ah);
+
+	// Cycle tracking - accumulate Ah and record voltage curve during active cycles
+	if (cycle_state.in_cycle) {
+		if (cycle_state.cycle_type == "charge" && ah < 0) {
+			// Charging: negative ah means power going IN
+			cycle_state.integrated_ah += Math.abs(ah);
+		} else if (cycle_state.cycle_type == "discharge" && ah > 0) {
+			// Discharging: positive ah means power going OUT
+			cycle_state.integrated_ah += ah;
+		}
+
+		// Record curve points for adaptive table learning
+		if (si.charge_mode != CHARGE_MODE_CV) {
+			// CC/discharge: record voltage→Ah curve
+			var power = data.battery_power || 0;
+			if (Math.abs(power) > 100) {
+				var bin = soc_voltage_bin(data.battery_voltage);
+				if (bin != cycle_state.last_sample_bin) {
+					cycle_state.curve_points.push({
+						voltage: bin,
+						ah_from_anchor: cycle_state.integrated_ah
+					});
+					cycle_state.last_sample_bin = bin;
+				}
+			}
+		} else if (cycle_state.cycle_type == "charge") {
+			// CV mode: record current→Ah curve (current decays as battery fills)
+			var cv_current = Math.abs(data.battery_current);
+			if (cv_current > 1 && !isNaN(si.cv_start_ah)) {
+				var cbin = current_to_bin(cv_current);
+				if (cbin != cycle_state.cv_last_sample_bin) {
+					var ah_since_cv = si.battery_ah - si.cv_start_ah;
+					cycle_state.cv_curve_points.push({
+						current_bin: cbin,
+						ah_since_cv_start: ah_since_cv
+					});
+					cycle_state.cv_last_sample_bin = cbin;
+				}
+			}
+		}
 	}
 
-	// battery AH counter
-	let amps = data.battery_current;
-	dprintf(dlevel,"amps: %f, discharge_efficiency: %f, charge_factor: %f\n",
-		amps, si.discharge_efficiency, si.charge_factor);
-	let val = (amps > 0 ? amps / si.discharge_efficiency : amps * si.charge_factor);
-	dprintf(dlevel,"val: %f\n", val);
-	let mult = (si.interval / 3600);
-	dprintf(dlevel,"mult: %f\n", mult);
-	let ah = val * mult;
-	dprintf(dlevel,"ah: %f\n", ah);
-	si.battery_ah -= ah;
-	dprintf(dlevel,"NEW battery_ah: %f\n", si.battery_ah);
-	var obt = si.battery_ah;
-	// something went wrong
+	// Voltage-based drift correction (skip if anchor was set this interval)
+	if (typeof(soc_table_correct) == "function" && !si.anchor_set_this_interval) {
+		let coulomb_soc = (si.battery_ah / si.battery_capacity) * 100.0;
+		soc_table_correct(coulomb_soc);
+		dprintf(dlevel, "battery_ah after correction: %f\n", si.battery_ah);
+	}
+	si.anchor_set_this_interval = false;
+
+	// Clamp to valid range
 	if (isNaN(si.battery_ah)) si.battery_ah = si.charge_start_ah;
 	if (si.battery_ah < 0) si.battery_ah = 0;
 	if (si.battery_ah > si.battery_capacity) si.battery_ah = si.battery_capacity;
-	if (si.battery_ah != obt) dprintf(dlevel,"FIXED battery_ah: %f\n", si.battery_ah);
 
 	// Checkpoint in case restart
 	soc_checkpoint();
 
-if (0) {
-//	new_soc = Sk - (n * Ts / As) * Ik
-	top = (0.98 * si.interval);
-	bot = (si.battery_capacity * 3600);
-	i = Math.abs(data.battery_current);
-	dprintf(0,"top: %f, bot: %f, i: %f\n", top, bot, i);
-	sk = (top / bot) * i;
-	dprintf(0,"sk: %f\n", sk);
-}
-
+	// Calculate SOC
 	let new_soc = (si.battery_ah / si.battery_capacity) * 100.0;
 	dprintf(dlevel,"new_soc: %.1f\n", new_soc);
-
-	// XXX sanity check 
-	let obl = new_soc;
 	if (new_soc > 100.0) new_soc = 100.0;
-	dprintf(dlevel,"new_soc: %f, charge_start_level: %f, battery_voltage: %f, charge_start_voltage: %f\n",
-		new_soc, si.charge_start_level, data.battery_voltage, si.charge_start_voltage);
-	if (new_soc < si.charge_start_level && pround(data.battery_voltage,1) > si.charge_start_voltage) {
-		dprintf(dlevel,"new_soc: %f, charge_start_level: %f, battery_voltage: %f, charge_start_voltage: %f\n",
-			new_soc, si.charge_start_level, pround(data.battery_voltage,1), si.charge_start_voltage);
-		new_soc = si.charge_start_level;
-	}
-	if (pround(data.battery_voltage,1) < si.charge_start_voltage) {
-		printf("new_soc: %f, si.soc: %f\n", new_soc, si.soc);
-		let p = pct(new_soc,si.soc);
-		printf("p: %f\n", p);
-		if (p >= 10) new_soc = si.soc;
-	}
-	if (new_soc != obl) dprintf(dlevel,"FIXED: new_soc: %.1f\n", new_soc);
 	si.soc = si.battery_level = new_soc;
 
-	dprintf(dlevel,"new battery level: %f\n", si.battery_level);
+	dprintf(dlevel,"battery level: %f\n", si.battery_level);
 
 	// Calculate remaining ah
 	let remain,func;

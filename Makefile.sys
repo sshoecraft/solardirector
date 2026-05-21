@@ -174,9 +174,30 @@ ifneq ("$(wildcard /usr/local/lib/make.opts)","")
 include /usr/local/lib/make.opts
 endif
 
+# Local build directory for NFS-shared source trees
+# Set BUILDROOT in ~/.sd_make_opts to redirect build output to local disk
+# Example: BUILDROOT=$(HOME)/.build/sd
+BUILDROOT ?= $(HOME)/.build/sd
+ifneq ($(BUILDROOT),)
+  _ABS_SRC_ROOT := $(shell cd $(SRC_ROOT) 2>/dev/null && pwd -P)
+  _BUILD_BASE := $(BUILDROOT)
+  ifeq ($(CURDIR),$(_ABS_SRC_ROOT))
+    OBJDIR := $(_BUILD_BASE)
+  else
+    OBJDIR := $(_BUILD_BASE)/$(patsubst $(_ABS_SRC_ROOT)/%,%,$(CURDIR))
+  endif
+  _OP := $(OBJDIR)/
+  CFLAGS += -I$(OBJDIR)
+  $(shell mkdir -p $(OBJDIR))
+else
+  OBJDIR :=
+  _BUILD_BASE :=
+  _OP :=
+endif
+
 # Deps
-DEPDIR := .deps
-CLEANFILES+=.deps
+DEPDIR := $(_OP).deps
+CLEANFILES+=$(_OP).deps
 DEPFLAGS = -MT $@ -MMD -MP -MF $(DEPDIR)/$*$(OBJSUFFIX).d
 
 #FULLCC = $(CC) $(DEPFLAGS) $(CFLAGS) $(CPPFLAGS) $(LDFLAGS)
@@ -186,12 +207,16 @@ LINK = $(CC) $(DEPFLAGS) $(LDFLAGS)
 
 .SUFFIXES: .c .o .so
 
+# Placeholder so DEPDIR rule (which may have an absolute path with BUILDROOT)
+# doesn't become the default goal. Prerequisites added later.
+_all:
+
 ##%.o : %.c
-%$(OBJSUFFIX).o : %.c $(DEPDIR)/%$(OBJSUFFIX).d | $(DEPDIR)
+$(_OP)%$(OBJSUFFIX).o : %.c $(DEPDIR)/%$(OBJSUFFIX).d | $(DEPDIR)
 	$(COMPILE) -c $< -o $@
 
 #%.so : %.c
-%$(OBJSUFFIX).so : %.c $(DEPDIR)/%$(OBJSUFFIX).d | $(DEPDIR)
+$(_OP)%$(OBJSUFFIX).so : %.c $(DEPDIR)/%$(OBJSUFFIX).d | $(DEPDIR)
 	$(COMPILE) -fPIC -c $< -o $@
 
 $(DEPDIR): ; @mkdir -p $@
@@ -285,7 +310,7 @@ endif
 # End of mods
 #
 
-OBJS+=$(SRCS:%.c=%$(OBJSUFFIX).o)
+OBJS+=$(SRCS:%.c=$(_OP)%$(OBJSUFFIX).o)
 #OBJS?=$(patsubst %.c,%.o,$(patsubst %.cpp,%.o,$(SRCS)))
 
 # XXX DO NOT INDENT ANYTHING AFTER THIS UNTIL _all
@@ -310,9 +335,10 @@ SHLDADD+=-dynamiclib -install_name @rpath/lib$(LIBNAME)$(LIBSUFFIX)$(LIBEXT)
 else
 LIBEXT=.so
 endif
-SLIB=lib$(LIBNAME)$(LIBSUFFIX)$(LIBEXT)
+_SLIB_NAME=lib$(LIBNAME)$(LIBSUFFIX)$(LIBEXT)
+SLIB=$(_OP)$(_SLIB_NAME)
 CLEANFILES+=$(SLIB) $(SOBJS)
-SOBJS+=$(SRCS:%.c=%$(OBJSUFFIX).so)
+SOBJS+=$(SRCS:%.c=$(_OP)%$(OBJSUFFIX).so)
 _all: $(SLIB)
 
 $(SLIB): $(SOBJS)
@@ -322,7 +348,8 @@ else # LIBTYPE
 
 # Standard(static) lib
 LIBEXT=.a
-ALIB=lib$(LIBNAME)$(LIBSUFFIX)$(LIBEXT)
+_ALIB_NAME=lib$(LIBNAME)$(LIBSUFFIX)$(LIBEXT)
+ALIB=$(_OP)$(_ALIB_NAME)
 CLEANFILES+=$(ALIB) $(OBJS)
 _all: $(ALIB)
 
@@ -366,7 +393,8 @@ LDADD+=-rdynamic
 LIBS+=-ldl
 endif
 endif
-PROG=$(PROGNAME)$(EXE)
+_PROGFILE=$(PROGNAME)$(EXE)
+PROG=$(_OP)$(_PROGFILE)
 CLEANFILES+=$(PROG) $(OBJS)
 _all: $(PROG)
 
@@ -386,7 +414,7 @@ $(PROG): $(_PROG_SCRIPT)
 		-e "s:+ETCDIR+:$(ETCDIR):g" \
 		-e "s:+LIBDIR+:$(LIBDIR):g" \
 		-e "s:+LOGDIR+:$(LOGDIR):g" \
-		-e "s:+PROG+:$(PROG):g" \
+		-e "s:+PROG+:$(_PROGFILE):g" \
 		> $@
 	chmod +x $(PROG)
 else
@@ -408,6 +436,7 @@ else
 SERVICE_T=$(PROGNAME).service.template
 SERVICE=$(PROGNAME).service
 endif
+_SERVICE_FILE=$(_OP)$(SERVICE)
 PROGCONF=$(PROGNAME).conf
 
 # Only use systemd on Linux
@@ -423,7 +452,7 @@ endif
 
 _doinstall: $(PROG) $(_SERVICE)
 	mkdir -p $(BINDIR) $(LOGDIR)
-	$(INSTALL) -m 755 $(INSTALL_USER) $(PROG) $(BINDIR)/$(PROG)
+	$(INSTALL) -m 755 $(INSTALL_USER) $(PROG) $(BINDIR)/$(_PROGFILE)
 ifneq ("$(wildcard $(PROGCONF))","")
 	mkdir -p $(ETCDIR)
 	$(INSTALL) -m 644 $(INSTALL_USER) $(PROGCONF) $(ETCDIR)/$(PROGCONF)
@@ -453,12 +482,12 @@ ifneq ("$(wildcard $(_SERVICE))","")
 #	systemctl daemon-reload
 endif
 endif
-	rm -f $(BINDIR)/$(PROG)
+	rm -f $(BINDIR)/$(_PROGFILE)
 
 # Only generate systemd services on Linux
 ifeq ($(OS),Linux)
 ifneq ("$(wildcard $(SERVICE_T))","")
-CLEANFILES+=$(SERVICE)
+CLEANFILES+=$(_SERVICE_FILE)
 ifeq ($(SERVICE_DESC),)
 	_DESC=$(SERVICE_NAME)
 else
@@ -478,13 +507,13 @@ endif
 ifneq ("$(wildcard $(SERVICE_AFTER))","")
 	AFTER+=$(SERVICE_AFTER)
 endif
-$(SERVICE): $(SERVICE_T)
+$(_SERVICE_FILE): $(SERVICE_T)
 	cat $< | sed -e "s:+PREFIX+:$(PREFIX):g" \
 		-e "s:+BINDIR+:$(BINDIR):g" \
 		-e "s:+ETCDIR+:$(ETCDIR):g" \
 		-e "s:+LIBDIR+:$(LIBDIR):g" \
 		-e "s:+LOGDIR+:$(LOGDIR):g" \
-		-e "s:+PROG+:$(PROG):g" \
+		-e "s:+PROG+:$(_PROGFILE):g" \
 		-e "s:+NAME+:$(SERVICE_NAME):g" \
 		-e "s:+DESC+:$(_DESC):g" \
 		-e "s:+APPEND+:$(_APPEND):g" \
@@ -494,7 +523,7 @@ $(SERVICE): $(SERVICE_T)
 endif
 endif
 
-$(_SERVICE): $(SERVICE)
+$(_SERVICE): $(_SERVICE_FILE)
 ifeq ($(UID),0)
 	$(INSTALL) -m 644 $(INSTALL_USER) $< $@
 #	systemctl daemon-reload
@@ -517,7 +546,7 @@ install: _preinstall _doinstall _postinstall
 clean: _preclean _doclean _postclean
 
 _doclean:
-	rm -rf $(CLEANFILES) __sd_build.h
+	rm -rf $(CLEANFILES) $(_OP)__sd_build.h
 
 $(DEPFILES):
 include $(wildcard $(DEPFILES))

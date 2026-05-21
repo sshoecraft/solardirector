@@ -174,6 +174,15 @@ enum CURRENT_TYPE {
 	CURRENT_TYPE_WATTS
 };
 
+enum CLUSTER_CONFIG {
+	CLUSTER_CONFIG_UNKNOWN = 0,  // default - infer from CAN data
+	CLUSTER_CONFIG_1PHASE1,
+	CLUSTER_CONFIG_1PHASE2,
+	CLUSTER_CONFIG_2PHASE2,
+	CLUSTER_CONFIG_2PHASE4,
+	CLUSTER_CONFIG_3PHASE
+};
+
 struct si_current_source {
 	char text[128];
 	enum CURRENT_SOURCE source;
@@ -245,6 +254,7 @@ struct si_session {
 	char last_soc[32];
 #endif
 	double soh;
+	int cluster_config;
 
 	/* INTERNAL ONLY */
 	int zero_ca;

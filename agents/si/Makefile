@@ -2,6 +2,7 @@
 PROGNAME=si
 SRCS=main.c can.c smanet.c info.c driver.c siconfig.c jsfuncs.c
 SCRIPTS=*.js
+CLEANFILES=ocv_table.dat __pycache__
 
 SERVICE_NAME=si
 SERVICE_DESC=Sunny Island Agent

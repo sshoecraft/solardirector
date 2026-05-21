@@ -37,6 +37,14 @@ This is the reports subdirectory of the Solar Dashboard (SD) system. It contains
 - All calculations and report formatting match bash version
 - Built from rep.go source file
 
+**rep.py** - Comprehensive daily/monthly billing report (Python implementation)
+- Python 3 implementation using InfluxDB HTTP API (urllib only, no external deps)
+- Same functionality and output format as Go version
+- Flexible host specification: hostname, hostname:port, or full URL
+- Auto-detects system timezone or use -tz flag to override
+- Includes sun position calculations for daytime temperature averaging
+- Run directly: `python3 rep.py` or `./rep.py`
+
 **solar_report** - Automated email report dispatcher
 - Sends daily HTML-formatted power reports via email
 - Integrates with `mkpdf` to generate PDF attachments
@@ -87,6 +95,13 @@ make clean                   # Clean build artifacts
 ./rep 2024-01-15             # Report for specific date
 ./rep -H solardirector       # Use specific InfluxDB host
 ./rep -tz UTC 2024-01-15     # Use specific timezone
+
+# Generate daily report (Python version)
+python3 rep.py               # Report for yesterday
+python3 rep.py 2024-01-15    # Report for specific date
+python3 rep.py -H solardirector  # Use specific InfluxDB host
+python3 rep.py -tz UTC 2024-01-15  # Use specific timezone
+python3 rep.py --hist        # Historical table only
 
 # Generate daily report (Original Bash version)
 ./rep.sh                     # Report for yesterday
@@ -151,10 +166,15 @@ diff bash_output.txt go_output.txt
 - **sendmail**: Email delivery
 - **mkpdf**: PDF generation (external utility)
 
-### Go Implementation (hist)
+### Go Implementation (hist, rep)
 - **Go 1.11+**: Go compiler/runtime (uses ioutil for older Go compatibility)
 - **InfluxDB 1.x**: Time-series database (accessed via HTTP API)
 - No external Go dependencies - uses only standard library
+
+### Python Implementation (rep.py)
+- **Python 3.7+**: Uses only standard library (urllib, json, math, datetime)
+- **InfluxDB 1.x**: Time-series database (accessed via HTTP API)
+- No external Python dependencies
 
 ## Common Issues and Solutions
 
