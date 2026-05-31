@@ -301,19 +301,27 @@ When PA needs power back it invokes the agent's revoke handlers (`unit_revoke`, 
 
 ### Configuration commands
 
+`sdconfig <agent> <verb> [args...]` either reads/writes a property (`get`/`set`) or invokes one of the agent's registered functions (see [Registered Functions](#registered-functions)). Function arguments are passed as strings; the `opts` argument of the `add_*`/`set_*` functions is a colon-delimited list of `key=value` pairs (parsed by `jconfig_set_opts`), **not** JSON.
+
 ```bash
-sdconfig ac list                       # list properties
+# List / get / set properties
+sdconfig -n ac -L                      # list properties (use -F to list functions)
 sdconfig ac get cool_high_temp
 sdconfig ac set cool_high_temp 65
 
-# Add/control components (registered function names are verb-first)
-sdconfig ac jsexec 'add_pump("ac1", { pin: 17, temp_in_sensor: "ac1_in" })'
-sdconfig ac jsexec 'add_unit("ac1", { pump: "ac1", coolpin: 22, reserve: 6500 })'
-sdconfig ac jsexec 'add_fan("fan1", { topic: "solar/hvac/fan1/data", pump: "ac1" })'
-sdconfig ac jsexec 'start_unit("ac1")'
-sdconfig ac jsexec 'stop_unit("ac1")'
-sdconfig ac jsexec 'enable_unit("ac1")'
+# Add components: add_<type> <name> "key=value:key=value..."
+sdconfig ac add_pump ac1 "pin=17:temp_in_sensor=ac1_in"
+sdconfig ac add_unit ac1 "pump=ac1:coolpin=22:reserve=6500"
+sdconfig ac add_fan  fan1 "topic=solar/hvac/fan1/data:pump=ac1"
+
+# Control components: <verb> <name>
+sdconfig ac start_unit ac1
+sdconfig ac stop_unit ac1
+sdconfig ac enable_unit ac1
+sdconfig ac set_mode auto
 ```
+
+> There is **no** way to run arbitrary JavaScript through sdconfig or MQTT — the remote `exec` config function was intentionally removed (commented out in `lib/sd/agent.c`) as a security hole. To run ad-hoc JS you need shell access on the host: use the `sdjs` REPL, or the agent binary's local-only `-e '<js>'` / `-X <script.js>` flags.
 
 Test configs: `test.json`, `actest_units.json`, `actest_fans.json`, `actest_pumps.json`.
 
@@ -321,7 +329,7 @@ Test configs: `test.json`, `actest_units.json`, `actest_fans.json`, `actest_pump
 
 ## Registered Functions
 
-All registered via `config.add_funcs(ac, ...)`; callable through `sdconfig ac <func> ...` or `jsexec`.
+All registered via `config.add_funcs(ac, ...)`; callable as `sdconfig ac <func> [args...]`.
 
 **Units:** `add_unit`, `del_unit`, `set_unit`, `get_unit`, `get_unit_config`, `set_unit_config`, `start_unit`, `stop_unit`, `force_stop_unit`, `disable_unit`, `enable_unit`
 
@@ -402,10 +410,15 @@ sdconfig ac clear_error all
 
 ### Inspecting state
 
+`get_unit`/`get_pump`/`get_fan` return the component object (including its numeric `state`):
+
 ```bash
-sdconfig ac jsexec 'for (let n in units) printf("%s: %s\n", n, unit_statestr(units[n].state))'
-sdconfig ac jsexec 'for (let n in pumps) printf("%s: %s\n", n, pump_statestr(pumps[n].state))'
+sdconfig ac get_unit ac1
+sdconfig ac get_pump ac1
+sdconfig ac get_fan  fan1
 ```
+
+To map a numeric state to its name (`unit_statestr` etc.) or iterate all components, run JS on the host with the `sdjs` REPL (or the agent's local-only `-e`/`-X` flags) — remote JS execution is intentionally disabled.
 
 ---
 
