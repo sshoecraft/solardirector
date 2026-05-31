@@ -75,13 +75,20 @@ journalctl -u si -f
 
 ## Configuration Options
 
-Key configuration properties (via `sdconfig`):
+The SI agent registers its own configuration properties (see `siconfig.c`). A representative set:
 
-- **interval**: Read interval in seconds (default: 10)
-- **smanet_auto_close**: Auto-close CAN connection when idle (default: yes)
-- **smanet_auto_close_timeout**: Timeout in seconds (default: 30)
-- **GdManStr**: Grid connection management (values: "Start", "Stop")
-- **BatChaStt**: Battery charge state target
+- **interval**: Read interval in seconds (framework property, default 10)
+- **smanet_auto_close**: Auto-close the SMANet connection when idle (default: yes; requires the SMANET build)
+- **smanet_auto_close_timeout**: Idle timeout in seconds (default: 30)
+- **cluster_config**: Inverter cluster topology (modes include `2Phase4` — the 4×SI 6048-US deployment)
+- **charge_mode**, **charge_voltage**: Charge control
+- **grid_charge_amps**, **gen_charge_amps**, **solar_charge_amps**: Per-source charge current limits
+- **min_charge_amps**, **max_charge_amps**, **discharge_amps**: Current bounds
+- **gen_hold_soc**: Generator hold SoC
+- **input_current_source**, **output_current_source**, **battery_temp_source**, **solar_output_source**: Where each value comes from (`can`/`smanet`/`influx`/`calculated`)
+- **dyngrid**, **dyngen**, **dynfeed**, **grid_max_power**, **gen_max_power**: Dynamic charge-amp limiting (throttle charge to cap grid/gen import)
+
+> **Grid control is a function, not a property.** Use the registered `grid` config function (implemented in `grid.js`) to connect/disconnect, e.g. `sdconfig si grid start` / `sdconfig si grid stop`. `GdManStr` is an SMANet *channel* (passed through to the inverter only when SMANet is connected); the agent itself writes the values `"Start"`/`"Auto"` to it — not `"Stop"`. Grid feed-in is controlled by the separate `feed` function (`feed.js`).
 
 ### Viewing Configuration
 
@@ -89,11 +96,12 @@ Key configuration properties (via `sdconfig`):
 # List all SI agent parameters
 sdconfig -n si -L
 
-# Get specific parameter
-sdconfig si get GdManStr
+# Get / set a registered parameter
+sdconfig si get charge_mode
+sdconfig si set max_charge_amps 100
 
-# Set parameter
-sdconfig si set GdManStr Start
+# SMANet channel passthrough (only when SMANet is connected)
+sdconfig si get GdManStr
 ```
 
 ## Channel File Management
@@ -154,15 +162,18 @@ siutil -u can,can0 -m
 
 ### Control Operations
 
+Grid connect/disconnect uses the `grid` function (handled in `grid.js`), not a property write:
+
 ```bash
-# Start grid connection
-sdconfig si set GdManStr Start
+# Connect to grid
+sdconfig si grid start
 
-# Stop grid connection
-sdconfig si set GdManStr Stop
+# Disconnect from grid
+sdconfig si grid stop
 
-# View grid connection status
-sdconfig si get GdManStr
+# Grid feed-in control (feed.js)
+sdconfig si feed start
+sdconfig si feed stop
 ```
 
 ### JavaScript Business Logic
@@ -173,10 +184,11 @@ The SI agent uses JavaScript files for control algorithms:
 - `read.js` - Data acquisition from inverter
 - `write.js` - Writing commands to inverter
 - `pub.js` - Publishing data to MQTT
-- `charge.js` - Battery charging logic
-- `grid.js` - Grid connection management
+- `charge.js` - Battery charging logic (incl. dynamic charge-amp limiting)
+- `grid.js` - Grid connect/disconnect (`grid_start`/`grid_stop`, invoked by the `grid` function)
+- `feed.js` - Grid feed-in control (`feed_start`/`feed_stop`, invoked by the `feed` function)
 - `gen.js` - Generator control
-- `soc.js` - State of Charge calculations
+- `soc.js` / `soc_table.js` - State-of-Charge calculation and adaptive SoC table (see `soc.md`)
 - `sync.js` - Multi-inverter synchronization
 
 These can be modified without recompiling the C code.
@@ -228,6 +240,8 @@ sudo systemctl stop si
 cd /opt/sd/lib/agents/si
 sudo ./si -c test.json -v -d
 ```
+
+> **Note:** the in-tree `test.json` is a **mirror-mode** config (`"mirror": 1`, reading another `si` instance over MQTT), not a live CAN/SMANet session. For a direct-hardware test config see `sitest.json` (or `si.json` for the installed config).
 
 ## Architecture
 

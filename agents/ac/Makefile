@@ -25,3 +25,6 @@ test:
 	if [ $$fail -ne 0 ]; then echo "TESTS FAILED"; exit 1; fi; \
 	echo "All tests passed"
 .PHONY: test
+
+full:
+	systemctl stop ac; make install && systemctl start ac

@@ -327,11 +327,6 @@ function unit_init() {
 	UNIT_STATE_RUNNING = s++;
 	UNIT_STATE_RELEASE = s++;
 	UNIT_STATE_ERROR = s++;
-	// Sticky-valve reset states - run between RESERVE and START_PUMP on every
-	// unit start (direct mode or charge.js storage run). Appended here rather
-	// than inserted to preserve the numeric values of the states above.
-	UNIT_STATE_RESET_VALVE = s++;
-	UNIT_STATE_WAIT_VALVE_RESET = s++;
 
 	// Declare the per-unit props here as a global
 	unit_props = [
@@ -405,12 +400,6 @@ function unit_statestr(state) {
 		break;
 	case UNIT_STATE_ERROR:
 		str = "Error";
-		break;
-	case UNIT_STATE_RESET_VALVE:
-		str = "Reset valve";
-		break;
-	case UNIT_STATE_WAIT_VALVE_RESET:
-		str = "Wait valve reset";
 		break;
 	default:
 		str = sprintf("Unknown(%d)",state);

@@ -524,3 +524,17 @@ New cold-start order: `... → PREPARE_UNIT → START_UNIT → WAIT_UNIT → CON
 - Toggle pin2 on, hold `valve_reset_time` (direct-group config, default 10s), pin2 off, then START_PUMP.
 - The unit finds its pin2 via `unit.in_direct_group → directs[grp]`; skipped if the unit has no direct group / no pin2. Reuses `dg_valve2_on/off`.
 - Self-healing: if a stop interrupts the reset and leaves pin2 energized, the next start's RESET_VALVE cycles it correctly.
+
+## Bug Fixes (2026-05-23)
+
+### `flow_confirm_timeout` Default Raised 60s → 180s (direct.js)
+**Problem**: With pin1 closed, `ac_pump` is circulating the storage loop. The 60s default for CONFIRM_FLOW wasn't enough for the temp_in/out delta to develop in some conditions (water near-equilibrium, slower compressor pull-down), causing the direct cycle to error out and retry even when flow was actually fine.
+
+**Fix**: Bumped the `flow_confirm_timeout` default in `direct_props` from 60 → 180. Persisted per-group config also updated on dg1 via `direct_set dg1 flow_confirm_timeout=180`.
+
+### Sticky Stage-2 Valve Reset — Removed (run.js, unit.js)
+**Problem**: The 2026-05-19 fix added `UNIT_STATE_RESET_VALVE` / `WAIT_VALVE_RESET` to cycle pin2 before every pump start. It was extended on 2026-05-22 to two full cycles with an off-settle between (`VALVE_OFF_WAIT`, `RESET_VALVE2`, `WAIT_VALVE_RESET2`, `VALVE_OFF_WAIT2`) after observing the primer pump start before the valve had returned. Neither single-cycle nor two-cycle reset prevented the HX freeze trips — including a trip during plain charge.js storage-loop operation with no direct-mode plumbing involved. Valves were verified visually as oriented correctly. Conclusion: the freezes aren't caused by pin2 sticking — they're caused by the valves themselves being undersized / partially obstructed on actuation, which a "reset" can't fix.
+
+**Fix**: Removed all six valve-reset states and their handlers from `unit.js` / `run.js`. Unit start is now `STOPPED → RESERVE → START_PUMP` (or `STOPPED → START_PUMP` with no reserve), as it was before 2026-05-19. The `valve_reset_time` prop was removed from `direct_props`.
+
+Direct mode is **currently disabled on dg1** (`enabled: false`) pending replacement of the motorized valves with the new in-stock units. Charge.js storage-loop operation is unaffected.

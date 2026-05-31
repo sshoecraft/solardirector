@@ -7,12 +7,6 @@
 //   RUNNING_OPEN -> ACTIVATE_PIN2 -> START_PRIMER -> WAIT_PRIMER ->
 //   WAIT_WATER_TEMP -> RUNNING
 //
-// The stage-2 (pin2) sticky-valve reset is NOT done here — it lives in the
-// unit start sequence (run.js: UNIT_STATE_RESET_VALVE) so it runs on every
-// AC start, direct mode or charge.js storage run alike. valve_reset_time
-// below configures the pin2 hold duration; dg_valve2_on/off are reused by
-// the unit state machine.
-//
 // The unit (compressor + ac_pump) reaches RUNNING with normal storage-loop
 // flow BEFORE pin1 is activated. CONFIRM_FLOW then verifies thermal delta
 // on the ac_pump (proves water is moving through the heat exchanger) before
@@ -180,9 +174,7 @@ function direct_init() {
 		[ "unit_timeout", DATA_TYPE_INT, 60, 0 ],
 		[ "water_temp_timeout", DATA_TYPE_INT, 600, 0 ],
 		[ "flow_confirm_threshold", DATA_TYPE_DOUBLE, 2.0, 0 ],
-		[ "flow_confirm_timeout", DATA_TYPE_INT, 60, 0 ],
-		// pin2 hold time for the unit-start sticky-valve reset (run.js)
-		[ "valve_reset_time", DATA_TYPE_INT, 10, 0 ],
+		[ "flow_confirm_timeout", DATA_TYPE_INT, 180, 0 ],
 	];
 
 	let funcs = [

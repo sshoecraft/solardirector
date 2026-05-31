@@ -1,20 +1,20 @@
-# AC Agent - Air Conditioning Control
+# AC Agent - HVAC Controller
 
-The AC agent manages HVAC equipment including air conditioning units, fans, and pumps for the SolarDirector system. It integrates with the Power Agent (PA) for power management and uses temperature-based control to optimize thermal storage charging and space conditioning.
+The AC agent manages HVAC equipment — heat-pump/compressor units, air-handler fans, and water-circulation pumps — for the SolarDirector system. It drives a thermal-storage (water tank) heat-pump system: it charges the tank with solar-powered heating/cooling, conditions the building from the tank, and can run a unit's loop **directly** through an air handler when the tank can't serve the demand. It integrates with the Power Agent (PA) for power allocation.
+
+**Agent role:** `SOLARD_ROLE_CONTROLLER` &nbsp;•&nbsp; **Description:** `HVAC Controller` &nbsp;•&nbsp; **Author:** Stephen P. Shoecraft
 
 ## Table of Contents
 
 - [Overview](#overview)
-- [Architecture](#architecture)
 - [Components](#components)
-  - [Units](#units)
-  - [Fans](#fans)
-  - [Pumps](#pumps)
 - [State Machines](#state-machines)
-- [Temperature Management](#temperature-management)
+- [Mode Selection](#mode-selection)
+- [Thermal Storage Charging](#thermal-storage-charging)
+- [Direct Mode](#direct-mode)
 - [Power Integration (PA)](#power-integration-pa)
-- [Min Runtime Protection](#min-runtime-protection)
 - [Configuration](#configuration)
+- [Registered Functions](#registered-functions)
 - [Communication](#communication)
 - [Development](#development)
 
@@ -22,82 +22,69 @@ The AC agent manages HVAC equipment including air conditioning units, fans, and 
 
 ## Overview
 
-The AC agent controls three types of components:
+The agent manages four kinds of objects, each with its own state machine:
 
-1. **Units** - HVAC compressor units (AC/heat pump) with GPIO control
-2. **Fans** - Air handlers that receive control data via MQTT
-3. **Pumps** - Water circulation pumps with temperature sensors
+1. **Units** — heat-pump/compressor units controlled via GPIO (cool/heat contactors + reversing valve). A unit moves heat between its refrigerant loop and a water loop driven by a pump.
+2. **Fans** — air handlers controlled remotely over MQTT (the agent subscribes to a fan controller topic and publishes the desired state). A fan may have an associated water pump.
+3. **Pumps** — water-circulation pumps controlled via GPIO, with optional inlet/outlet temperature sensors, flow sensing, and a primer pump for air purging. Pumps are reference-counted so several units/fans can share one.
+4. **Direct groups** — a binding of one fan + one unit + two valve pins that lets a unit's water loop run straight through an air handler's coil, bypassing the storage tank.
 
-The agent operates in multiple modes:
-- **Thermal Storage Charging** - Heat/cool water storage during solar production
-- **Space Conditioning** - Normal HVAC operation for building comfort
-- **Power-Managed Operation** - Integrates with PA agent for power allocation
+On top of these sit several control loops, all in JavaScript and dispatched each cycle from `run.js`:
 
-## Architecture
+- **mode.js** — automatic heat/cool mode selection from outside-temperature history.
+- **charge.js** — thermal-storage charging (drives units to heat/cool the tank to target).
+- **direct.js** — direct-mode state machine (tank-bypass).
+- **sample.js** — periodic pump/temperature sampling.
+- **cycle.js** — periodic circulation/cycling.
 
 ```
-┌─────────────────────────────────────────────────────────────┐
-│                        AC Agent                              │
-├─────────────────────────────────────────────────────────────┤
-│  Components:                                                 │
-│  ┌──────────┐  ┌──────────┐  ┌──────────┐                  │
-│  │  Units   │  │  Fans    │  │  Pumps   │                  │
-│  │ (GPIO)   │  │ (MQTT)   │  │ (GPIO)   │                  │
-│  └────┬─────┘  └────┬─────┘  └────┬─────┘                  │
-│       │             │             │                          │
-│       └─────────────┴─────────────┘                          │
-│                     │                                        │
-│  ┌──────────────────┴────────────────────┐                  │
-│  │         State Machine (run.js)        │                  │
-│  │  - Start/Stop Control                 │                  │
-│  │  - Min Runtime Enforcement             │                  │
-│  │  - Safety Monitoring                   │                  │
-│  └──────────────────┬────────────────────┘                  │
-│                     │                                        │
-│  ┌──────────────────┴────────────────────┐                  │
-│  │    Temperature & Mode Control         │                  │
-│  │  - Mode Selection (mode.js)           │                  │
-│  │  - Thermal Charging (charge.js)       │                  │
-│  │  - Temperature Sampling (sample.js)   │                  │
-│  └──────────────────┬────────────────────┘                  │
-└───────────────────┬─┴───────────────────────────────────────┘
-                    │
-      ┌─────────────┴─────────────┐
-      │                           │
-┌─────▼──────┐            ┌───────▼────────┐
-│ PA Agent   │            │ Hardware       │
-│ (Power)    │            │ - CAN Bus      │
-│            │            │ - GPIO         │
-│ - Reserve  │            │ - Temp Sensors │
-│ - Release  │            └────────────────┘
-│ - Repri    │
-│ - Revoke   │
-└────────────┘
+                         ┌──────────── run.js (main loop) ────────────┐
+                         │  mode → charge → direct → sample → cycle    │
+                         └──┬───────────┬───────────┬──────────────────┘
+              ┌─────────────┘           │           └──────────────┐
+        ┌─────▼─────┐             ┌──────▼─────┐             ┌──────▼─────┐
+        │   Units   │             │    Fans    │             │   Pumps    │
+        │  (GPIO)   │             │   (MQTT)   │             │  (GPIO)    │
+        └─────┬─────┘             └──────┬─────┘             └──────┬─────┘
+              │                          │                          │
+              └──────────── PA (reserve/release/repri/revoke) ──────┘
+                          │                              │
+                    ┌─────▼─────┐                 ┌──────▼──────┐
+                    │  CAN bus  │                 │ Temp sensors│
+                    │ 0x450-45F │                 │ (via CAN)   │
+                    └───────────┘                 └─────────────┘
 ```
 
 ### File Structure
 
 ```
 ac/
-├── main.c              # C entry point
-├── driver.c            # Driver implementation
-├── can.c              # CAN bus communication
-├── jsfuncs.c          # C functions exposed to JavaScript
-├── ac.h               # Header definitions
+├── main.c          # Entry point; registers can_target/can_topts/interval; -i flag
+├── driver.c        # Driver struct (New/Free/Read/Config), agent info
+├── can.c           # CAN bus: recv thread, frame cache (IDs 0x450-0x45F)
+├── jsfuncs.c       # C functions exposed to JS: can_read, can_write, signal
+├── ac.h            # Session struct, CAN state bits
 │
-├── init.js            # Initialization
-├── run.js             # Main state machine loop
-├── mode.js            # Mode selection logic
-├── charge.js          # Thermal storage charging
-├── cycle.js           # HVAC cycling logic
-├── sample.js          # Temperature sampling
-│
-├── unit.js            # Unit component management
-├── fan.js             # Fan component management
-├── pump.js            # Pump component management
-├── utils.js           # Utility functions
-└── common.js          # Common component functions
+├── init.js         # Init + load order: mode,errors,pump,fan,unit,direct,cycle,sample,charge
+├── common.js       # Shared component helpers
+├── utils.js        # Utilities incl. can_get_sensor (CAN temp decode)
+├── run.js          # Main per-cycle state-machine dispatch
+├── read.js         # Read sensors / water_temp
+├── write.js        # Drive outputs
+├── pub.js          # Publish state to MQTT/InfluxDB
+├── start.js        # Startup
+├── mode.js         # Auto mode selection (InfluxDB-weighted outside temp)
+├── charge.js       # Thermal-storage charging
+├── direct.js       # Direct-mode (tank-bypass) state machine
+├── sample.js       # Periodic temperature sampling
+├── cycle.js        # Periodic circulation
+├── unit.js         # Unit component
+├── fan.js          # Fan component
+├── pump.js         # Pump component
+└── errors.js       # Error tracking (clear_error)
 ```
+
+Additional docs in this directory: `direct_mode.md`, `state.md`, `influxdb_hvac.md`, `CLAUDE.md`. A JavaScript test suite lives in `test/`.
 
 ---
 
@@ -105,583 +92,270 @@ ac/
 
 ### Units
 
-HVAC compressor units (air conditioners or heat pumps) controlled via GPIO pins.
+Heat-pump/compressor units controlled via GPIO contactors.
 
-**Key Features:**
-- Cooling and heating modes with reversing valve control
-- GPIO pin control for compressor and valves
-- Pump dependency (requires running pump for heat exchange)
-- Min runtime protection (15 minutes default) to prevent compressor damage
-- PA power integration with dynamic priority
+**Properties** (`unit_props`, defaults shown):
 
-**Properties:**
-- `enabled` - Enable/disable the unit
-- `pump` - Associated pump name (required)
-- `pump_timeout` - Timeout waiting for pump to start (60s)
-- `min_runtime` - Minimum runtime before allowing stop (900s / 15min)
-- `coolpin` - GPIO pin for cooling contactor
-- `heatpin` - GPIO pin for heating contactor
-- `rvpin` - GPIO pin for reversing valve
-- `rvcool` - Reversing valve polarity (true = energized for cooling)
-- `rvevery` - Energize RV every cycle vs. mode-based
-- `liquid_temp_sensor` - Optional liquid line temperature sensor
-- `vapor_temp_sensor` - Optional vapor line temperature sensor
-- `direct` - Direct mode (bypass normal control)
-- `reserve` - Power reservation amount (watts)
-- `priority` - PA priority (1-100, 1=highest)
+| Property | Type | Default | Description |
+|----------|------|---------|-------------|
+| `enabled` | bool | true | Enable/disable the unit |
+| `pump` | string | null | Associated pump name (required for heat exchange) |
+| `pump_timeout` | int | 60 | Seconds to wait for the pump to start |
+| `min_runtime` | int | 300 | Minimum runtime hint (seconds) — see note below |
+| `coolpin` | int | -1 | GPIO pin for cooling contactor |
+| `heatpin` | int | -1 | GPIO pin for heating contactor |
+| `rvpin` | int | -1 | GPIO pin for reversing valve |
+| `rvcool` | bool | true | Reversing-valve polarity (energized for cooling) |
+| `rvevery` | bool | false | Energize RV every cycle vs. only on mode change |
+| `liquid_temp_sensor` | string | "" | Optional liquid-line temp sensor |
+| `vapor_temp_sensor` | string | "" | Optional vapor-line temp sensor (freeze protection) |
+| `direct` | bool | false | Unit currently running in direct mode (also a runtime flag) |
+| `reserve` | int | 0 | PA power reservation (watts); 0 = no reservation |
+| `priority` | int | 0 | PA priority (1 = highest) |
 
-**State Machine:**
-```
-STOPPED → RESERVE → START_PUMP → WAIT_PUMP → START → RUNNING
-                                                         ↓
-                                                   MIN_RUNTIME_WAIT
-                                                         ↓
-                                                      RELEASE → STOPPED
-```
-
-**Example Configuration:**
-```json
-{
-  "units": {
-    "ac1": {
-      "enabled": true,
-      "pump": "ac1",
-      "coolpin": 22,
-      "heatpin": 23,
-      "rvpin": 24,
-      "rvcool": true,
-      "reserve": 6500,
-      "priority": 50,
-      "min_runtime": 900
-    }
-  }
-}
-```
+> **Note on `min_runtime`:** the AC agent no longer enforces minimum runtime via a dedicated state. The old `MIN_RUNTIME_WAIT` state was **removed** — the comment in `unit_cooldown()`/`fan_cooldown()` reads *"MIN_RUNTIME_WAIT removed - let thermostat handle minimum runtime."* The property is still registered but stops now go straight through the cooldown path to off.
 
 ### Fans
 
-Air handler units controlled remotely via MQTT, subscribing to fan controller data.
+Air handlers controlled over MQTT. The agent subscribes to the fan's `topic` for state and publishes the desired state.
 
-**Key Features:**
-- MQTT-based control (subscribes to fan controller topic)
-- Optional pump association for water-source operation
-- Min runtime protection (10 minutes default) to prevent pump cycling
-- Water temperature limit enforcement
-- Thermal cooldown support (separate from min runtime)
+**Properties** (`fan_props`):
 
-**Properties:**
-- `enabled` - Enable/disable the fan
-- `topic` - MQTT topic to subscribe for fan data
-- `pump` - Associated pump name (optional)
-- `start_timeout` - Timeout waiting for fan to report started (60s)
-- `pump_timeout` - Timeout waiting for pump to start (40s)
-- `min_runtime` - Minimum runtime before allowing stop (600s / 10min)
-- `cooldown` - Thermal cooldown period after stopping (30s)
-- `cooldown_threshold` - Temperature threshold for cooldown (25.0°F)
-- `reserve` - Power reservation amount (watts)
-- `priority` - PA priority (1-100)
-- `stop_wt` - Stop if water temp out of limits (true)
-- `wt_thresh` - Water temp threshold offset (3°F)
+| Property | Type | Default | Description |
+|----------|------|---------|-------------|
+| `enabled` | bool | true | Enable/disable the fan |
+| `topic` | string | null | MQTT topic for fan data |
+| `pump` | string | null | Associated pump name (optional) |
+| `start_timeout` | int | 60 | Seconds to wait for the fan to report started |
+| `pump_timeout` | int | 40 | Seconds to wait for the pump to start |
+| `min_runtime` | int | 0 | Minimum runtime hint (seconds) — see unit note |
+| `cooldown` | int | 30 | Thermal cooldown period after stopping (seconds) |
+| `cooldown_threshold` | double | 25.0 | Temperature threshold for cooldown |
+| `reserve` | int | 0 | PA power reservation (watts) |
+| `priority` | int | 100 | PA priority |
+| `stop_wt` | bool | true | Stop if water temp goes out of usable range |
+| `wt_thresh` | int | 3 | Water-temp threshold offset (°) |
 
-**State Machine:**
-```
-STOPPED → RESERVE → START_PUMP → WAIT_PUMP → START → WAIT_START → RUNNING
-                                                                       ↓
-                                                                 MIN_RUNTIME_WAIT
-                                                                       ↓
-                                                                    RELEASE → STOPPED
-```
-
-**Example Configuration:**
-```json
-{
-  "fans": {
-    "fan1": {
-      "enabled": true,
-      "topic": "solar/hvac/fan1/data",
-      "pump": "pump1",
-      "reserve": 2000,
-      "priority": 100,
-      "min_runtime": 600,
-      "cooldown": 30,
-      "stop_wt": true,
-      "wt_thresh": 3
-    }
-  }
-}
-```
+Fan modes: `FAN_MODE_NONE` (0), `FAN_MODE_COOL` (1), `FAN_MODE_HEAT` (2).
 
 ### Pumps
 
-Water circulation pumps with temperature monitoring.
+Water-circulation pumps with temperature/flow monitoring and reference counting.
 
-**Key Features:**
-- GPIO pin control
-- Temperature monitoring (inlet/outlet)
-- Flow rate monitoring (optional)
-- Primer pump support (for air purging)
-- Warmup and cooldown periods
-- Reference counting (multiple units/fans can share a pump)
+**Properties** (`pump_props`):
 
-**Properties:**
-- `enabled` - Enable/disable the pump
-- `pin` - GPIO pin for pump control
-- `primer` - Primer pump name (optional, for air purging)
-- `primer_timeout` - Timeout waiting for primer (30s)
-- `flow_sensor` - Flow sensor name (optional)
-- `min_flow` - Minimum flow rate (optional)
-- `wait_time` - Initial wait after starting (10s)
-- `flow_wait_time` - Wait for stable flow (5s)
-- `flow_timeout` - Timeout waiting for flow (20s)
-- `temp_in_sensor` - Inlet temperature sensor
-- `temp_out_sensor` - Outlet temperature sensor
-- `warmup` - Warmup period before considering running (30s)
-- `warmup_threshold` - Temperature change threshold (10.0°F)
-- `cooldown` - Cooldown period after stopping (0s)
-- `cooldown_threshold` - Temperature threshold for cooldown (10.0°F)
-- `direct_group` - Direct mode group name
-- `reserve` - Power reservation amount (watts)
-- `priority` - PA priority (1-100)
+| Property | Type | Default | Description |
+|----------|------|---------|-------------|
+| `enabled` | bool | true | Enable/disable the pump |
+| `pin` | int | -1 | GPIO pin for pump control |
+| `primer` | string | "" | Primer pump name (air purging) |
+| `primer_timeout` | int | 30 | Seconds to wait for primer |
+| `flow_sensor` | string | "" | Flow sensor name (optional) |
+| `min_flow` | double | 0 | Minimum flow rate |
+| `wait_time` | int | 10 | Initial wait after starting (seconds) |
+| `flow_wait_time` | int | 5 | Wait for stable flow (seconds) |
+| `flow_timeout` | int | 20 | Timeout waiting for flow (seconds) |
+| `temp_in_sensor` | string | "" | Inlet temperature sensor |
+| `temp_out_sensor` | string | "" | Outlet temperature sensor |
+| `warmup` | int | 30 | Warmup period before "running" (seconds) |
+| `warmup_threshold` | double | 10.0 | Temperature-change threshold for warmup |
+| `cooldown` | int | 0 | Cooldown period after stopping (seconds) |
+| `cooldown_threshold` | double | 10.0 | Temperature threshold for cooldown |
+| `reserve` | int | 0 | PA power reservation (watts) |
+| `priority` | int | 100 | PA priority |
 
-**State Machine:**
-```
-STOPPED → RESERVE → START_PRIMER → WAIT_PRIMER → START → WAIT_PUMP
-                                                             ↓
-                                                           FLOW → WARMUP → RUNNING
-                                                                             ↓
-                                                                         COOLDOWN → RELEASE → STOPPED
-```
+### Direct Groups
 
-**Example Configuration:**
-```json
-{
-  "pumps": {
-    "ac1": {
-      "enabled": true,
-      "pin": 17,
-      "primer": "primer",
-      "temp_in_sensor": "ac1_temp_in",
-      "temp_out_sensor": "ac1_temp_out",
-      "warmup": 30,
-      "reserve": 500,
-      "priority": 100
-    },
-    "primer": {
-      "enabled": true,
-      "pin": 18,
-      "warmup": 0,
-      "cooldown": 0
-    }
-  }
-}
-```
+A direct group binds a `fan` and a `unit` plus two valve pins. See [Direct Mode](#direct-mode).
+
+**Properties** (`direct_props`):
+
+| Property | Type | Default | Description |
+|----------|------|---------|-------------|
+| `enabled` | bool | true | Enable/disable the group |
+| `pin1` | int | -1 | Stage-1 valve GPIO (AC → air handler) |
+| `pin2` | int | -1 | Stage-2 valve GPIO (loop closure) |
+| `fan` | string | "" | Air-handler fan name |
+| `unit` | string | "" | Heat-pump unit name |
+| `primer_time` | int | 30 | Primer run time (seconds) |
+| `temp_threshold` | double | 2.0 | Temperature delta threshold |
+| `unit_timeout` | int | 60 | Wait for unit to start (seconds) |
+| `water_temp_timeout` | int | 600 | Wait for usable water temp (seconds) |
+| `flow_confirm_threshold` | double | 2.0 | Flow-confirmation thermal delta |
+| `flow_confirm_timeout` | int | 180 | Flow-confirmation timeout (seconds) |
 
 ---
 
 ## State Machines
 
-### Common State Machine Pattern
+Components use reference counting (`refs`): `refs > 0` ⇒ run, `refs == 0` ⇒ stop. Multiple consumers can hold refs on a shared pump.
 
-All components follow a similar state machine pattern:
+**Unit states:** `STOPPED → START_PUMP → WAIT_PUMP → RESERVE → START → RUNNING → RELEASE → STOPPED` (plus `ERROR`).
 
-1. **STOPPED** - Component is off, waiting for refs > 0
-2. **RESERVE** - Request power from PA (if `reserve` > 0)
-3. **START_XXX** - Begin startup sequence
-4. **WAIT_XXX** - Wait for dependencies/conditions
-5. **RUNNING** - Normal operation, monitor safety conditions
-6. **MIN_RUNTIME_WAIT** - Waiting for minimum runtime to be satisfied
-7. **RELEASE** - Release power back to PA
-8. **ERROR** - Error state, component disabled
+**Fan states:** `STOPPED → RESERVE → START_PUMP → WAIT_PUMP → START → WAIT_START → RUNNING → RELEASE → STOPPED` (plus `ERROR`).
 
-### State Progression Control
+**Pump states:** `STOPPED → RESERVE → START_PRIMER → WAIT_PRIMER → START → WAIT_PUMP → FLOW → WARMUP → RUNNING → COOLDOWN → RELEASE → STOPPED` (plus `ERROR`).
 
-Components use a **reference counting** system (`refs` field):
-- `refs = 0` - Component should stop
-- `refs > 0` - Component should run
-- Increment refs to start: `component.refs++` or `component.refs = 1`
-- Decrement refs to stop: `component.refs--` or `component.refs = 1` (in stop functions)
+**Direct states:** `STOPPED → STOP_FAN_PUMP → WAIT_FAN_PUMP → STOP_UNIT → WAIT_UNIT_STOP → PREPARE_UNIT → START_UNIT → WAIT_UNIT → WAIT_WATER_TEMP → RUNNING_OPEN → WAIT_TEMP → ACTIVATE_PIN2 → START_PRIMER → WAIT_PRIMER → RUNNING` (plus `ERROR`, `CONFIRM_FLOW`, `ACTIVATE_VALVE`).
 
-### MIN_RUNTIME_WAIT State
+**Charge states:** `STOPPED → START → WAIT_START → RUNNING → STOP`.
 
-Special state to enforce minimum runtime requirements:
+State strings are available via `unit_statestr()`, `fan_statestr()`, `pump_statestr()`, `direct_statestr()`.
 
-**Purpose:** Prevent short cycling damage to compressors and pumps
-
-**Entry Conditions:**
-- `unit_stop()` or `fan_stop()` called while in RUNNING state
-- Component has `min_runtime` configured
-- Component transitions to MIN_RUNTIME_WAIT instead of immediate stop
-
-**Exit Conditions:**
-- `time() - start_time >= min_runtime` - Minimum runtime satisfied → transition to RELEASE/STOPPED
-- `immediate` revoke flag from PA - Emergency shutdown → force stop
-
-**During MIN_RUNTIME_WAIT:**
-- Compressor/fan continues running (not actually stopped yet)
-- Pump must remain RUNNING - errors if pump fails
-- Water temp limits still enforced for fans
-- All normal RUNNING safety checks apply
-
-**Example:**
-```javascript
-// Unit has been running for 4 minutes, PA requests revoke
-unit.time = 1000;           // Started at timestamp 1000
-time() = 1240;              // Current time (4 minutes later)
-unit.min_runtime = 900;     // 15 minute requirement
-
-// Stop requested
-unit_stop() → unit_cooldown() → UNIT_STATE_MIN_RUNTIME_WAIT
-
-// In run.js loop:
-diff = time() - unit.time;  // 240 seconds (4 minutes)
-if (diff >= unit.min_runtime) unit_off()  // false, keeps running
-
-// 11 minutes later...
-diff = time() - unit.time;  // 900 seconds (15 minutes)
-if (diff >= unit.min_runtime) unit_off()  // true, stops now
-```
+> There is **no** `MIN_RUNTIME_WAIT` state in any component. Some stale comments in `run.js` still mention it, but no such state or logic exists.
 
 ---
 
-## Temperature Management
+## Mode Selection
 
-### Mode Selection (mode.js)
+`mode.js` selects heat vs. cool automatically from outside-temperature history (not from instantaneous water temp):
 
-Automatic mode selection based on water temperature:
+- `mode_auto()` calls `get_wt()` and sets `AC_MODE_HEAT` if the result `<= mode_threshold` (default 60), otherwise `AC_MODE_COOL`. An invalid reading defaults to COOL.
+- `get_wt()` computes a day/night weighted outside-temperature average over the **previous 3 days**, entirely from InfluxDB:
+  - Daytime segment (`day_start`→`night_start`): `mean(f)` from `outside_temp`, weighted by `day_weight` (default 40).
+  - Nighttime segment (`night_start`→next `day_start`): `mean(temp)` from `ac`, weighted by `night_weight = 100 - day_weight` (default 60).
+- `day_start` / `night_start` are timespec strings resolved via `get_date(location, spec)` and support `sunrise`/`sunset` offsets. When `location` is set, the still-default `"06:00"`/`"20:00"` are auto-switched to `"sunrise+30"`/`"sunset+120"` (and reverted when location is cleared).
+- The mode is changed only if it differs from the current `ac.mode`. The registered entry point is `set_mode("auto"|"cool"|"heat")`, which also persists config.
 
-**Cooling Mode:**
-- Enter: `water_temp >= cool_high_temp`
-- Exit: `water_temp < cool_low_temp`
+---
 
-**Heating Mode:**
-- Enter: `water_temp <= heat_low_temp`
-- Exit: `water_temp > heat_high_temp`
+## Thermal Storage Charging
 
-**Water Temperature Calculation:**
-```javascript
-// Weighted average of all pump temperatures
-water_temp = Σ(pump_temp_in * (1 - weight) + pump_temp_out * weight)
-```
+`charge.js` drives units to charge the water tank toward a target temperature while solar power is available. Start/stop is on `water_temp` vs. the mode's thresholds (`charge_threshold`, default 3, sets the start band):
 
-**Configuration:**
-- `waterTempWeight` - Weighting (0.0 = temp_in only, 1.0 = temp_out only, default 0.5)
-- `cool_high_temp` - Start cooling threshold (60°F)
-- `cool_low_temp` - Stop cooling threshold (35°F)
-- `heat_high_temp` - Stop heating threshold (125°F)
-- `heat_low_temp` - Start heating threshold (100°F)
+- **Cool mode:** start charging when `water_temp >= cool_low_temp + charge_threshold`; stop (charged) when `water_temp <= cool_low_temp`. The tank is cooled *down* toward `cool_low_temp` (35).
+- **Heat mode:** start charging when `water_temp <= heat_high_temp - charge_threshold`; stop (charged) when `water_temp >= heat_high_temp`. The tank is heated *up* toward `heat_high_temp` (125).
+- `cool_high_temp` (60) and `heat_low_temp` (100) are not start/stop points — they are the far endpoints of the **priority ramp**: cool priority scales with `(cool_high_temp - water_temp) / (cool_high_temp - cool_low_temp)`, heat with `(water_temp - heat_low_temp) / (heat_high_temp - heat_low_temp)`.
+- `vapor_low_temp` (25.0) provides vapor-line freeze protection — a unit is stopped if its vapor temp drops below this.
+- **Dynamic priority:** while charging, the unit's PA priority is re-evaluated as the tank temperature changes by `repri_interval` (default **1.0**°). If `pa_client_repri()` fails (PA/MQTT unreachable), the unit stops immediately — it must not run without PA awareness.
 
-### Thermal Storage Charging (charge.js)
+A unit currently `in_direct` is skipped by charge.js.
 
-Manages thermal storage charging during solar production:
+---
 
-**Charge States:**
-```
-STOPPED → START → WAIT_START → RUNNING → STOP → STOPPED
-```
+## Direct Mode
 
-**Dynamic Priority:**
-- Priority adjusts based on temperature progress
-- Higher priority as storage approaches target temperature
-- Reprioritization occurs when temp changes by `repri_interval` (default 2.5°F)
-- **Critical:** If reprioritization fails (MQTT down), unit automatically stops
+Direct mode (`direct.js`) bypasses the storage tank: it runs a heat-pump unit's water loop directly through an air handler's coil when the tank is depleted or in the wrong mode.
 
-**Charge Temperature Thresholds:**
-- `charge_cool_high_temp` - Cooling target during charging
-- `charge_heat_low_temp` - Heating target during charging
+- A direct group binds one `fan` and one `unit` (deriving `fan_pump` from the fan and `ac_pump`/`primer` from the unit) plus two valve pins: `pin1` (stage 1, AC → air handler) and `pin2` (stage 2, loop closure).
+- `direct_on(group [, mode])` saves the current `water_temp`, flags the unit `in_direct_pending`, and starts the state machine (driven each loop by `direct_main()`).
+- **Critical start ordering:** the unit is first brought to RUNNING on its normal storage flow, a thermal delta is confirmed on the AC pump (`CONFIRM_FLOW`) *before* opening `pin1` (`ACTIVATE_VALVE`), then the loop is optionally closed (`pin2` + primer) and water temp is allowed to come up before the fan starts. This ordering prevents the AC pump from under-flowing the heat exchanger and tripping vapor-temp freeze protection.
+- `direct_off(group [, stop_fan])` deactivates the valves, restores the saved `water_temp`, clears the `in_direct` flags, and hands the unit back to charge.js. With `stop_fan = false` the fan is transitioned back to storage mode by restarting its pump.
+- Fans request direct mode (via `run.js`/`fan_set_mode`) when their mode mismatches `ac.mode` or the tank is depleted. `unit_force_stop`/`unit_revoke` call `direct_off` first so the fan doesn't error on pump loss. While a unit is `in_direct`, run.js skips its 300s flow check.
 
-**Safety:**
-```javascript
-if (pa_client_repri(ac, "unit", name, unit.reserve, pri)) {
-    // Reprioritization failed - MQTT/PA unreachable
-    do_stop = true;  // Must stop immediately
-}
-```
+See `direct_mode.md` for the full design narrative.
 
 ---
 
 ## Power Integration (PA)
 
-The AC agent integrates with the Power Agent for power allocation management.
+Components integrate with the [PA agent](../pa/README.md) via the `pa_client.js` library.
 
-### PA Client Functions
+| Call | Purpose |
+|------|---------|
+| `pa_client_reserve(ac, module, item, amount, priority)` | Request power; component stays in RESERVE until approved |
+| `pa_client_release(ac, module, item, amount)` | Release power when stopping |
+| `pa_client_repri(ac, module, item, amount, new_priority)` | Change priority while running (used by charging) — **fail ⇒ stop** |
 
-**1. Reserve Power**
-```javascript
-pa_client_reserve(instance, module, item, amount, priority)
-```
-- Request power allocation from PA
-- Returns 0 on success (approved), 1 on failure (denied)
-- Component stays in RESERVE state until approved
-- Example: `pa_client_reserve(ac, "unit", "ac1", 6500, 50)`
+When PA needs power back it invokes the agent's revoke handlers (`unit_revoke`, `fan_revoke`) over MQTT:
 
-**2. Release Power**
-```javascript
-pa_client_release(instance, module, item, amount)
-```
-- Release power back to PA when stopping
-- Always proceeds to STOPPED regardless of return value
-- Stale reservations auto-cleaned by PA on next reserve
-- Example: `pa_client_release(ac, "unit", "ac1", 6500)`
+- `immediate = false/0` — normal revoke (graceful stop).
+- `immediate = true/1` — emergency revoke; `force_stop_*` stops immediately and (for units) calls `direct_off` first.
 
-**3. Reprioritize**
-```javascript
-pa_client_repri(instance, module, item, amount, new_priority)
-```
-- Update priority while running (used during thermal charging)
-- **Critical:** If fails, component must stop immediately
-- Example: `pa_client_repri(ac, "unit", "ac1", 6500, 35)`
-
-**4. Revoke (PA → AC)**
-```javascript
-unit_revoke(name, amount, immediate)
-fan_revoke(name, amount, immediate)
-```
-- Called by PA when power needed back
-- `immediate = false/0` - Normal revoke, respects min_runtime
-- `immediate = true/1` - Emergency revoke, force stops immediately
-- Example: PA calls `revoke(unit, ac1, 6500, 0)` via sdconfig
-
-### Power Management Flow
-
-**Normal Operation:**
-```
-1. Component needs to start
-   └→ refs++ (increment references)
-   └→ RESERVE state
-   └→ pa_client_reserve() → approved
-   └→ START sequence
-   └→ RUNNING
-
-2. Component needs to stop
-   └→ refs-- (decrement references)
-   └→ MIN_RUNTIME_WAIT (if min_runtime not met)
-   └→ RELEASE state
-   └→ pa_client_release()
-   └→ STOPPED
-```
-
-**PA Revoke Flow:**
-```
-1. Normal Revoke (immediate=0)
-   └→ unit_revoke(name, amount, 0)
-   └→ unit_stop()
-   └→ MIN_RUNTIME_WAIT (enforces min_runtime)
-   └→ RELEASE after min_runtime met
-   └→ STOPPED
-
-2. Emergency Revoke (immediate=1)
-   └→ unit_revoke(name, amount, 1)
-   └→ unit_force_stop()
-   └→ Immediate STOPPED (bypasses min_runtime)
-```
-
-**Reprioritization Failure:**
-```
-Thermal charging running
-└→ Temperature changes by repri_interval
-   └→ pa_client_repri() fails (MQTT down)
-      └→ do_stop = true
-      └→ unit_stop()
-      └→ Component safely shuts down
-```
-
-### PA Reservation Auto-Cleanup
-
-PA automatically cleans up stale reservations:
-- When `reserve(id, amount)` called, removes existing reservation with same id+amount
-- Prevents accumulation of stale reservations from failed releases
-- Makes release error handling non-critical
-
----
-
-## Min Runtime Protection
-
-### Purpose
-
-Prevents short cycling damage to:
-- **Compressors** (units) - Mechanical wear, reduced efficiency, reduced lifespan
-- **Pumps** (via fans) - Excessive start/stop cycles
-
-### Configuration
-
-**Units:**
-- `min_runtime` - Default 900s (15 minutes)
-- Prevents compressor short cycling
-
-**Fans:**
-- `min_runtime` - Default 600s (10 minutes)
-- Prevents pump cycling (fan shares pump with other components)
-
-### Implementation
-
-**State Transition:**
-```javascript
-// Normal stop requested
-unit_stop(name)
-  ↓
-unit_cooldown(name, unit)
-  ↓
-if (unit.min_runtime > 0)
-  unit_set_state(UNIT_STATE_MIN_RUNTIME_WAIT)
-  // Keep compressor running
-else
-  unit_off()  // Stop immediately
-```
-
-**Enforcement in run.js:**
-```javascript
-case UNIT_STATE_MIN_RUNTIME_WAIT:
-    // Compressor still running - safety checks apply
-    if (pump_state != PUMP_STATE_RUNNING) {
-        // CRITICAL ERROR - pump failed during min runtime
-        error_set("unit", name, "pump not running during min runtime wait")
-        unit_set_state(UNIT_STATE_ERROR)
-    }
-
-    // Check if min runtime satisfied
-    diff = time() - unit.time  // unit.time set when entered RUNNING
-    if (diff >= unit.min_runtime) {
-        unit_off(name, unit)  // Now safe to stop
-    }
-```
-
-**Immediate Override:**
-```javascript
-// Emergency shutdown (PA immediate revoke)
-unit_revoke(name, amount, immediate=1)
-  ↓
-unit_force_stop(name)  // Bypass MIN_RUNTIME_WAIT
-  ↓
-unit_off()  // Stop immediately
-```
-
-### Safety During MIN_RUNTIME_WAIT
-
-**Units:**
-- Pump must remain RUNNING (errors if pump stops)
-- Compressor continues operation
-- All normal RUNNING state safety checks apply
-
-**Fans:**
-- Pump must remain RUNNING (errors if pump stops)
-- Water temp limits enforced (stops if temp out of range)
-- Fan continues blowing air
-
-**Behavior:**
-```javascript
-// Unit running for 4 minutes, stop requested
-time() - unit.time = 240s (4 min)
-min_runtime = 900s (15 min)
-
-State: MIN_RUNTIME_WAIT
-→ Compressor: ON
-→ Pump: ON (enforced)
-→ Continues for 11 more minutes
-→ Then transitions to STOPPED
-```
+`module` is `"unit"`, `"fan"`, or `"pump"`; `item` is the component name.
 
 ---
 
 ## Configuration
 
-### Global AC Agent Properties
+### Global `ac` properties
 
-```javascript
-{
-  "interval": 10,              // Main loop interval (seconds)
-  "sample_interval": 300,      // Temperature sampling interval (seconds)
-  "location": "lat,lon",       // Location for sunrise/sunset
-  "standard": 0,               // 0=US/Imperial, 1=Metric
+| Property | Type | Default | Description |
+|----------|------|---------|-------------|
+| `interval` | int | 10 | Main loop interval (seconds) |
+| `location` | string | "" | "lat,lon" for sunrise/sunset (triggers day/night defaults) |
+| `standard` | int | 0 | 0 = US/Imperial, 1 = Metric |
+| `mode` | int | 1 (COOL) | Current mode (`AC_MODE_*`) |
+| `mode_threshold` | int | 60 | Heat below this weighted outside temp, else cool |
+| `day_start` | string | "06:00" | Day segment start (timespec; sunrise/sunset offsets ok) |
+| `night_start` | string | "20:00" | Night segment start (timespec) |
+| `day_weight` | int | 40 | Daytime weight for `get_wt()` (night = 100 − this) |
+| `water_temp` | double | -200.0 | Current tank water temp (private/runtime) |
+| `cool_high_temp` | int | 60 | Start cooling above this (°) |
+| `cool_low_temp` | int | 35 | Stop cooling below this (°) |
+| `heat_high_temp` | int | 125 | Stop heating above this (°) |
+| `heat_low_temp` | int | 100 | Start heating below this (°) |
+| `charge_threshold` | int | 3 | Charge target band (°) |
+| `vapor_low_temp` | double | 25.0 | Vapor-line freeze-protection limit (°) |
+| `repri_interval` | float | 1.0 | Temp change that triggers PA reprioritize (°) |
+| `sample_interval` | int | 0 | Temperature sampling interval (seconds; 0 = off) |
+| `sample_duration` | int | 180 | Sampling run duration (seconds) |
+| `temp_sensor` | string | "" | Cycle temperature sensor |
+| `cycle_start` | float | 32.0 | Cycle start temperature |
+| `cycle_interval` | int | 1800 | Cycle interval (seconds) |
+| `cycle_duration` | int | 180 | Cycle run duration (seconds) |
+| `can_target` | string | "can0" | CAN interface |
+| `can_topts` | string | "500000" | CAN options (bit rate) |
 
-  // Temperature thresholds
-  "cool_high_temp": 60,        // Start cooling above this (°F)
-  "cool_low_temp": 35,         // Stop cooling below this (°F)
-  "heat_high_temp": 125,       // Stop heating above this (°F)
-  "heat_low_temp": 100,        // Start heating below this (°F)
+> The previously documented `waterTempWeight`, `charge_cool_high_temp`, `charge_heat_low_temp`, and `pump_failsafe_enable` properties **do not exist** in the code.
 
-  // Charging thresholds
-  "charge_cool_high_temp": 75, // Cooling target during charging (°F)
-  "charge_heat_low_temp": 90,  // Heating target during charging (°F)
-  "charge_threshold": 3,       // Temperature threshold for charge mode (°F)
-  "repri_interval": 2.5,       // Reprioritization temp interval (°F)
-
-  // Hardware
-  "can_target": "can0",        // CAN interface name
-  "can_topts": "500000",       // CAN speed (bps)
-  "pump_failsafe_enable": 27,  // GPIO pin for pump failsafe
-  "waterTempWeight": 0.5       // Temp averaging weight (0-1)
-}
-```
-
-### Configuration Commands
+### Configuration commands
 
 ```bash
-# List all AC properties
-sdconfig ac list
-
-# Get specific property
-sdconfig ac get interval
+sdconfig ac list                       # list properties
 sdconfig ac get cool_high_temp
-
-# Set property
 sdconfig ac set cool_high_temp 65
-sdconfig ac set repri_interval 2.0
 
-# Component management
-sdconfig ac jsexec 'pump_add("pump1", { pin: 17, temp_in_sensor: "sensor1" })'
-sdconfig ac jsexec 'unit_add("ac1", { pump: "pump1", coolpin: 22, reserve: 6500 })'
-sdconfig ac jsexec 'fan_add("fan1", { topic: "solar/hvac/fan1/data", pump: "pump1" })'
-
-# Component control
-sdconfig ac jsexec 'unit_start("ac1")'
-sdconfig ac jsexec 'unit_stop("ac1")'
-sdconfig ac jsexec 'unit_enable("ac1")'
-sdconfig ac jsexec 'unit_disable("ac1")'
+# Add/control components (registered function names are verb-first)
+sdconfig ac jsexec 'add_pump("ac1", { pin: 17, temp_in_sensor: "ac1_in" })'
+sdconfig ac jsexec 'add_unit("ac1", { pump: "ac1", coolpin: 22, reserve: 6500 })'
+sdconfig ac jsexec 'add_fan("fan1", { topic: "solar/hvac/fan1/data", pump: "ac1" })'
+sdconfig ac jsexec 'start_unit("ac1")'
+sdconfig ac jsexec 'stop_unit("ac1")'
+sdconfig ac jsexec 'enable_unit("ac1")'
 ```
+
+Test configs: `test.json`, `actest_units.json`, `actest_fans.json`, `actest_pumps.json`.
+
+---
+
+## Registered Functions
+
+All registered via `config.add_funcs(ac, ...)`; callable through `sdconfig ac <func> ...` or `jsexec`.
+
+**Units:** `add_unit`, `del_unit`, `set_unit`, `get_unit`, `get_unit_config`, `set_unit_config`, `start_unit`, `stop_unit`, `force_stop_unit`, `disable_unit`, `enable_unit`
+
+**Fans:** `add_fan`, `del_fan`, `set_fan`, `get_fan`, `get_fan_config`, `set_fan_config`, `start_fan`, `stop_fan`, `force_stop_fan`, `disable_fan`, `enable_fan`
+
+**Pumps:** `add_pump`, `del_pump`, `get_pump`, `set_pump`, `get_pump_config`, `set_pump_config`, `start_pump`, `stop_pump`, `force_stop_pump`, `disable_pump`, `enable_pump` (`del_pump` refuses if the pump is in use)
+
+**Mode:** `set_mode` (`"auto"`/`"cool"`/`"heat"`)
+
+**Direct:** `direct_set`, `direct_get_config`, `direct_set_config`, `direct_on`, `direct_off`, `direct_enable`, `direct_disable`, `direct_get_pump`, `direct_is_pending`, `direct_is_active`, `direct_is_error`, `dg_valve1_on`, `dg_valve1_off`, `dg_valve2_on`, `dg_valve2_off`, `dg_valves_off`
+
+**Errors:** `clear_error` (name or `"all"`)
+
+**C functions** (`jsfuncs.c`, on the `ac` object): `can_read(id [, wait])`, `can_write(id, data[])`, `signal(module, action)`
 
 ---
 
 ## Communication
 
-### MQTT Topics
+### MQTT
 
-**Published:**
-- `solar/ac/data` - Main AC state, temperatures, mode
-- Component-specific data published via InfluxDB integration
+- **Publishes:** agent data on the standard `solar/agents/ac/...` topics (state, temperatures, mode); per-component data via InfluxDB.
+- **Subscribes:** each fan's configured `topic` for air-handler state, plus PA command topics via sdconfig.
 
-**Subscribed:**
-- `solar/hvac/+/data` - Fan controller data
-- PA command topics via sdconfig
+### CAN bus
 
-**Message Format:**
-```json
-{
-  "name": "fan1",
-  "fan_state": "on",
-  "heat_state": "off",
-  "cool_state": "on",
-  "air_in": 75.0,
-  "air_out": 55.0
-}
-```
-
-### CAN Bus
-
-**CAN IDs:** 0x450-0x45F
-
-**Configuration:**
-- Interface: Configurable via `can_target` (default: "can0")
-- Speed: Configurable via `can_topts` (default: "500000" = 500kbps)
-- Frame format: Standard 11-bit identifiers
+- ID range `0x450`–`0x45F` (`CAN_START`/`CAN_END` in `can.c`), masked with `0x1FFFFFFF`.
+- A background receive thread caches the latest frame per ID with a timestamp; reads treat data older than **5 seconds** as stale.
+- Interface via `can_target` (default `can0`), bit rate via `can_topts` (default `500000`).
+- `utils.js can_get_sensor()` decodes a 2-byte big-endian value from a CAN frame and divides by 10.
 
 ### InfluxDB
 
-**Measurements:**
-- `ac` - Main temperatures, modes, state
-- `fans` - Individual fan states and speeds
-- `pumps` - Pump states and temperatures
-- `units` - Unit modes and pin states
-- `errors` - Error events with descriptions
+Measurements include `ac` (temps/mode/state), `fans`, `pumps`, `units`, and `errors`. See `influxdb_hvac.md`.
 
 ---
 
@@ -690,184 +364,56 @@ sdconfig ac jsexec 'unit_disable("ac1")'
 ### Building
 
 ```bash
-# Build AC agent
 cd agents/ac
 make
-
-# Clean build
-make clean all
-
-# Install
-make install  # Installs to PREFIX (/opt/sd or ~/)
+make install        # installs to PREFIX (/opt/sd or ~/)
 ```
 
 ### Testing
 
 ```bash
-# Test with virtual CAN
+# Virtual CAN
 sudo modprobe vcan
 sudo ip link add dev vcan0 type vcan
 sudo ip link set up vcan0
 
-# Run with test config
-./ac -c test.json -v -d
+# Run with a test config (use -i to ignore wpi_init errors off-hardware)
+./ac -c test.json -v -d -i
 
-# Monitor MQTT
-mosquitto_sub -t 'solar/ac/+' -v
-mosquitto_sub -t 'solar/hvac/+/data' -v
+# JS test suite
+sdjs -f test/harness.js        # see test/ for per-module tests
 
-# Monitor logs
-tail -f /opt/sd/log/ac.log
+# Monitor
+mosquitto_sub -t 'solar/agents/ac/#' -v
+candump vcan0
 ```
 
-### Debug Levels
+### Debug levels
+
+`-d 0` errors only · `-d 1` +warnings · `-d 2` +info · `-d 3` +debug · `-d 4` +verbose.
+
+### Service / logs
+
+The AC agent runs on the `ac` host. Its log is `/opt/sd/log/ac.log` (not journalctl). To clear errors without restarting the service:
 
 ```bash
-./ac -d 0  # Errors only
-./ac -d 1  # + Warnings
-./ac -d 2  # + Info
-./ac -d 3  # + Debug
-./ac -d 4  # + Verbose debug
+sdconfig ac clear_error all
 ```
 
-### Service Management
+### Inspecting state
 
 ```bash
-# Systemd service
-systemctl start ac.service
-systemctl stop ac.service
-systemctl restart ac.service
-systemctl status ac.service
-
-# View logs
-journalctl -u ac.service -f
-tail -f /opt/sd/log/ac.log
-```
-
-### Common Operations
-
-**Start thermal charging:**
-```bash
-sdconfig ac jsexec 'ac.mode = AC_MODE_COOL'
-# Units will start automatically if enabled and refs > 0
-```
-
-**Emergency stop all:**
-```bash
-sdconfig ac jsexec 'for(let n in units) unit_force_stop(n)'
-sdconfig ac jsexec 'for(let n in fans) fan_force_stop(n)'
-sdconfig ac jsexec 'for(let n in pumps) pump_force_stop(n)'
-```
-
-**Check component states:**
-```bash
-sdconfig ac jsexec 'for(let n in units) printf("%s: %s\\n", n, unit_statestr(units[n].state))'
-sdconfig ac jsexec 'for(let n in fans) printf("%s: %s\\n", n, fan_statestr(fans[n].state))'
-sdconfig ac jsexec 'for(let n in pumps) printf("%s: %s\\n", n, pump_statestr(pumps[n].state))'
-```
-
-### Troubleshooting
-
-**Unit won't start:**
-```bash
-# Check if enabled
-sdconfig ac jsexec 'units.ac1.enabled'
-
-# Check refs
-sdconfig ac jsexec 'units.ac1.refs'
-
-# Check state
-sdconfig ac jsexec 'unit_statestr(units.ac1.state)'
-
-# Check error
-sdconfig ac jsexec 'units.ac1.error'
-
-# Enable and start
-sdconfig ac jsexec 'unit_enable("ac1"); units.ac1.refs = 1'
-```
-
-**Pump not running:**
-```bash
-# Check pump state
-sdconfig ac jsexec 'pump_statestr(pumps.ac1.state)'
-
-# Check references (multiple components can reference)
-sdconfig ac jsexec 'pumps.ac1.refs'
-
-# Check primer
-sdconfig ac jsexec 'pumps.ac1.primer'
-```
-
-**Min runtime issues:**
-```bash
-# Check current runtime
-sdconfig ac jsexec 'time() - units.ac1.time'
-
-# Check min_runtime setting
-sdconfig ac get_unit ac1 | grep min_runtime
-
-# Adjust min_runtime
-sdconfig ac jsexec 'units.ac1.min_runtime = 300'  # 5 minutes for testing
-```
-
-**PA communication issues:**
-```bash
-# Check MQTT connectivity
-mosquitto_sub -t '#' -v
-
-# Check PA agent running
-systemctl status pa.service
-
-# Test reserve manually
-sdconfig ac jsexec 'pa_client_reserve(ac, "unit", "test", 1000, 50)'
-
-# Check logs for repri failures
-grep "repri" /opt/sd/log/ac.log
+sdconfig ac jsexec 'for (let n in units) printf("%s: %s\n", n, unit_statestr(units[n].state))'
+sdconfig ac jsexec 'for (let n in pumps) printf("%s: %s\n", n, pump_statestr(pumps[n].state))'
 ```
 
 ---
 
-## Key Design Decisions
+## See Also
 
-### 1. Reference Counting for Pump Sharing
-Multiple units/fans can share the same pump. The pump uses reference counting to stay running as long as any component needs it.
-
-### 2. Self-Correcting PA Reservations
-PA automatically cleans up stale reservations when a new reservation with the same ID+amount is made. This makes release failures non-critical.
-
-### 3. Fail-Safe on Communication Errors
-If reprioritization fails during thermal charging (MQTT/PA unreachable), the unit must stop immediately to prevent running without PA awareness.
-
-### 4. Min Runtime via State Machine
-Min runtime is enforced as a state (MIN_RUNTIME_WAIT) rather than a timer, making it visible in logs and allowing safety checks to continue during the wait period.
-
-### 5. Immediate Flag for Emergency Shutdown
-PA can force immediate shutdown via `immediate` flag in revoke, bypassing min_runtime for battery protection or other critical situations.
-
-### 6. Temperature-Based Mode Selection
-Mode selection is fully automatic based on water temperature thresholds with hysteresis to prevent mode flapping.
-
----
-
-## Future Enhancements
-
-- [ ] Web dashboard integration
-- [ ] Historical temperature trending
-- [ ] Predictive mode switching based on forecast
-- [ ] Multi-zone temperature management
-- [ ] Advanced scheduling integration
-- [ ] Energy efficiency metrics
-
----
-
-## References
-
-- **Main Documentation:** `/home/steve/src/sd/CLAUDE.md`
-- **PA Agent:** `/home/steve/src/sd/agents/pa/`
-- **PA Client Library:** `/home/steve/src/sd/lib/sd/pa_client.js`
-- **SolarDirector Framework:** `/home/steve/src/sd/lib/sd/`
-
----
-
-**Last Updated:** 2025-12-30
-**Version:** 1.0
+- `direct_mode.md` — full direct-mode design and flow ordering
+- `state.md` — state-machine reference
+- `influxdb_hvac.md` — InfluxDB schema and queries
+- [`../pa/README.md`](../pa/README.md) — Power Agent it reserves against
+- `../../lib/sd/pa_client.js` — PA client library
+- `../../CLAUDE.md` — overall system architecture

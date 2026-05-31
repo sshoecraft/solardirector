@@ -70,12 +70,12 @@ function run_main() {
 					}
 				}
 			}
-			if (data.heat_state == "off" && fan.heat_state == "on") {
+			if (data.heat_state == "off" && (fan.heat_state == "on" || (fan.state == FAN_STATE_RUNNING && fan.mode == FAN_MODE_HEAT))) {
 				if (!fan_set_mode(name,FAN_MODE_NONE)) {
 					log_info("fan[%s] heat_state: %s -> %s\n", name, fan.heat_state, data.heat_state);
 					fan.heat_state = data.heat_state;
 				}
-			} else if (data.cool_state == "off" && fan.cool_state == "on") {
+			} else if (data.cool_state == "off" && (fan.cool_state == "on" || (fan.state == FAN_STATE_RUNNING && fan.mode == FAN_MODE_COOL))) {
 				if (!fan_set_mode(name,FAN_MODE_NONE)) {
 					log_info("fan[%s] cool_state: %s -> %s\n", name, fan.cool_state, data.cool_state);
 					fan.cool_state = data.cool_state;
@@ -572,11 +572,7 @@ function run_main() {
 //		dumpobj(unit);
 
 		dprintf(dlevel,"unit[%s]: enabled: %d, refs: %d\n", name, unit.enabled, unit.refs);
-		// RESET_VALVE / WAIT_VALVE_RESET are appended after ERROR but are
-		// startup states - treat them like the other pre-RELEASE states so a
-		// unit that loses its refs mid-valve-reset isn't advanced into START_PUMP.
-		let in_startup = (unit.state < UNIT_STATE_RELEASE ||
-			unit.state == UNIT_STATE_RESET_VALVE || unit.state == UNIT_STATE_WAIT_VALVE_RESET);
+		let in_startup = (unit.state < UNIT_STATE_RELEASE);
 		if ((unit.error || !unit.enabled || !unit.refs) && in_startup) continue;
 
 		dprintf(dlevel,"unit[%s]: mode: %s, state: %s\n", name, ac_modestr(unit.mode), unit_statestr(unit.state));
@@ -586,9 +582,8 @@ function run_main() {
 			// Reset unit.time when starting new cycle - ensures MIN_RUNTIME_WAIT check works
 			unit.time = 0;
 			unit.run_started = false;
-			unit.valve_reset_start = 0;
 			if (unit.reserve) unit_set_state(name,UNIT_STATE_RESERVE);
-			else unit_set_state(name,UNIT_STATE_RESET_VALVE);
+			else unit_set_state(name,UNIT_STATE_START_PUMP);
 			break;
 
 		// Reserve power
@@ -596,46 +591,7 @@ function run_main() {
 			dprintf(dlevel,"unit[%s]: in_direct: %s, in_direct_priority: %d, charging: %s, charge_priority: %d, priority: %d\n", name, unit.in_direct, unit.in_direct_priority, unit.charging, unit.charge_priority, unit.priority);
 			let pri = unit.in_direct ? unit.in_direct_priority : (unit.priority ? unit.priority : (unit.charging ? unit.charge_priority : 100));
 			dprintf(dlevel,"pri: %d\n", pri);
-			if (!pa_client_reserve(ac,"unit",name,unit.reserve,pri)) unit_set_state(name,UNIT_STATE_RESET_VALVE);
-			break;
-
-		// Sticky-valve reset: toggle the stage-2 (pin2) valve on the unit's
-		// direct group before the pump starts (water off). The motorized
-		// auto-return valve can fail to mechanically return to its default
-		// position after a cycle; cycling pin2 (on, hold, off) resets it.
-		// Skipped if the unit has no direct group / no pin2 configured.
-		// Best-effort: a valve-control error is logged but does not abort.
-		case UNIT_STATE_RESET_VALVE:
-			let dgrp = (unit.in_direct_group && unit.in_direct_group.length) ? directs[unit.in_direct_group] : null;
-			if (!dgrp || dgrp.pin2 < 0) {
-				dprintf(dlevel,"unit[%s]: no stage-2 valve, skipping valve reset\n", name);
-				unit_set_state(name,UNIT_STATE_START_PUMP);
-				break;
-			}
-			if (dg_valve2_on(unit.in_direct_group)) {
-				log_warning("unit %s: valve reset: unable to set pin2 on: %s\n", name, config.errmsg);
-				unit_set_state(name,UNIT_STATE_START_PUMP);
-				break;
-			}
-			unit.valve_reset_start = time();
-			log_info("unit %s: stage-2 valve reset: pin2 on, holding %ds\n", name, dgrp.valve_reset_time);
-			unit_set_state(name,UNIT_STATE_WAIT_VALVE_RESET);
-			break;
-
-		// Hold pin2 for valve_reset_time, then turn it off and start the pump
-		case UNIT_STATE_WAIT_VALVE_RESET:
-			let vdgrp = directs[unit.in_direct_group];
-			let vhold = (vdgrp && vdgrp.valve_reset_time) ? vdgrp.valve_reset_time : 10;
-			diff = time() - unit.valve_reset_start;
-			dprintf(dlevel,"unit[%s]: valve reset elapsed=%d, hold=%d\n", name, diff, vhold);
-			if (diff >= vhold) {
-				if (dg_valve2_off(unit.in_direct_group)) {
-					log_warning("unit %s: valve reset: unable to set pin2 off: %s\n", name, config.errmsg);
-				}
-				log_info("unit %s: stage-2 valve reset complete: pin2 off\n", name);
-				unit.valve_reset_start = 0;
-				unit_set_state(name,UNIT_STATE_START_PUMP);
-			}
+			if (!pa_client_reserve(ac,"unit",name,unit.reserve,pri)) unit_set_state(name,UNIT_STATE_START_PUMP);
 			break;
 
 		// Start the pump

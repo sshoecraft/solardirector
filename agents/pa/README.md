@@ -110,10 +110,12 @@ PA automatically switches between day and night modes based on time:
 | `limit` | float | 0.0 | Maximum deficit allowed before P1 protection override (W) |
 | `reserve_delay` | int | 180 | Delay between reserve attempts (seconds) |
 | `deficit_timeout` | int | 300 | Time in deficit before revoking (seconds) |
-| `samples` | int | (calculated) | Number of power samples to average |
+| `samples` | int | 0 | Number of power samples to average (0 ⇒ derived from `sample_period / interval`) |
 | `sample_period` | int | 90 | Period over which to average power (seconds) |
 | `interval` | int | 15 | Agent read interval (seconds) |
 | `data_stale_interval` | int | 3 | Multiplier for staleness timeout (× interval) |
+| `bypass` | bool | false | Bypass mode: approve and track all reservations with no power checks |
+| `pub_topic` | string | "" | Optional topic for publishing `{reserved, avail}` status (see `write.js`) |
 
 ### Battery Protection
 
@@ -140,6 +142,8 @@ PA automatically switches between day and night modes based on time:
 | `night_start` | string | "20:00" | Night period start (HH:MM or "sunset+minutes") |
 | `day_start` | string | "06:00" | Day period start (HH:MM or "sunrise+minutes") |
 
+> The registered defaults are the literal `"20:00"`/`"06:00"` shown above. The `"sunset+120"`/`"sunrise+30"` forms are supported (resolved via `get_date()` when `location` is set) but are **not** wired in as the default values, despite the `DEFAULT_NIGHT_LSTART`/`DEFAULT_DAY_LSTART` constants existing in `init.js`.
+
 ### Frequency Shift Power Control (FSPC)
 
 | Parameter | Type | Default | Description |
@@ -148,6 +152,12 @@ PA automatically switches between day and night modes based on time:
 | `fspc_start` | float | 1.0 | Frequency offset to start reducing power (Hz) |
 | `fspc_end` | float | 2.0 | Frequency offset for full power reduction (Hz) |
 | `nominal_frequency` | float | 60.0 | Nominal grid frequency (Hz) |
+
+When FSPC is active, the PV contribution is reduced by dividing it by the frequency offset above the start threshold (`read.js`: `pv_power /= (fspc_end_frq - frequency)`) — it is a divisive de-rate, not a linear interpolation between `fspc_start` and `fspc_end`.
+
+## Bypass Mode
+
+When `bypass` is true (`funcs.js`), PA skips all power/budget/battery checks: every `reserve`/`repri` is approved and tracked, and no deficit-driven revocation occurs. This is intended for bringing loads up unconditionally (e.g. commissioning or a known-good power surplus). Battery hard-limit immediate revoke still applies as the last-resort protection.
 
 ## MQTT Functions
 
@@ -261,10 +271,11 @@ Contribution calculated as:
 pv_contribution = pv_power - load_power
 ```
 
-If load power not available:
+If load power not available (`read.js`):
 ```
-load_power = pv_power - grid_export - battery_charge
+load_power = pv_power - grid_export
 ```
+Battery charge is **not** subtracted in this fallback (only grid export is).
 
 ### Power Averaging
 PA maintains a rolling average over `samples` readings:
@@ -295,20 +306,14 @@ Behavior:
 - Agent performs emergency shutdown (bypasses min_runtime, force stop)
 - All reservations revoked immediately
 
-### Soft Limit
-When battery discharge exceeds `battery_soft_limit`:
-- Sets `available_power = -1` (denies new reservations)
-- Does NOT revoke existing reservations
-- Prevents deficit from growing
+### Soft Limit (currently disabled in code)
+> **Note:** the `battery_soft_limit` logic is present but **disabled** — the branch in `funcs.js` is guarded by `if (0 && ...)`, with a comment explaining it was intentionally turned off so the read cycle handles the deficit (letting the inverter switch to grid). As a result `pa_over_battery_limit` never returns the soft-limit code and the corresponding branch in `read.js` is effectively dead. The historical behavior was: when battery discharge exceeded `battery_soft_limit`, set available power negative to deny new reservations without revoking existing ones.
 
 ## Battery Protection
 
-### Three-tier Protection
+### Protection tiers
 
-1. **Soft Limit** (`battery_soft_limit`):
-   - Sets avail negative to prevent new reservations
-   - Existing reservations continue
-   - Recovers automatically when discharge drops
+1. **Soft Limit** (`battery_soft_limit`) — *disabled in code* (see note above).
 
 2. **Hard Limit** (`battery_hard_limit`):
    - Immediate revocation of ALL reservations
@@ -317,7 +322,7 @@ When battery discharge exceeds `battery_soft_limit`:
 
 3. **Minimum Level** (`battery_level_min`):
    - Prevents new reservations when battery level too low
-   - Only applies when battery is discharging
+   - For `reserve`, only applies when the battery is discharging (`battery_power < 0`); `repri` checks the level regardless of charge/discharge
    - Existing reservations not affected
 
 ### Grid Detection
@@ -405,9 +410,7 @@ Each creates a separate MQTT connection (`inverter_mqtt`, `pv_mqtt`, `battery_mq
 ## Day/Night Mode Details
 
 ### Mode Determination
-```javascript
-is_night = current_time >= night_start || current_time < day_start
-```
+Night mode is gated on `night_budget`: `pa_is_night_period` returns `false` immediately if `night_budget` is unset/zero, so day/night switching only happens when a night budget is configured. When enabled, `checkIfNight` (`utils.js`) compares the current time against `day_start`/`night_start`, handling both the same-day and the midnight-spanning case (the simplified `current_time >= night_start || current_time < day_start` only captures the midnight-spanning branch).
 
 ### Mode Transition
 When transitioning from day → night:
@@ -566,10 +569,14 @@ mosquitto_pub -t 'solar/agents/pa' \
 
 - `main.c` - Agent entry point
 - `driver.c` - Hardware/driver interface (minimal for PA)
+- `jsfuncs.c` - C functions exposed to JS (incl. `signal()` → `agent_event`)
+- `pa.h` - Session/header definitions
 - `init.js` - Initialization, property/function registration
 - `read.js` - Main power calculation and revocation logic
 - `utils.js` - Helper functions (message processing, revoke, time parsing)
-- `funcs.js` - MQTT function implementations (reserve, release, repri, revoke_all)
+- `funcs.js` - MQTT function implementations (reserve, release, repri, revoke_all, bypass)
+- `write.js` - Publishes `{reserved, avail}` status to `pub_topic`
+- `stop.js` - Shutdown handler (reservation cleanup)
 - `test.json` - Test configuration
 
 ## Dependencies
