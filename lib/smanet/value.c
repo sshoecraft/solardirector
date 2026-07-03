@@ -230,7 +230,9 @@ static int _get_value(smanet_session_t *s, smanet_channel_t *c, smanet_value_t *
 static void _getval(smanet_session_t *s, smanet_channel_t *c, double *dval, char **text, smanet_value_t *v) {
 	double val;
 
-	/* Get dval */
+	/* Get dval - analog values are offset-binary on the wire (excess-32767);
+	   the device-supplied channel offset (-3276.7 = -32767 * gain) restores the sign,
+	   so raw values must be treated as UNSIGNED here - do not sign-extend */
 	switch(v->type) {
 	case DATA_TYPE_BYTE:
 		val = v->bval;

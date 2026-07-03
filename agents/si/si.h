@@ -214,8 +214,10 @@ struct si_session {
 	void *can_handle;
 	int can_init;
 	int can_connected;
-	struct can_frame frames[16];
-	time_t times[16];
+	/* slots 0-15: 0x300-0x30F aggregate frames, slots 16+: per-slave telemetry (see si_slave_ids in can.c) */
+#define SI_NFRAMES 40
+	struct can_frame frames[SI_NFRAMES];
+	time_t times[SI_NFRAMES];
 	pthread_t th;
 	int (*can_read)(struct si_session *, uint32_t id, uint8_t *data, int len);
 	si_raw_data_t raw_data;

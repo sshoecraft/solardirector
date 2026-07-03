@@ -4,7 +4,7 @@ SMANET=yes
 PROGNAME=$(shell basename $(shell pwd))
 SRCS=main.c
 
-WPI=yes
+WPI=no
 
 include ../../Makefile.sd
 

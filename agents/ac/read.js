@@ -43,6 +43,5 @@ function read_main() {
 
 	run(script_dir+"/cycle.js");
 	run(script_dir+"/sample.js");
-	direct_main();
 	run(script_dir+"/charge.js");
 }

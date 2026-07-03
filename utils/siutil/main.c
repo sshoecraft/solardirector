@@ -29,7 +29,7 @@ char *sepstr = ",";
 json_object_t *root_object;
 extern double batcurmin,batcurmax;
 
-char *siutil_version = "1.0";
+char *siutil_version = "1.0.1";
 char *si_version_string = "";
 
 int si_config(void *h, int req, ...) {

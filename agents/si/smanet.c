@@ -35,16 +35,22 @@ int si_smanet_read_data(si_session_t *s) {
 		int can;
 		void (*cb)(si_session_t *, smanet_multreq_t *);
 	} *pp, parminfo[] = {
+		/* the _l1/_l2/_l3 fields hold master/slave1/slave2 (matching the CAN 0x300-range
+		   slots in 2Phase4) - they are NOT phases; slave3 has no field and is dropped here */
 		{ "ExtVtg", "ac2_voltage_l1", 1, 1 },
 		{ "ExtVtgSlv1", "ac2_voltage_l2", 1, 1 },
 		{ "ExtVtgSlv2", "ac2_voltage_l3", 1, 1 },
 		{ "ExtFrq", "ac2_frequency", 1, 1 },
 		{ "TotExtCur", "ac2_current", 1, 1 },
+		/* Tot*PwrAt are cluster-complete (all 4 units); kW -> W and negate to match
+		   the CAN-path sign convention (import negative) */
+		{ "TotExtPwrAt", "ac2_power", -1000, 1 },
 		{ "InvVtg", "ac1_voltage_l1", 1, 1 },
 		{ "InvVtgSlv1", "ac1_voltage_l2", 1, 1 },
 		{ "InvVtgSlv2", "ac1_voltage_l3", 1, 1 },
 		{ "InvFrq", "ac1_frequency", 1, 1 },
 		{ "TotInvCur", "ac1_current", 1, 1 },
+		{ "TotInvPwrAt", "ac1_power", -1000, 1 },
 		{ "BatSoc", "battery_soc", 1, 1 },
 		{ "BatVtg", "battery_voltage", 1, 1 },
 		{ "TotBatCur", "battery_current", 1, 1 },
@@ -145,20 +151,23 @@ int si_smanet_read_data(si_session_t *s) {
 		s->data.battery_power = s->data.battery_voltage * s->data.battery_current;
 		dprintf(dlevel,"Battery power: %.1f\n",s->data.battery_power);
 
+		/* master + slave1 are on opposite phases in 2Phase4, so l1+l2 = split-phase total */
 		s->data.ac1_voltage = s->data.ac1_voltage_l1 + s->data.ac1_voltage_l2;
 		dprintf(dlevel,"ac1_voltage: %.1f, ac1_frequency: %.1f\n",s->data.ac1_voltage,s->data.ac1_frequency);
-		s->data.ac1_power = s->data.ac1_current * s->data.ac1_voltage_l1;
+		/* ac1_power/ac2_power come from TotInvPwrAt/TotExtPwrAt in the map above -
+		   cluster-complete, unlike the old current * master-voltage approximation */
 		dprintf(dlevel,"ac1_current: %.1f, ac1_power: %.1f\n",s->data.ac1_current,s->data.ac1_power);
 
 		s->data.ac2_voltage = s->data.ac2_voltage_l1 + s->data.ac2_voltage_l2;
 		dprintf(dlevel,"ac2: voltage: %.1f, frequency: %.1f\n",s->data.ac2_voltage,s->data.ac2_frequency);
-		s->data.ac2_power = s->data.ac2_current * s->data.ac2_voltage_l1;
 		dprintf(dlevel,"ac2_current: %.1f, ac2_power: %.1f\n",s->data.ac2_current,s->data.ac2_power);
 
 		s->data.TotLodPwr *= 1000.0;
 
 		/* I was not able to figure out a way to tell if the grid is "connected" using just SMANET parms */
-		if ((s->data.ac2_voltage > 10 && s->data.ac2_frequency > 10) && s->data.ac2_power > 100) s->data.GdOn = true;
+		/* grid activity in EITHER direction counts (import is negative, export positive) */
+		if ((s->data.ac2_voltage > 10 && s->data.ac2_frequency > 10) &&
+		    (s->data.ac2_power < -100 || s->data.ac2_power > 100)) s->data.GdOn = true;
 		else s->data.GdOn = false;
 	}
 	free(mr);

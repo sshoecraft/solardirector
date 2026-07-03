@@ -105,10 +105,14 @@ function pub_main() {
 		if (!dg.enabled) dg_data.state = "Disabled";
 		else dg_data.state = direct_statestr(dg.state);
 		dg_data.active = dg.active ? 1 : 0;
-		dg_data.pin1 = dg.pin1;
-		dg_data.pin1_state = (dg.pin1 >= 0) ? digitalRead(dg.pin1) : 0;
-		dg_data.pin2 = dg.pin2;
-		dg_data.pin2_state = (dg.pin2 >= 0) ? digitalRead(dg.pin2) : 0;
+		// Valve position read straight off the DG state -- no relay pins (LOW at rest on a
+		// holding valve), no helper/var. valve1 (supply) = Direct whenever direct mode is
+		// active; valve2 (return) seals the loop ~stage 2, minutes later, so it reads Direct
+		// only once the loop is closed (START_PRIMER onward). "None" = valve set not configured.
+		dg_data.valve1 = dg.active ? "Direct" : "Storage";
+		dg_data.valve2 = (dg.valve2_power < 0) ? "None" :
+			(dg.state == DIRECT_STATE_START_PRIMER || dg.state == DIRECT_STATE_WAIT_PRIMER ||
+			 dg.state == DIRECT_STATE_WAIT_WATER_TEMP || dg.state == DIRECT_STATE_RUNNING) ? "Direct" : "Storage";
 		dg_data.fan = dg.active_fan || dg.pending_fan || "";
 		dg_data.unit = dg.unit;
 		dg_data.mode = fan_modestr(dg.target_mode || dg.mode);

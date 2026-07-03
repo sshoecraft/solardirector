@@ -2,52 +2,67 @@
 
 ## Overview
 
-Direct mode bypasses thermal storage to directly heat/cool air handlers when:
-1. Fan requests a mode that doesn't match storage mode (mode mismatch)
-2. Storage tank temperature is outside acceptable range (storage depleted)
+Direct mode plumbs an AC unit **straight to the air handler in a closed loop that bypasses
+the thermal-storage tank**, so the house stays conditioned when the tank can't serve a
+fan's request. It engages when:
+1. The fan requests a mode that doesn't match storage mode (mode mismatch), or
+2. The storage tank's water temperature is exhausted for the requested mode (depleted).
+
+**Operating concept:** by day the solar system runs the AC unit to heat/cool (charge) the
+storage tank; after dark the air handler (AH) pulls that stored thermal energy from the
+tank to condition the house; when the tank is exhausted, the valves switch to the **direct
+closed loop** between the AC and the AH — real-time conditioning with the tank bypassed.
 
 ## Architecture
 
+### Hardware
+
+- AC unit → **brazed-plate heat exchanger (BPHX)**; a **½ HP AC pump** pushes water through it.
+- Air handler (AH), water-to-air heat exchanger in the house; a **¾ HP AH pump** pushes water through it.
+
 ### Water Flow
 
-**Storage Mode (Normal):**
+**Storage (valves at rest) — two independent loops through the tank:**
 ```
-AC Unit → AC Pump → Storage Tank → Fan Pump → Air Handler → House
-```
-
-**Direct Mode Stage 1 (pin1 on, open loop):**
-```
-AC Unit → AC Pump → [Valve1: to AH] → Air Handler → House → Storage Tank
-                                              ↓
-                                     Fan Pump OFF (bypassed)
+AC:  tank → AC-pump-in → AC pump → BPHX → BPHX-out → tank    (AC charges the tank)
+AH:  tank → AH-pump-in → AH pump → AH coil → AH-out → tank   (AH conditions the house)
 ```
 
-**Direct Mode Stage 2 (pin1 + pin2 on, closed loop):**
+**Direct (both valve sets flipped, tank fully bypassed) — one closed loop, BOTH pumps in series:**
 ```
-AC Unit → AC Pump → [Valve1+2] → Air Handler → [Valve3+4] → AC Unit input
-        ↑                                                        ↓
-        └────────────────────────────────────────────────────────┘
-                    (complete loop, tank fully bypassed)
+AC pump → BPHX → [valve1: BPHX-out → AH-in] → AH pump → AH coil → [valve2: AH-out → AC-in] → AC pump
 ```
+Both the ½ HP AC pump and the ¾ HP AH pump run **at the same time**, in series around the
+closed loop. An idle AH pump would choke the AC pump's discharge → BPHX under-flow →
+vapor-temp freeze trip, so both pumps are always RUNNING before any valve flips. The two
+valve sets fire in two stages (supply, then return — see State Machine) so only two valves
+travel at a time.
 
 ### Physical Valve Setup
 
-**Stage 1 valves (pin1):**
+**Stage 1 valve set (valve1_power / valve1_select):**
 - Valve 1: AC pump output - switches from "to tank" → "to AH input"
 - Valve 2: AH input - switches from "from tank" → "from AC output"
 
-**Stage 2 valves (pin2):**
+**Stage 2 valve set (valve2_power / valve2_select):**
 - Valve 3: AH output - switches from "to tank" → "to AC input"
 - Valve 4: AC input - switches from "from tank" → "from AH output"
 
-Both valves in each stage are wired together (single pin control per stage).
+Both valves in a stage are wired together and driven by **two relays off a 24V bus**:
+- **pwr relay (relay1)**: COMM=+24V, NO feeds the dir relay's COMM. Gates power.
+- **dir relay (relay2)**: COMM=+24V (from relay1), NC=storage, NO=direct. Selects direction.
+
+To move a stage: set the dir relay first, then energize the pwr relay; power is held
+`valve_time` seconds (default 10) while the valve travels, then cut. Rest state = both
+relays de-energized (storage selected); the valve physically holds its last position when
+unpowered. On startup/error/off the valves are driven to storage.
 
 ### Key Constraints
 
 - 3-way valves connect AC circuit directly to fan circuit
-- AC pump circulates water through direct circuit
-- Fan pump MUST be OFF (bypassed) - valve cannot activate until pump is stopped
-- Fan pump is marked with `pump.direct = true` to prevent cycle.js and sample.js from starting it
+- Both the AC pump and the AH (fan) pump run **at the same time**, in series around the closed loop — the AH pump is NOT bypassed
+- The AH pump must be RUNNING before the supply valve (valve1) flips, or it chokes the AC discharge (BPHX under-flow → freeze trip)
+- The AH pump is marked `pump.direct = true` while under direct control so cycle.js/sample.js leave it alone (it is running, not stopped)
 - Unit is marked with `unit.in_direct = true` to prevent charge.js from controlling it
 - `unit.in_direct_pending = true` blocks charge.js during state machine transition
 - Note: `unit.direct` (config property) vs `unit.in_direct` (runtime flag) - these are different!
@@ -79,60 +94,72 @@ Direct mode also activates when:
 | State | Value | Description |
 |-------|-------|-------------|
 | Stopped | 0 | Not active |
-| Stop fan pump | 1 | Stopping the fan pump |
-| Wait fan pump | 2 | Waiting for fan pump to reach STOPPED |
-| Stop unit | 3 | Stopping unit for mode change |
-| Wait unit stop | 4 | Waiting for unit to reach STOPPED |
-| Activate valve | 5 | Turn on pin1 (stage 1), set unit mode, set priority |
-| Start unit | 6 | Start AC unit |
-| Wait unit | 7 | Wait for unit to reach RUNNING |
-| Wait water temp | 8 | Wait for water to reach temp threshold before starting fan |
-| Running open | 9 | Stage 1 active - monitoring for temp change |
-| Wait temp | 10 | (reserved) |
-| Activate pin2 | 11 | Temp change detected, activate pin2 to close loop |
-| Start primer | 12 | Start primer pump to bleed air |
+| Start fan pump | 1 | Start the AH (fan) pump — BOTH pumps run in direct |
+| Wait fan pump | 2 | Wait for the AH pump to reach RUNNING before any valve flips |
+| Stop unit | 3 | Stop a RUNNING unit that's in the wrong mode (mode mismatch) |
+| Wait unit stop | 4 | Wait for the unit to reach STOPPED |
+| Prepare unit | 5 | Set unit mode + in_direct flags; dispatch by unit state |
+| Start unit | 6 | Start the AC unit |
+| Wait unit | 7 | Wait for the unit to reach RUNNING (Reserve-timeout retry) |
+| Wait water temp | 8 | Gate the blower on supply water reaching target (fan pump already running) |
+| Running open | 9 | Stage 1 (supply) active — monitor AH temp change before closing |
+| Wait temp | 10 | (reserved / unused) |
+| Activate pin2 | 11 | Flip valve2 (return) to close the loop |
+| Start primer | 12 | Start primer to bleed air from the closed loop |
 | Wait primer | 13 | Wait for primer to run (primer_time seconds) |
-| Running | 14 | Fully closed loop active |
+| Running | 14 | Fully closed loop active, blower on |
 | Error | 15 | Error occurred |
+| Confirm flow | 16 | Verify ac_pump temp_in/out delta (BPHX has flow) before starting the AH pump |
+| Activate valve | 17 | Flip valve1 (supply); reached only after unit RUNNING + flow confirmed + AH pump RUNNING |
+
+State values are runtime enums (not persisted). CONFIRM_FLOW (16) and ACTIVATE_VALVE (17)
+were appended after the original 0–15 set, so they read out of numeric sequence but run in
+the order shown below.
 
 ### Two-Stage Activation Sequence
 
-1. **Stage 1** (pin1): Connect AC output to AH input
-   - Water flows: AC → AH → back to storage tank (open loop)
-   - Monitor AH pump temp_out for temperature change
-   - This confirms water is flowing through AH
+Both pumps run throughout. The AC unit comes up and flow is confirmed, the AH pump is
+started, THEN the valves flip — supply first, then return — so only two valves travel at a
+time and both pumps are always moving water before any valve moves.
 
-2. **Stage 2** (pin2): Close the loop
-   - When temp change detected (>= temp_threshold), activate pin2
-   - AH output now connects back to AC input
-   - Run primer for primer_time seconds to bleed air from the closed loop
-   - Air relief valve at high point of AC pump output bleeds air
+1. **Stage 1 — valve1 (supply)**: connect `BPHX out → AH pump in`
+   - valve2 still at storage, so the return goes AH → tank (open series loop through the tank)
+   - Monitor AH pump temp_out for a change ≥ `temp_threshold` (confirms conditioned water reached the AH)
+
+2. **Stage 2 — valve2 (return)**: connect `AH out → AC pump in`, closing the loop (tank bypassed)
+   - Run primer for `primer_time` seconds to bleed trapped air from the now-sealed loop
+   - Air-relief valve at the loop high point vents air
 
 ### State Transitions
 
 ```
-STOPPED → (direct_on) → STOP_FAN_PUMP → WAIT_FAN_PUMP
-                                  ↓ (if pump already stopped)
-                                  └──────────────────────┘
-                                                         ↓
-                                 ┌───────────────────────┤
-                                 ↓ (if unit running      ↓ (if unit stopped or
-                                    in wrong mode)          already correct mode)
-                           STOP_UNIT → WAIT_UNIT_STOP → ACTIVATE_VALVE (pin1)
-                                                               ↓
-                           START_UNIT → WAIT_UNIT → RUNNING_OPEN (no fan yet)
-                                                         ↓
-                              (monitor for temp change on fan_pump.temp_out)
-                                                         ↓
-                           ACTIVATE_PIN2 → START_PRIMER → WAIT_PRIMER
-                                                               ↓
-                                                      WAIT_WATER_TEMP (loop closed)
-                                                               ↓
-                                                    (water reaches temp) → fan_start → RUNNING
-                                                                          ↓
-RUNNING → (direct_off) → STOPPED
-          - If mode mismatch: stop unit, set mode to storage mode, hand off stopped
-          - If mode matches: hand off running with repri
+STOPPED --(direct_on)--> PREPARE_UNIT
+                           |- unit RUNNING wrong mode --> STOP_UNIT --> WAIT_UNIT_STOP --,
+                           |                                                             |
+                           |<------------------------------------------------------------'
+                           |- unit STOPPED --> START_UNIT --> WAIT_UNIT --,
+                           |- unit already RUNNING (correct mode) --------|
+                           |                                              v
+                           '----------------------------------->  CONFIRM_FLOW   (BPHX flow, storage loop)
+                                                                       v
+                                     START_FAN_PUMP --> WAIT_FAN_PUMP   (AH pump RUNNING -- both pumps now run)
+                                                                       v
+                                     ACTIVATE_VALVE (valve1/supply)     (open series loop through tank)
+                                                                       v
+                                     RUNNING_OPEN   (monitor AH temp change)
+                                                                       v
+                                     ACTIVATE_PIN2 (valve2/return) --> START_PRIMER --> WAIT_PRIMER   (close loop, bleed air)
+                                                                       v
+                                     WAIT_WATER_TEMP   (gate blower on supply temp; skipped if blower already on)
+                                                                       v
+                                     (water at temp) --> start blower --> RUNNING
+
+RUNNING --(direct_off)--> STOPPED
+   - releases DIRECT's AH-pump ref (force-stop) only if DIRECT owns it; else the fan's own
+     stop path releases it. Never re-starts the (already running) AH pump.
+   - mode mismatch: stop unit, restore storage mode, hand off stopped to charge.js
+   - mode matches:  hand off running unit to charge.js with repri
+   - RUNNING monitors the unit AND both pumps -- loss of any tears down.
 ```
 
 ## Configuration
@@ -143,8 +170,11 @@ File: `/opt/sd/etc/ac_directs.json`
 {
     "dg1": {
         "enabled": true,
-        "pin1": 2,
-        "pin2": 28,
+        "valve1_power": 2,
+        "valve1_select": 3,
+        "valve2_power": 28,
+        "valve2_select": 29,
+        "valve_time": 10,
         "fan": "ah1",
         "unit": "ac1",
         "primer_time": 30,
@@ -156,8 +186,11 @@ File: `/opt/sd/etc/ac_directs.json`
 | Property | Type | Default | Description |
 |----------|------|---------|-------------|
 | enabled | bool | true | Enable/disable this direct group |
-| pin1 | int | -1 | GPIO pin for stage 1 valves (AC→AH input) |
-| pin2 | int | -1 | GPIO pin for stage 2 valves (AH→AC input, closes loop) |
+| valve1_power | int | -1 | GPIO pin for stage 1 power relay (relay1, +24V gate) |
+| valve1_select | int | -1 | GPIO pin for stage 1 direction relay (relay2, NC=storage/NO=direct) |
+| valve2_power | int | -1 | GPIO pin for stage 2 power relay (-1 = no stage 2) |
+| valve2_select | int | -1 | GPIO pin for stage 2 direction relay |
+| valve_time | int | 10 | Seconds power is applied per valve move |
 | fan | string | "" | Name of fan this group controls |
 | unit | string | "" | Name of AC unit for this group |
 | primer_time | int | 30 | Seconds to run primer after activating pin2 |
@@ -172,19 +205,24 @@ File: `/opt/sd/etc/ac_directs.json`
 
 **Runtime properties** (set during init):
 - `fan.direct_group`: Links fan to its direct group
-- `unit.direct_group`: Links unit to its direct group
+- `unit.in_direct_group`: Links unit to its direct group
 
 **Runtime state** (managed by state machine):
-- `dg.state`: Current state (0-15)
+- `dg.state`: Current state (0-17)
 - `dg.active`: true when direct mode is active (stage 1 or 2)
 - `dg.pending_fan`: Fan waiting for direct mode to start
 - `dg.active_fan`: Fan currently using direct mode
 - `dg.target_mode`: Requested mode (FAN_MODE_COOL/HEAT)
 - `dg.mode`: Current active mode
 - `dg.initial_temp`: Fan pump temp_out when entering RUNNING_OPEN
+- `dg.saved_water_temp`: ac.water_temp saved at entry (restored on teardown so charge.js sees the real tank temp)
 - `dg.primer_start_time`: Time when primer was started
 - `dg.unit_start_time`: Time when unit_start was called (for timeout)
+- `dg.fan_pump_start_time`: Time the AH-pump start began (WAIT_FAN_PUMP reserve timeout)
+- `dg.confirm_flow_start`: Time CONFIRM_FLOW was entered (for timeout)
 - `dg.water_wait_time`: Time when WAIT_WATER_TEMP state was entered (for timeout)
+- `dg.direct_fan_pump_ref`: true when DIRECT owns the AH-pump ref (scenario 1 fresh start); false when the fan owns it
+- `dg.in_teardown`: re-entry guard for direct_off → fan_stop → fan_off → direct_off
 
 **Note**: For fans in a direct group, `stop_wt` is ignored. Direct mode handles water
 temperature limits using exact thresholds (cool_high_temp / heat_low_temp) instead of
@@ -195,6 +233,14 @@ stopping the fan.
 Direct mode can be manually controlled via sdconfig:
 
 ```bash
+# Create / delete a direct group (opts are colon-separated key=value pairs)
+sdconfig ac add_direct dg1 "valve1_power=2:valve1_select=3:valve2_power=28:valve2_select=29:valve_time=10:fan=ah1:unit=ac1:primer_time=30:temp_threshold=2.0"
+sdconfig ac del_direct dg1
+
+# Modify an existing group
+sdconfig ac direct_set dg1 "temp_threshold=2.5:primer_time=45"
+sdconfig ac direct_get_config dg1      # "all" dumps every group
+
 # Turn on/off direct mode (starts/stops state machine)
 sdconfig ac direct_on dg1              # uses current storage mode
 sdconfig ac direct_on dg1 heat         # force HEAT mode
@@ -208,10 +254,14 @@ sdconfig ac direct_disable dg1         # prevents direct mode (turns off if acti
 
 ### Valve Control (low-level)
 ```bash
-sdconfig ac dg_valve_on dg1            # manually activate pin1 (stage 1)
-sdconfig ac dg_valve_off dg1           # manually deactivate all valves
-sdconfig ac dg_valve2_on dg1           # manually activate pin2 (stage 2)
+sdconfig ac dg_valve1_on dg1           # move stage 1 valve set to DIRECT
+sdconfig ac dg_valve1_off dg1          # move stage 1 valve set to STORAGE
+sdconfig ac dg_valve2_on dg1           # move stage 2 valve set to DIRECT
+sdconfig ac dg_valve2_off dg1          # move stage 2 valve set to STORAGE
+sdconfig ac dg_valves_off dg1          # drive both valve sets to STORAGE
 ```
+Each command starts a move: the direction relay is set, the power relay is energized,
+and power is cut automatically ~`valve_time` seconds later by the 1s `direct_main` loop.
 
 ## Files Modified
 
@@ -222,8 +272,10 @@ sdconfig ac dg_valve2_on dg1           # manually activate pin2 (stage 2)
 - `direct_main()`: Process all direct groups each loop
 - `direct_is_pending()`, `direct_is_active()`, `direct_is_error()`: State query helpers
 - `direct_get_pump()`: Get AC pump name for a direct group
-- `dg_valve_on()`, `dg_valve_off()`: Stage 1 valve control (pin1)
-- `dg_valve2_on()`: Stage 2 valve control (pin2)
+- `dg_valve1_on()`, `dg_valve1_off()`: Stage 1 valve set (direct/storage)
+- `dg_valve2_on()`, `dg_valve2_off()`: Stage 2 valve set (direct/storage)
+- `dg_valve_move()`: Two-relay move helper (set dir relay, energize pwr relay, stamp time)
+- `dg_valve_power_check()`: Cut valve power `valve_time` secs after a move (called from direct_main, ~1s)
 - Sensor remapping, priority inheritance, valve control, primer management
 
 ### fan.js
@@ -240,9 +292,10 @@ sdconfig ac dg_valve2_on dg1           # manually activate pin2 (stage 2)
 - `FAN_STATE_RESERVE`: Checks direct mode, skips pump startup if active
 - `FAN_STATE_RUNNING`: Monitors AC pump instead of fan pump when in direct mode; triggers direct mode if water temp exceeds limits
 - `UNIT_STATE_RUNNING`: Stops unit when storage reaches target temperature; if in direct mode, calls `direct_off(group, false)` to transition fan to storage mode
+- Calls `direct_main()` at the end of `run_main` (~1s cadence) to step the direct state machine and drive the timed valve power-cut
 
 ### read.js
-- Calls `direct_main()` each loop to process direct state machine
+- No longer calls `direct_main()` (moved to run.js). Still runs cycle.js, sample.js, charge.js at the read cadence (`interval`, ~10s)
 
 ### pub.js
 - Shows "Running" instead of "Temp" when fan is in direct mode
@@ -278,7 +331,7 @@ sdconfig ac dg_valve2_on dg1           # manually activate pin2 (stage 2)
 
 ### Pump Control Flags
 - `pump.direct = true`: Prevents cycle.js and sample.js from starting pump
-- Set by `dg_valve_on()`, cleared by `dg_valve_off()`
+- Set by `dg_valve1_on()`, cleared by `dg_valve1_off()`
 
 ### Storage Temperature Monitoring
 - **Unit shutdown on target reached**: When unit is RUNNING and water_temp reaches target (cool_low_temp - 0.5 for cooling, heat_high_temp + 0.5 for heating), unit stops automatically. If in direct mode, fan transitions to storage mode (keeps running).
@@ -290,7 +343,7 @@ sdconfig ac dg_valve2_on dg1           # manually activate pin2 (stage 2)
 - Stage 2 closes the loop and runs primer to bleed air
 
 ### Startup Reset
-- All valves set LOW (pin1 and pin2)
+- All valve relays driven LOW, then both valve sets pulsed to STORAGE (known position)
 - All direct group states reset to STOPPED
 - All flags (`dg.active`, `dg.pending_fan`, `dg.active_fan`) cleared
 
@@ -300,13 +353,19 @@ Functions available via sdconfig:
 
 | Function | Args | Description |
 |----------|------|-------------|
+| `add_direct` | name, opts | Create a new direct group (opts: colon-separated key=value). Runs `_direct_init` and saves to ac_directs.json. Fails if name exists or referenced fan/unit don't exist. |
+| `del_direct` | name | Delete a direct group (turns off direct mode/valves and clears fan/unit links first), saves to ac_directs.json |
+| `direct_set` | name, opts | Modify an EXISTING direct group (opts: colon-separated key=value). Will not create one. |
+| `direct_get_config` | name | Dump a group's config ("all" for every group) |
 | `direct_on` | group_name, [mode] | Turn on direct mode (mode: "heat" or "cool", default: current ac.mode) |
 | `direct_off` | group_name, [stop_fan] | Turn off direct mode (stop_fan: true=stop fan (default), false=keep fan running on storage) |
 | `direct_enable` | group_name | Enable direct group (allow it to be turned on) |
 | `direct_disable` | group_name | Disable direct group (turn off if active, prevent future activation) |
-| `dg_valve_on` | group_name | Activate pin1 (stage 1 valves) |
-| `dg_valve_off` | group_name | Deactivate all valves (pin1 and pin2) |
-| `dg_valve2_on` | group_name | Activate pin2 (stage 2 valves) |
+| `dg_valve1_on` | group_name | Move stage 1 valve set to DIRECT |
+| `dg_valve1_off` | group_name | Move stage 1 valve set to STORAGE |
+| `dg_valve2_on` | group_name | Move stage 2 valve set to DIRECT |
+| `dg_valve2_off` | group_name | Move stage 2 valve set to STORAGE |
+| `dg_valves_off` | group_name | Drive both valve sets to STORAGE |
 
 Internal helper functions (not exposed via sdconfig):
 
@@ -316,7 +375,7 @@ Internal helper functions (not exposed via sdconfig):
 | `direct_is_pending` | group_name, fan_name | Check if direct mode is pending for fan |
 | `direct_is_active` | group_name, fan_name | Check if direct mode is active for fan |
 | `direct_is_error` | group_name | Check if direct mode is in error state |
-| `direct_main` | none | Process all direct groups (called from read.js) |
+| `direct_main` | none | Process all direct groups + valve power-cut (called from run.js, ~1s) |
 
 ## InfluxDB
 
@@ -328,10 +387,8 @@ Measurement: `directs`
 | enabled | int | 1 if enabled, 0 if disabled |
 | state | string | Current state name |
 | active | int | 1 if direct mode is active |
-| pin1 | int | GPIO pin number for stage 1 valves |
-| pin1_state | int | Current pin1 state (0=off, 1=on) |
-| pin2 | int | GPIO pin number for stage 2 valves |
-| pin2_state | int | Current pin2 state (0=off, 1=on) |
+| valve1 | string | Supply valve set position: `Direct` / `Storage` / `None` (derived from `dg.state`, not the relay pins) |
+| valve2 | string | Return valve set position: `Direct` / `Storage` / `None` (derived from `dg.state`) |
 | fan | string | Active or pending fan name |
 | unit | string | Associated unit name |
 | mode | string | Current mode (None/Cool/Heat) |
@@ -538,3 +595,115 @@ New cold-start order: `... → PREPARE_UNIT → START_UNIT → WAIT_UNIT → CON
 **Fix**: Removed all six valve-reset states and their handlers from `unit.js` / `run.js`. Unit start is now `STOPPED → RESERVE → START_PUMP` (or `STOPPED → START_PUMP` with no reserve), as it was before 2026-05-19. The `valve_reset_time` prop was removed from `direct_props`.
 
 Direct mode is **currently disabled on dg1** (`enabled: false`) pending replacement of the motorized valves with the new in-stock units. Charge.js storage-loop operation is unaffected.
+
+## Changes (2026-06-10)
+
+### Two-relay (power + direction) valve control
+**Why**: The flaky single-wire valves were replaced with bidirectional 3-wire actuators on
+a 24V bus. Each valve set is now driven by **two relays** instead of one steady GPIO level:
+- **pwr relay (relay1)**: COMM=+24V, NO → dir relay COMM. Gates power.
+- **dir relay (relay2)**: COMM=+24V (from relay1), NC=storage, NO=direct. Selects direction.
+
+**Implementation (direct.js)**:
+- Config: replaced `pin1`/`pin2` with `valve1_power`/`valve1_select`/`valve2_power`/`valve2_select` and added
+  `valve_time` (default 10s). Runtime fields `valve1_power_time`/`valve2_power_time` track when a
+  move started.
+- `dg_valve_move()`: sets the dir relay first, then energizes the pwr relay and stamps the
+  time. `dg_valve1_on/off`, `dg_valve2_on/off` call it (to_direct true/false).
+- `dg_valve_power_check()`: cuts both relays LOW once `valve_time` elapses; called for every
+  group from `direct_main`. Rest state = both relays de-energized (storage); the valve holds
+  its last position when unpowered.
+- `_direct_init` / `direct_set` set `pinMode(OUTPUT)` + LOW on all four pins; `direct_del`
+  drives them LOW on removal. `start.js` pulses both sets to storage on boot.
+- Migration: groups configured with the old `pin1`/`pin2` must be reconfigured.
+
+### Direct state machine moved to the 1s run loop
+**Why**: `direct_main()` was called from `read.js` (read cadence, ~10s), while every other
+component state machine (fan/pump/unit) runs in `run.js` every ~1s. The 10s cadence made the
+timed valve power-cut imprecise and was inconsistent with the rest of the agent.
+
+**Fix**: Moved the `direct_main()` call from `read.js` into `run_main` (`run.js`). The direct
+state machine and the valve power-cut now run at ~1s. The state machine code stays in
+`direct.js`; transitions are gated by `time()`/state checks, so 1s polling is just more
+responsive. Fixed the `direct.js` water-temp log throttle (was `% 60 < ac.interval`,
+assuming the 10s cadence) to `% 60 == 0`.
+
+### jconfig_add rollback fix (lib/sd/jconfig.js)
+**Why**: A failed init callback (e.g. `add_direct` with a missing `fan=`) left the
+half-created object orphaned in the in-memory map — `add_*` then reported "exists" while the
+on-disk JSON stayed empty.
+
+**Fix**: `jconfig_add` now `delete objs[name]` when the init callback returns nonzero,
+matching the existing opts-failure rollback. Affects all `add_*` paths (pump/fan/unit/direct).
+
+## Changes (2026-07-02)
+
+### Run BOTH pumps in the direct loop (no AH-pump bypass)
+**Why**: The plumbing was rebuilt (see Architecture + ccmemory `ac-direct-topology`): direct
+mode is a **closed loop** between the AC BPHX and the air handler, and the **½ HP AC pump and
+¾ HP AH pump run in series** around it. The old code STOPPED the AH pump and pushed the whole
+loop with the AC pump alone — with the new hardware an idle AH pump chokes the AC discharge →
+BPHX under-flow → vapor-temp freeze trip.
+
+**What changed** (surgical — the two-stage closed-loop machinery, primer, water-temp gate, and
+freeze-safe ordering all stay):
+- `STOP_FAN_PUMP`/`WAIT_FAN_PUMP` (which *stopped* the AH pump at the start) became
+  `START_FAN_PUMP`/`WAIT_FAN_PUMP` (which *start* it and wait for RUNNING), repositioned to
+  **after CONFIRM_FLOW, before ACTIVATE_VALVE**. Invariant: both pumps RUNNING before any valve flips.
+- `direct_on` routes straight to PREPARE_UNIT (no fan-pump-stop dispatch).
+- RUNNING monitors the unit **and both pumps**; loss of the AH pump tears down.
+- The blower (`fan_on`) is still gated on water temp (`WAIT_WATER_TEMP`); the fan **pump**
+  comes up earlier for the hydraulics.
+
+### Fan-pump refcount ownership (`dg.direct_fan_pump_ref`)
+**Why**: With the AH pump kept running, its refcount must be owned cleanly across two entry
+paths — a **fresh start** (fan dormant, run.js skips it) and an **already-running** fan
+(triggered from FAN_STATE_RUNNING on water-temp). The first design leaked the pump on any
+error before the blower started, because the dormant fan never runs to release it.
+
+**Fix**:
+- `dg.direct_fan_pump_ref` tracks whether DIRECT owns the ref. START_FAN_PUMP keys on
+  `fan.state == FAN_STATE_RUNNING` (not pump state): already-running → the fan owns it, skip;
+  else → `pump_start` and DIRECT owns it.
+- At the RUNNING transition the blower start is guarded (`fan.state != RUNNING`) and ownership
+  is handed to the fan (`direct_fan_pump_ref = false`; `fan_off` releases it).
+- `direct_release_fan_pump()` — called by every error path at/after START_FAN_PUMP and by
+  `direct_off` — clears `pump.direct` unconditionally and force-stops the pump only if DIRECT
+  owns the ref. `direct_off`'s old `pump_start(fan_pump)` (storage handoff) was deleted (the
+  pump is already running; re-starting double-refs).
+- `pump.direct` now means "under direct control — don't cycle/sample" (RUNNING, not stopped):
+  set in START_FAN_PUMP for **both** scenarios (deferred from `direct_on` so a pre-START_FAN_PUMP
+  abort can't strand it — a stranded flag would block the fan from starting later), and cleared
+  unconditionally by `direct_release_fan_pump`.
+
+### Supporting changes
+- `run.js` FAN_STATE_RUNNING monitors the fan's own pump again (dropped the AC-pump swap);
+  direct.js watches the AC side.
+- `cycle.js` only `pump_start`s a pump whose state is STOPPED (never bumps the now-running AH
+  pump's refs in the pre-`pump.direct` window).
+- `direct_off` got an `in_teardown` re-entry guard (direct_off → fan_stop → fan_off →
+  direct_off runs teardown once).
+- `start.js` comment: `dg_valves_off` on boot is MANDATORY for the directional valves (they
+  hold position unpowered — no spring return — so a crash mid-direct leaves them in direct).
+- Latent bug found & fixed: the OLD code double-reffed an already-running fan via an
+  unconditional `fan_start` at the RUNNING transition.
+- **pub.js valve reporting**: dropped the eight relay-pin fields (`valve{1,2}_{power,select}`
+  + `_state` — they read 0 at rest for a holding valve, so the UI could never show position)
+  and replaced them with `valve1`/`valve2` = `Direct`/`Storage`/`None`, computed **inline** from
+  `dg.active` (valve1) and `dg.state` (valve2 — Direct only once the loop is closed,
+  START_PRIMER..RUNNING). **No helper functions on purpose:** pub.js is inline logic that
+  hot-reloads, whereas a NEW function in direct.js does NOT hot-reload (it needs a full agent
+  restart — see [[ac-deploys-from-opt-sd]]). So this change is pub.js-only.
+
+**Tests**: `test/test_direct.js` — 48 pass (rewrote the STOP_FAN_PUMP-entry and
+CONFIRM_FLOW→ACTIVATE_VALVE tests; added START_FAN_PUMP sc.1/sc.2, WAIT_FAN_PUMP transitions,
+fan-pump force-release on error, direct_off ownership, both-pumps monitor). Full suite 152 pass.
+
+**Deploy status**: the both-pumps rework (direct.js/run.js/cycle.js/start.js) is LIVE on the
+`ac` host as of 2026-07-02 14:24 and ran a full cycle correctly at 14:31 (stage 1 → 3½-min
+RUNNING_OPEN wait → stage 2 → loop closed → running, scenario-2 fast path). The pub.js
+valve-reporting change is **pub.js-only** — deploy `pub.js`, hot-reload, no restart.
+
+**Still open**: `RUNNING_OPEN` has no timeout — if the ≥`temp_threshold` change never arrives,
+it sits with valve1 open and valve2 never firing (no air). Add a timeout that force-closes
+stage 2 or errors out.

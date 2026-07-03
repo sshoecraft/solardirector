@@ -257,38 +257,23 @@ function run_main() {
 		case FAN_STATE_RUNNING:
 			dprintf(dlevel,"fan[%s]: pump.length: %d\n", name, fan.pump.length);
 			if (fan.pump.length) {
-				// Check direct mode status
-				let pump_name = fan.pump;
-				let in_direct_transition = false;
+				// In direct mode BOTH pumps run, so the fan monitors its OWN pump normally
+				// (direct.js watches the AC pump + unit). If direct is still setting up for
+				// this fan (pending) and errors, propagate the error to the fan.
 				if (fan.direct_group) {
 					let dg = directs[fan.direct_group];
-					if (dg) {
-						// In transition - fan pump is being stopped, don't error
-						if (dg.pending_fan == name && !dg.active) {
-							dprintf(dlevel, "fan %s in direct transition, state=%s\n", name, direct_statestr(dg.state));
-							in_direct_transition = true;
-							// Check for error in direct state machine
-							if (dg.state == DIRECT_STATE_ERROR) {
-								fan_set_state(name, FAN_STATE_ERROR);
-								break;
-							}
-						}
-						// Active - monitor AC pump instead
-						if (dg.active && dg.active_fan == name) {
-							pump_name = direct_get_pump(fan.direct_group);
-						}
-					}
-				}
-				// Only check pump state if not in transition
-				if (!in_direct_transition) {
-					pump_state = pump_get_state(pump_name);
-					dprintf(dlevel,"fan[%s]: pump %s state: %s\n", name, pump_name, pump_statestr(pump_state));
-					if (pump_state != PUMP_STATE_RUNNING) {
-						// Pump stopped while fan running - stop fan gracefully
-						log_warning("fan %s: pump %s stopped, stopping fan\n", name, pump_name);
-						fan_set_mode(name, FAN_MODE_NONE);
+					if (dg && dg.pending_fan == name && !dg.active && dg.state == DIRECT_STATE_ERROR) {
+						fan_set_state(name, FAN_STATE_ERROR);
 						break;
 					}
+				}
+				pump_state = pump_get_state(fan.pump);
+				dprintf(dlevel,"fan[%s]: pump %s state: %s\n", name, fan.pump, pump_statestr(pump_state));
+				if (pump_state != PUMP_STATE_RUNNING) {
+					// Pump stopped while fan running - stop fan gracefully
+					log_warning("fan %s: pump %s stopped, stopping fan\n", name, fan.pump);
+					fan_set_mode(name, FAN_MODE_NONE);
+					break;
 				}
 			}
 			// Check water temp - trigger direct mode if out of limits
@@ -728,4 +713,9 @@ function run_main() {
 			break;
 		}
 	}
+
+	// Step the direct-mode state machine every ~1s (moved here from read.js so
+	// it runs at the run cadence like the fan/pump/unit machines above; also
+	// drives the timed valve power-cut in dg_valve_power_check).
+	direct_main();
 }

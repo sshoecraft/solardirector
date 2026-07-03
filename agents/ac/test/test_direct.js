@@ -1,7 +1,7 @@
 #!/opt/sd/bin/sdjs -U512K
 /*
  * Tests for agents/ac/direct.js — direct-mode entry validation, valve
- * helpers (pin1/pin2 control + pump.direct flag flips), state-machine
+ * helpers (two-relay power+direction control + pump.direct flag flips), state-machine
  * entry transitions, query helpers (is_active / is_pending / is_error),
  * direct_off short-circuits.
  *
@@ -29,7 +29,8 @@ function add_dg(name, opts) {
 		mode:         FAN_MODE_NONE,
 		fan: "ah1", unit: "ac1",
 		fan_pump: "fp1", ac_pump: "ap1",
-		pin1: 2, pin2: 28,
+		valve1_power: 2, valve1_select: 3, valve2_power: 28, valve2_select: 29, valve_time: 10,
+		valve1_power_time: 0, valve2_power_time: 0,
 		primer: "",
 		temp_threshold: 2.0,
 		unit_timeout: 60,
@@ -42,6 +43,9 @@ function add_dg(name, opts) {
 		unit_start_time:   0,
 		water_wait_time:   0,
 		confirm_flow_start: 0,
+		fan_pump_start_time: 0,
+		direct_fan_pump_ref: false,
+		in_teardown: false,
 	};
 	if (opts) for (let k in opts) dg[k] = opts[k];
 	directs[name] = dg;
@@ -56,24 +60,30 @@ function setup() {
 // =========================================================================
 // 1. dg_valve1_on/off — pin control + pump.direct flag flip.
 // =========================================================================
-function test_valve1_on_drives_pin_high_and_marks_pump_direct() {
-	let dg = add_dg("dg1", { pin1: 2 });
+function test_valve1_on_energizes_to_direct_and_marks_pump_direct() {
+	let dg = add_dg("dg1", { valve1_power: 2, valve1_select: 3 });
 	let fp = harness.add_pump("fp1", { pin: 5 });
-	harness.pins[2] = LOW;
+	harness.now = 1000;
+	harness.pins[2] = LOW; harness.pins[3] = LOW;
 	let r = dg_valve1_on("dg1");
 	assert.eq(r, 0);
-	assert.eq(digitalRead(2), HIGH, "valve1 pin1 must be HIGH");
+	assert.eq(digitalRead(3), HIGH, "valve1 dir relay must select DIRECT");
+	assert.eq(digitalRead(2), HIGH, "valve1 power relay must be energized");
+	assert.truthy(dg.valve1_power_time > 0, "valve1 power-on time stamped");
 	assert.eq(fp.direct, true, "valve1 must mark fan_pump as direct");
 }
 
-function test_valve1_off_drives_pin_low_and_clears_pump_direct() {
-	let dg = add_dg("dg1", { pin1: 2 });
+function test_valve1_off_energizes_to_storage_and_clears_pump_direct() {
+	let dg = add_dg("dg1", { valve1_power: 2, valve1_select: 3 });
 	let fp = harness.add_pump("fp1", { pin: 5 });
 	fp.direct = true;
-	harness.pins[2] = HIGH;
+	harness.now = 1000;
+	harness.pins[2] = LOW; harness.pins[3] = HIGH;
 	let r = dg_valve1_off("dg1");
 	assert.eq(r, 0);
-	assert.eq(digitalRead(2), LOW);
+	assert.eq(digitalRead(3), LOW, "valve1 dir relay must select STORAGE");
+	assert.eq(digitalRead(2), HIGH, "valve1 power energized to drive to storage");
+	assert.truthy(dg.valve1_power_time > 0, "valve1 power-on time stamped");
 	assert.eq(fp.direct, false, "valve1 off must clear pump.direct");
 }
 
@@ -84,44 +94,68 @@ function test_valve1_on_unknown_group_errors() {
 }
 
 function test_valve1_on_no_pin1_configured_errors() {
-	let dg = add_dg("dg1", { pin1: -1 });
+	let dg = add_dg("dg1", { valve1_power: -1 });
 	harness.add_pump("fp1");
 	let r = dg_valve1_on("dg1");
 	assert.eq(r, 1);
-	assert.truthy(config.errmsg.indexOf("pin1") >= 0);
+	assert.truthy(config.errmsg.indexOf("power pin") >= 0);
 }
 
 // =========================================================================
-// 2. dg_valve2_on with pin2 < 0 is a no-op success.
+// 2. dg_valve2_on with no stage-2 power pin is a no-op success.
 // =========================================================================
 function test_valve2_on_no_pin2_is_skip_success() {
-	let dg = add_dg("dg1", { pin2: -1 });
+	let dg = add_dg("dg1", { valve2_power: -1 });
 	let r = dg_valve2_on("dg1");
-	assert.eq(r, 0, "no pin2 → return 0, no error");
+	assert.eq(r, 0, "no stage 2 → return 0, no error");
 }
 
-function test_valve2_on_drives_pin2_high() {
-	let dg = add_dg("dg1", { pin2: 28 });
-	harness.pins[28] = LOW;
+function test_valve2_on_energizes_to_direct() {
+	let dg = add_dg("dg1", { valve2_power: 28, valve2_select: 29 });
+	harness.now = 1000;
+	harness.pins[28] = LOW; harness.pins[29] = LOW;
 	let r = dg_valve2_on("dg1");
 	assert.eq(r, 0);
-	assert.eq(digitalRead(28), HIGH);
+	assert.eq(digitalRead(29), HIGH, "stage 2 dir relay selects DIRECT");
+	assert.eq(digitalRead(28), HIGH, "stage 2 power relay energized");
 }
 
 // =========================================================================
-// 3. dg_valves_off: drives both pins LOW.
+// 3. dg_valves_off: drives both valve sets to STORAGE (dir LOW, power on);
+//    power is cut later by dg_valve_power_check.
 // =========================================================================
-function test_valves_off_drives_both_low() {
-	let dg = add_dg("dg1", { pin1: 2, pin2: 28 });
+function test_valves_off_drives_both_to_storage() {
+	let dg = add_dg("dg1", { valve1_power: 2, valve1_select: 3, valve2_power: 28, valve2_select: 29 });
 	let fp = harness.add_pump("fp1");
 	fp.direct = true;
-	harness.pins[2]  = HIGH;
-	harness.pins[28] = HIGH;
+	harness.now = 1000;
+	harness.pins[3]  = HIGH;   // dir relays start in DIRECT
+	harness.pins[29] = HIGH;
 	let r = dg_valves_off("dg1");
 	assert.eq(r, 0);
-	assert.eq(digitalRead(2),  LOW);
-	assert.eq(digitalRead(28), LOW);
+	assert.eq(digitalRead(3),  LOW, "stage 1 dir relay → STORAGE");
+	assert.eq(digitalRead(29), LOW, "stage 2 dir relay → STORAGE");
+	assert.eq(digitalRead(2),  HIGH, "stage 1 power energized to drive to storage");
+	assert.eq(digitalRead(28), HIGH, "stage 2 power energized to drive to storage");
 	assert.eq(fp.direct, false);
+}
+
+// dg_valve_power_check cuts power and returns the dir relay to rest after valve_time.
+function test_valve_power_check_cuts_power_after_valve_time() {
+	let dg = add_dg("dg1", { valve1_power: 2, valve1_select: 3, valve_time: 10 });
+	harness.add_pump("fp1");
+	harness.now = 1000;
+	dg_valve1_on("dg1");
+	assert.eq(digitalRead(2), HIGH, "power on right after move");
+	harness.now = 1005;
+	dg_valve_power_check(dg);
+	assert.eq(digitalRead(2), HIGH, "power still on before valve_time");
+	assert.truthy(dg.valve1_power_time > 0, "timer still armed");
+	harness.now = 1011;
+	dg_valve_power_check(dg);
+	assert.eq(digitalRead(2), LOW, "power cut after valve_time");
+	assert.eq(digitalRead(3), LOW, "dir relay returned to rest");
+	assert.eq(dg.valve1_power_time, 0, "timer cleared");
 }
 
 // =========================================================================
@@ -148,19 +182,25 @@ function test_direct_on_invalid_mode_str_errors() {
 }
 
 // =========================================================================
-// 5. direct_on with running fan pump → state machine enters STOP_FAN_PUMP.
+// 5. direct_on always routes to PREPARE_UNIT (both pumps run - the AH pump is
+//    NOT stopped). If the fan is already delivering on storage (scenario 2), its
+//    running pump is marked pump.direct so cycle/sample leave it alone.
 // =========================================================================
-function test_direct_on_running_fan_pump_enters_stop_fan_pump() {
+function test_direct_on_running_fan_enters_prepare_unit_and_keeps_pump() {
 	let dg = add_dg("dg1");
 	let unit = harness.add_unit("ac1");
-	harness.add_pump("fp1", { state: PUMP_STATE_RUNNING });
+	let fp = harness.add_pump("fp1", { state: PUMP_STATE_RUNNING });
 	harness.add_pump("ap1");
+	harness.add_fan("ah1", { state: FAN_STATE_RUNNING });   // scenario 2: fan delivering on storage
 	let r = direct_on("dg1", "cool");
 	assert.eq(r, 0);
-	assert.eq(dg.state, DIRECT_STATE_STOP_FAN_PUMP);
+	assert.eq(dg.state, DIRECT_STATE_PREPARE_UNIT, "always -> PREPARE_UNIT (AH pump not stopped)");
 	assert.eq(dg.pending_fan, "ah1");
 	assert.eq(dg.target_mode, FAN_MODE_COOL);
 	assert.eq(unit.in_direct_pending, true);
+	assert.not_called(harness.spies.pump_stop, "AH pump must NOT be stopped");
+	assert.eq(fp.direct, false, "pump.direct deferred to START_FAN_PUMP (not set at direct_on entry)");
+	assert.eq(dg.direct_fan_pump_ref, false, "direct does not own the ref (the fan does)");
 }
 
 // =========================================================================
@@ -378,9 +418,10 @@ function test_wait_unit_reaches_running_goes_to_confirm_flow_not_running_open() 
 	assert.eq(dg.confirm_flow_start, 130, "confirm_flow_start captured");
 }
 
-// CONFIRM_FLOW: ac_pump shows thermal delta ≥ threshold → ACTIVATE_VALVE.
-// Pin1 is still closed at this point — that's the next state's job.
-function test_confirm_flow_delta_above_threshold_advances_to_activate_valve() {
+// CONFIRM_FLOW: ac_pump shows thermal delta ≥ threshold → START_FAN_PUMP (bring
+// the AH pump up next). Pin1 stays closed - the valve doesn't flip until BOTH
+// pumps are RUNNING.
+function test_confirm_flow_delta_above_threshold_advances_to_start_fan_pump() {
 	let dg = add_dg("dg1", {
 		state: DIRECT_STATE_CONFIRM_FLOW,
 		pending_fan: "ah1",
@@ -403,8 +444,8 @@ function test_confirm_flow_delta_above_threshold_advances_to_activate_valve() {
 	harness.now = 110;
 	_direct_process("dg1", dg);
 	get_sensor = saved_get_sensor;
-	assert.eq(dg.state, DIRECT_STATE_ACTIVATE_VALVE, "delta 6.0°F → ACTIVATE_VALVE");
-	assert.eq(digitalRead(2), LOW, "pin1 still LOW in CONFIRM_FLOW (gets opened in next state)");
+	assert.eq(dg.state, DIRECT_STATE_START_FAN_PUMP, "delta 6.0°F → START_FAN_PUMP");
+	assert.eq(digitalRead(2), LOW, "pin1 still LOW until both pumps running");
 }
 
 // CONFIRM_FLOW: delta below threshold and timeout not yet hit → stay in
@@ -489,8 +530,10 @@ function test_activate_valve_opens_pin1_and_enters_running_open() {
 		state: DIRECT_STATE_ACTIVATE_VALVE,
 		pending_fan: "ah1",
 		target_mode: FAN_MODE_COOL,
-		pin1: 2,
-		pin2: 28,
+		valve1_power: 2,
+		valve1_select: 3,
+		valve2_power: 28,
+		valve2_select: 29,
 	});
 	harness.add_unit("ac1", { state: UNIT_STATE_RUNNING });
 	harness.add_fan("ah1");
@@ -517,8 +560,9 @@ function test_activate_valve_without_pin2_starts_fan_and_enters_running() {
 		state: DIRECT_STATE_ACTIVATE_VALVE,
 		pending_fan: "ah1",
 		target_mode: FAN_MODE_COOL,
-		pin1: 2,
-		pin2: -1,
+		valve1_power: 2,
+		valve1_select: 3,
+		valve2_power: -1,
 	});
 	harness.add_unit("ac1", { state: UNIT_STATE_RUNNING });
 	harness.add_fan("ah1");
@@ -596,6 +640,164 @@ function test_activate_valve_unit_left_running_errors_without_opening_pin1() {
 	assert.eq(dg.state, DIRECT_STATE_ERROR, "unit not RUNNING → ERROR before pin1");
 	assert.eq(digitalRead(2), LOW, "pin1 NOT opened on error path");
 	assert.eq(dg.active, false, "active stays false");
+}
+
+// _direct_init: a persisted enabled=false must survive a (re)load. Regression
+// for the bug where _direct_init unconditionally forced dg.enabled = true on
+// every startup, re-enabling direct mode after every controller restart.
+function test_direct_init_preserves_disabled() {
+	harness.add_fan("ah1", { pump: "fp1" });
+	harness.add_unit("ac1", { pump: "ap1" });
+	harness.add_pump("fp1");
+	harness.add_pump("ap1");
+	let dg = { enabled: false, fan: "ah1", unit: "ac1",
+		valve1_power: -1, valve1_select: -1, valve2_power: -1, valve2_select: -1 };
+	directs["dg1"] = dg;
+	let r = _direct_init("dg1", dg);
+	assert.eq(r, 0, "_direct_init succeeds with valid fan/unit/pumps");
+	assert.eq(dg.enabled, false, "disabled group stays disabled after init (not re-forced to true)");
+	assert.eq(dg.state, DIRECT_STATE_STOPPED, "state reset to STOPPED on init");
+}
+
+// _direct_init: an enabled group still comes up enabled.
+function test_direct_init_preserves_enabled() {
+	harness.add_fan("ah1", { pump: "fp1" });
+	harness.add_unit("ac1", { pump: "ap1" });
+	harness.add_pump("fp1");
+	harness.add_pump("ap1");
+	let dg = { enabled: true, fan: "ah1", unit: "ac1",
+		valve1_power: -1, valve1_select: -1, valve2_power: -1, valve2_select: -1 };
+	directs["dg1"] = dg;
+	_direct_init("dg1", dg);
+	assert.eq(dg.enabled, true, "enabled group stays enabled after init");
+}
+
+// =========================================================================
+// 13. START_FAN_PUMP / WAIT_FAN_PUMP — both pumps run in direct; the AH pump is
+//     STARTED (not stopped), and ref ownership depends on whether the fan is up.
+// =========================================================================
+
+// Scenario 1 (fresh start): fan dormant → DIRECT starts the AH pump, owns the
+// ref, marks it pump.direct, and advances to WAIT_FAN_PUMP.
+function test_start_fan_pump_fresh_start_starts_pump_and_owns_ref() {
+	let dg = add_dg("dg1", { state: DIRECT_STATE_START_FAN_PUMP, pending_fan: "ah1", target_mode: FAN_MODE_COOL });
+	harness.add_unit("ac1", { state: UNIT_STATE_RUNNING });
+	harness.add_fan("ah1", { state: FAN_STATE_STOPPED });
+	let fp = harness.add_pump("fp1", { state: PUMP_STATE_STOPPED });
+	harness.add_pump("ap1");
+	harness.now = 1000;
+	_direct_process("dg1", dg);
+	assert.called(harness.spies.pump_start, "fresh start → AH pump started");
+	assert.eq(dg.direct_fan_pump_ref, true, "DIRECT owns the ref");
+	assert.eq(fp.direct, true, "AH pump marked pump.direct");
+	assert.eq(dg.state, DIRECT_STATE_WAIT_FAN_PUMP, "→ WAIT_FAN_PUMP");
+	assert.eq(dg.fan_pump_start_time, 1000, "start time stamped for timeout");
+}
+
+// Scenario 2 (already running): fan delivering on storage → do NOT pump_start
+// again (avoid a 2nd ref); the fan keeps ownership. Advances to WAIT_FAN_PUMP.
+function test_start_fan_pump_already_running_skips_start() {
+	let dg = add_dg("dg1", { state: DIRECT_STATE_START_FAN_PUMP, pending_fan: "ah1", target_mode: FAN_MODE_COOL });
+	harness.add_unit("ac1", { state: UNIT_STATE_RUNNING });
+	harness.add_fan("ah1", { state: FAN_STATE_RUNNING });
+	let fp = harness.add_pump("fp1", { state: PUMP_STATE_RUNNING });
+	harness.add_pump("ap1");
+	_direct_process("dg1", dg);
+	assert.not_called(harness.spies.pump_start, "already-running fan pump not re-started (no 2nd ref)");
+	assert.eq(dg.direct_fan_pump_ref, false, "fan retains ownership of the ref");
+	assert.eq(fp.direct, true, "scenario 2: running fan pump marked direct (protect from cycle/sample)");
+	assert.eq(dg.state, DIRECT_STATE_WAIT_FAN_PUMP, "→ WAIT_FAN_PUMP");
+}
+
+// WAIT_FAN_PUMP: AH pump reaches RUNNING → ACTIVATE_VALVE (now both pumps run).
+function test_wait_fan_pump_running_goes_to_activate_valve() {
+	let dg = add_dg("dg1", { state: DIRECT_STATE_WAIT_FAN_PUMP, pending_fan: "ah1", target_mode: FAN_MODE_COOL, fan_pump_start_time: 1000 });
+	harness.add_unit("ac1", { state: UNIT_STATE_RUNNING });
+	harness.add_fan("ah1");
+	harness.add_pump("fp1", { state: PUMP_STATE_RUNNING });
+	harness.add_pump("ap1");
+	harness.now = 1005;
+	_direct_process("dg1", dg);
+	assert.eq(dg.state, DIRECT_STATE_ACTIVATE_VALVE, "AH pump RUNNING → ACTIVATE_VALVE");
+}
+
+// WAIT_FAN_PUMP: AH pump still spinning up (WARMUP) with no reserve timeout →
+// stay put (transitional pump states are normal startup progress).
+function test_wait_fan_pump_transitional_stays() {
+	let dg = add_dg("dg1", { state: DIRECT_STATE_WAIT_FAN_PUMP, pending_fan: "ah1", target_mode: FAN_MODE_COOL, fan_pump_start_time: 1000, unit_timeout: 60 });
+	harness.add_unit("ac1", { state: UNIT_STATE_RUNNING });
+	harness.add_fan("ah1");
+	harness.add_pump("fp1", { state: PUMP_STATE_WARMUP });
+	harness.add_pump("ap1");
+	harness.now = 1005;
+	_direct_process("dg1", dg);
+	assert.eq(dg.state, DIRECT_STATE_WAIT_FAN_PUMP, "transitional pump state → keep waiting");
+}
+
+// WAIT_FAN_PUMP: AH pump errors while DIRECT owns the ref → ERROR, and the pump
+// is force-released (no leak) with pump.direct cleared.
+function test_wait_fan_pump_error_releases_owned_pump() {
+	let dg = add_dg("dg1", { state: DIRECT_STATE_WAIT_FAN_PUMP, pending_fan: "ah1", target_mode: FAN_MODE_COOL, fan_pump_start_time: 1000, direct_fan_pump_ref: true });
+	let unit = harness.add_unit("ac1", { state: UNIT_STATE_RUNNING, in_direct: true });
+	harness.add_fan("ah1");
+	let fp = harness.add_pump("fp1", { state: PUMP_STATE_ERROR, direct: true });
+	harness.add_pump("ap1");
+	harness.now = 1005;
+	_direct_process("dg1", dg);
+	assert.eq(dg.state, DIRECT_STATE_ERROR, "AH pump ERROR → direct ERROR");
+	assert.called(harness.spies.pump_force_stop, "DIRECT-owned pump force-released (no leak)");
+	assert.eq(dg.direct_fan_pump_ref, false, "ref ownership cleared");
+	assert.eq(fp.direct, false, "pump.direct cleared");
+	assert.eq(unit.in_direct, false, "in_direct cleared before unit_stop");
+}
+
+// =========================================================================
+// 14. direct_off teardown — releases DIRECT's fan-pump ref, does NOT re-start
+//     the (already-running) fan pump, and clears pump.direct.
+// =========================================================================
+
+// direct_off while DIRECT owns the ref (scenario 1 aborted) → force-releases it.
+function test_direct_off_force_releases_owned_fan_pump() {
+	let dg = add_dg("dg1", { active: true, active_fan: "ah1", mode: FAN_MODE_COOL, direct_fan_pump_ref: true });
+	harness.add_unit("ac1", { state: UNIT_STATE_RUNNING, reserve: 0 });
+	let fp = harness.add_pump("fp1", { state: PUMP_STATE_RUNNING, direct: true });
+	harness.add_pump("ap1");
+	harness.add_fan("ah1", { state: FAN_STATE_STOPPED });
+	ac.mode = AC_MODE_COOL;
+	direct_off("dg1");
+	assert.called(harness.spies.pump_force_stop, "DIRECT-owned AH pump force-released");
+	assert.eq(dg.direct_fan_pump_ref, false, "ref cleared");
+	assert.eq(fp.direct, false, "pump.direct cleared");
+	assert.eq(dg.state, DIRECT_STATE_STOPPED, "torn down to STOPPED");
+}
+
+// direct_off(stop_fan=false) storage handoff: fan pump already running (both
+// pumps ran in direct) → do NOT pump_start it again (that would double-ref).
+function test_direct_off_storage_handoff_does_not_restart_fan_pump() {
+	let dg = add_dg("dg1", { active: true, active_fan: "ah1", mode: FAN_MODE_COOL, direct_fan_pump_ref: false });
+	harness.add_unit("ac1", { state: UNIT_STATE_RUNNING, reserve: 0 });
+	let fp = harness.add_pump("fp1", { state: PUMP_STATE_RUNNING });
+	harness.add_pump("ap1");
+	harness.add_fan("ah1", { state: FAN_STATE_RUNNING });
+	ac.mode = AC_MODE_COOL;
+	direct_off("dg1", false);
+	assert.not_called(harness.spies.pump_start, "storage handoff must not re-start the running fan pump");
+	assert.eq(fp.direct, false, "pump.direct cleared for storage operation");
+}
+
+// =========================================================================
+// 15. RUNNING monitor watches BOTH pumps: AH-pump loss tears down direct.
+// =========================================================================
+function test_running_monitor_ah_pump_loss_tears_down() {
+	let dg = add_dg("dg1", { state: DIRECT_STATE_RUNNING, active: true, active_fan: "ah1", mode: FAN_MODE_COOL });
+	harness.add_unit("ac1", { state: UNIT_STATE_RUNNING, reserve: 0 });
+	harness.add_pump("ap1", { state: PUMP_STATE_RUNNING });
+	harness.add_pump("fp1", { state: PUMP_STATE_STOPPED, direct: true });   // AH pump died
+	harness.add_fan("ah1", { state: FAN_STATE_RUNNING });
+	ac.mode = AC_MODE_COOL;
+	_direct_process("dg1", dg);
+	assert.eq(dg.state, DIRECT_STATE_STOPPED, "AH-pump loss → direct torn down");
+	assert.eq(dg.active, false, "no longer active");
 }
 
 harness.run();

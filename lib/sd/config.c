@@ -3445,6 +3445,47 @@ int js_config_call_func(void *_ctx, list args, char *errmsg, json_object_t *resu
 	jsval *jsargv;
 	int i;
 	char *rname;
+	jsval callfn;
+
+	/*
+	 * Late binding: resolve the function by name from the global object at
+	 * call time, instead of using the function object captured at
+	 * registration (ctx->func).
+	 *
+	 * The original code (commented out below) passed ctx->func directly.
+	 * That object was captured in _js_config_get_func() and pinned with
+	 * JS_EngineAddRoot() so the GC wouldn't prune it (a C-held jsval is
+	 * invisible to the collector; without the root it would be reclaimed and
+	 * the next sdconfig/MQTT call would crash on a dangling object). The
+	 * side effect was that the binding was frozen: when a .js file is edited
+	 * and hot-reloaded ("Script ... was modified, re-executing"), the global
+	 * gets a brand-new function object, but this stale pinned one kept being
+	 * called -- so edits to any add_funcs-registered function only took
+	 * effect after a full restart.
+	 *
+	 * Resolving by name picks up the current definition. A top-level
+	 * `function name(){}` is a permanent property of the global object, so it
+	 * stays reachable across GC on its own -- we don't need to hold a root.
+	 *
+	 * Fallback (NOT silent): if the name can't be resolved to a callable
+	 * (renamed, defined in a non-global scope, partial reload in progress,
+	 * etc.) we fall back to the captured ctx->func so behavior is never worse
+	 * than the original. We log_warning() every time we do, because silently
+	 * calling an older function than what's on disk hides a real problem.
+	 */
+	callfn = ctx->func;
+	{
+		JSObject *global = JS_GetGlobalObject(ctx->cx);
+		jsval fval = JSVAL_VOID;
+		if (global && JS_GetProperty(ctx->cx, global, ctx->name, &fval) && VALUE_IS_FUNCTION(ctx->cx, fval)) {
+			callfn = fval;
+		} else {
+			log_warning("config: function '%s' could not be resolved by name at "
+				"call time; falling back to the copy captured at registration "
+				"-- hot-reloaded changes to this function are NOT in effect "
+				"(restart required)\n", ctx->name);
+		}
+	}
 
 	dprintf(dlevel,"args count: %d\n", list_count(args));
 	if (list_count(args)) {
@@ -3458,12 +3499,14 @@ int js_config_call_func(void *_ctx, list args, char *errmsg, json_object_t *resu
 			}
 			if (arg->argc) rname = arg->argv[0];
 			else rname = "value";
-			i = _js_config_call_func_only(ctx->cx, ctx->func, arg->argc, jsargv, errmsg, rname, results);
+//			i = _js_config_call_func_only(ctx->cx, ctx->func, arg->argc, jsargv, errmsg, rname, results);
+			i = _js_config_call_func_only(ctx->cx, callfn, arg->argc, jsargv, errmsg, rname, results);
 			JS_free(ctx->cx,jsargv);
 			return i;
 		}
 	} else {
-		if (_js_config_call_func_only(ctx->cx, ctx->func, 0, 0, errmsg, "value", results)) return 1;
+//		if (_js_config_call_func_only(ctx->cx, ctx->func, 0, 0, errmsg, "value", results)) return 1;
+		if (_js_config_call_func_only(ctx->cx, callfn, 0, 0, errmsg, "value", results)) return 1;
 	}
 	return 0;
 }

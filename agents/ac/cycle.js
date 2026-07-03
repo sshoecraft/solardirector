@@ -116,9 +116,14 @@ function cycle_main() {
 			diff = time() - pump.cycle_time;
 			dprintf(dlevel,"diff: %d\n", diff);
 			if (diff >= cycle_interval) {
-				log_info("Cycling pump: %s\n", name);
-				pump_start(name);
-				pump.cycle_state = CYCLE_STATE_WAIT_PUMP;
+				// Only cycle a genuinely stopped pump. If it is already running for another
+				// reason (fan / direct mode, where both pumps run), leave it alone -- starting
+				// it would add a stray ref cycle.js can't cleanly release. Retry next interval.
+				if (pump.state == PUMP_STATE_STOPPED) {
+					log_info("Cycling pump: %s\n", name);
+					pump_start(name);
+					pump.cycle_state = CYCLE_STATE_WAIT_PUMP;
+				}
 			}
 			break;
 		case CYCLE_STATE_WAIT_PUMP:

@@ -146,11 +146,9 @@ config = {
 mqtt   = { enabled: false, connected: false, sub: function() {}, pub: function() {} };
 influx = { enabled: false, connected: false, connect: function() {}, write: function() {}, query: function() { return {}; } };
 
-// PA client stubs (always succeed).
+// PA client stubs (always succeed). reserve/release/repri are installed as spies in
+// harness._install_spies so tests can assert on reservation/release/repri traffic.
 pa_client_init    = function() { return 0; };
-pa_client_reserve = function() { return 0; };
-pa_client_release = function() { return 0; };
-pa_client_repri   = function() { return 0; };
 
 // Errors recorder.
 errors = { list: [], add: function(mod, action, msg) { errors.list.push({module: mod, action: action, msg: msg}); } };
@@ -320,6 +318,9 @@ harness._install_spies = function() {
 	harness.spies.unit_force_stop = _make_spy("unit_force_stop");
 	harness.spies.direct_on       = _make_spy("direct_on");
 	harness.spies.direct_off      = _make_spy("direct_off");
+	harness.spies.pa_client_reserve = _make_spy("pa_client_reserve", function() { return 0; });
+	harness.spies.pa_client_release = _make_spy("pa_client_release", function() { return 0; });
+	harness.spies.pa_client_repri   = _make_spy("pa_client_repri",   function() { return 0; });
 
 	pump_start      = harness.spies.pump_start;
 	pump_stop       = harness.spies.pump_stop;
@@ -333,6 +334,9 @@ harness._install_spies = function() {
 	unit_force_stop = harness.spies.unit_force_stop;
 	direct_on       = harness.spies.direct_on;
 	direct_off      = harness.spies.direct_off;
+	pa_client_reserve = harness.spies.pa_client_reserve;
+	pa_client_release = harness.spies.pa_client_release;
+	pa_client_repri   = harness.spies.pa_client_repri;
 };
 
 // ---- Object factories ----

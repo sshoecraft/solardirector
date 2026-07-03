@@ -1,1 +1,17 @@
 RULES.md
+
+# macOS AppleDouble sidecars + Finder droppings
+._*
+.DS_Store
+
+# Build artifacts
+__sd_build.h
+*.dSYM/
+.deps/
+__pycache__/
+*.pyc
+
+# lib/js generated headers + keyword-gen tool (built from jskwgen.c / *.tbl)
+lib/js/jsautokw.h
+lib/js/js*_defs.h
+lib/js/jskwgen

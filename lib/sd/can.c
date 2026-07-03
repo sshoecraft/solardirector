@@ -1366,9 +1366,8 @@ static int can_start_buffer(can_session_t *s, canid_t start, canid_t end) {
 		return 1;
 	}
 
-	/* Alloc bitmaps */
-	s->bitmaps_size = num / 32;
-	if (!s->bitmaps_size) s->bitmaps_size = 1;
+	/* Alloc bitmaps - bitmaps_size is in BYTES: one uint32 per 32 ids, rounded up */
+	s->bitmaps_size = ((num + 31) / 32) * sizeof(uint32_t);
 	dprintf(dlevel,"bitmaps_size: %d\n", s->bitmaps_size);
 	s->bitmaps = calloc(s->bitmaps_size,1);
 	if (!s->bitmaps) {

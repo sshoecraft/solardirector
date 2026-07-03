@@ -24,7 +24,7 @@ LICENSE file in the root directory of this source tree.
 #define _ST_DEBUG 0
 #endif
 
-char *si_version_string = "2.04-" STRINGIFY(__SD_BUILD);
+char *si_version_string = "2.05-" STRINGIFY(__SD_BUILD);
 
 int main(int argc, char **argv) {
 	char cantpinfo[256];

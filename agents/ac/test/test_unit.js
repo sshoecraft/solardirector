@@ -238,4 +238,29 @@ function test_enable_resets_state() {
 	assert.eq(u.charge_state, CHARGE_STATE_STOPPED);
 }
 
+// =========================================================================
+// 13. unit_revoke acks PA on a reserve=0 unit (clears an orphaned reservation so
+//     PA stops re-firing the revoke every cycle -- see ac-unit-reserve-required).
+//     reserve>0 units ack via UNIT_STATE_RELEASE (run.js), so unit_revoke must NOT
+//     also release them (no premature double-release).
+// =========================================================================
+function test_revoke_reserve0_acks_pa_release() {
+	let u = add_unit("ac1", { pump: "p1", reserve: 0 });
+	u.state = UNIT_STATE_STOPPED;
+	u.refs  = 1;
+	unit_revoke("ac1", 0, "no");
+	assert.called(harness.spies.pa_client_release, "reserve=0 revoke must ack PA with a release");
+	let call = harness.spies.pa_client_release.calls[0];
+	assert.eq(call[1], "unit", "release module is unit");
+	assert.eq(call[2], "ac1", "release for the revoked unit id");
+}
+
+function test_revoke_with_reserve_does_not_release_in_revoke() {
+	let u = add_unit("ac1", { pump: "p1", reserve: 6500 });
+	u.state = UNIT_STATE_RUNNING;
+	u.refs  = 1;
+	unit_revoke("ac1", 6500, "no");
+	assert.not_called(harness.spies.pa_client_release);
+}
+
 harness.run();

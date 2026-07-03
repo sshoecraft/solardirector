@@ -437,6 +437,14 @@ function unit_revoke(name,amount,immediate_str) {
 
 	unit.refs = 1;
 
+	// Ack the revoke to PA. A unit with reserve=0 never enters UNIT_STATE_RELEASE (run.js) --
+	// the only place we normally release -- so it would never ack, and PA would re-fire this
+	// revoke every cycle against a stale (orphaned) reservation: an infinite revoke storm (see
+	// ccmemory ac-unit-reserve-required). PA matches releases by id, not amount (agents/pa/
+	// funcs.js pa_release), so this clears any leftover entry regardless of amount. reserve>0
+	// units ack via the RELEASE state, so only release here when the state machine won't.
+	if (!unit.reserve) pa_client_release(ac, "unit", name, amount);
+
 	// immediate flag bypasses min_runtime
 	if (immediate) {
 		return unit_force_stop(name);

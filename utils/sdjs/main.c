@@ -46,7 +46,9 @@ LICENSE file in the root directory of this source tree.
 //#include "agent.h"
 //#include "smanet.h"
 //#include <libgen.h>
+#ifdef HAVE_WPI
 #include "wpi.h"
+#endif
 
 #ifdef WINDOWS
 #include "wineditline/editline.c"
@@ -271,7 +273,9 @@ int main(int argc, char **argv) {
 	e = common_jsinit(rtsize, stacksize, (js_outputfunc_t *)log_info);
 	dprintf(dlevel,"e: %p\n", e);
 	if (!e) return 1;
+#ifdef HAVE_WPI
 	wpi_init(e);
+#endif
 
 	/* one liner? */
 	dprintf(dlevel,"jsexec: %s\n", jsexec);

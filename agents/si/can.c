@@ -35,6 +35,33 @@ solard_driver_t *si_transports[] = { &can_driver, &rdev_driver, 0 };
 #define USDATA(f,b) ((uint16_t *) &s->frames[f].data[b]);
 #define LDATA(f,b) ((int32_t *) &s->frames[f].data[b]);
 
+/* Per-slave telemetry frames: sub-id 1-3 = slave1-3, each frame is two int32 LE SIGNED values.
+   In a 2Phase4 cluster the 0x300-range frame slots carry [master][slave1][slave2] - slave3
+   does not fit in the 8-byte frame and is ONLY available via these per-slave ids.
+   Verified against SMANet per-slave values (InvVtgSlv*, ExtPwrAtSlv*, ExtCurSlv*) 2026-07 */
+static const uint32_t si_slave_ids[] = {
+	0x181, 0x182, 0x183,	/* InvVtg (AC1) mV / ExtVtg (AC2) mV */
+	0x191, 0x192, 0x193,	/* slow-update pair (temperatures?) */
+	0x1B1, 0x1B2, 0x1B3,	/* gen side (all zeros when no generator) */
+	0x1C1, 0x1C2, 0x1C3,	/* InvFrq mHz / InvCur mA */
+	0x1E1, 0x1E2, 0x1E3,	/* ExtPwrAt W / ExtPwrRt var */
+	0x1F1, 0x1F2, 0x1F3,	/* apparent power VA / counter */
+	0x201, 0x202, 0x203,	/* InvPwrAt W / InvPwrRt var */
+	0x221, 0x222, 0x223,	/* ExtCur mA / status */
+};
+#define SI_NSLAVEIDS (sizeof(si_slave_ids)/sizeof(si_slave_ids[0]))
+
+/* Map a CAN id to a slot in s->frames: 0-15 = 0x300-0x30F, 16+ = per-slave ids */
+static int si_can_id2slot(uint32_t id) {
+	register int i;
+
+	if (id >= 0x300 && id <= 0x30f) return id - 0x300;
+	for(i=0; i < SI_NSLAVEIDS; i++) {
+		if (si_slave_ids[i] == id) return 16 + i;
+	}
+	return -1;
+}
+
 static void _setraw(si_session_t *s) {
 	struct si_raw_data *rdp = &s->raw_data;
 
@@ -185,6 +212,25 @@ void si_can_get_relays(si_session_t *s) {
 #define GETD10(val) (((double)_gets16(val))/10)
 #define GETD100(val) (((double)_gets16(val))/100)
 
+/* Get a value from a per-slave frame (two int32 LE signed values per frame).
+   hi selects the second dword.  Returns 1 if the frame is stale/never seen
+   (remote transport without per-slave ids, or just after startup).
+   Slave3's data is ONLY available this way - the 0x300-range slots carry
+   [master][slave1][slave2] and slave3 does not fit. */
+static int si_can_get_slave(si_session_t *s, uint32_t id, int hi, double *val) {
+	int slot;
+	time_t t;
+
+	slot = si_can_id2slot(id);
+	if (slot < 0) return 1;
+	time(&t);
+	dprintf(dlevel,"id: %03x, slot: %d, age: %d\n", id, slot, (int)(t - s->times[slot]));
+	if (t - s->times[slot] > 5) return 1;
+	*val = (double)*((int32_t *)&s->frames[slot].data[hi ? 4 : 0]);
+	dprintf(dlevel,"id: %03x, val: %.1f\n", id, *val);
+	return 0;
+}
+
 int si_can_get_data(si_session_t *s) {
 	si_raw_data_t *rdp = &s->raw_data;
 
@@ -210,6 +256,16 @@ int si_can_get_data(si_session_t *s) {
 	s->data.ac1_voltage_l2 =  GETD10(rdp->ac1_voltage_l2);
 	s->data.ac1_voltage_l3 =  GETD10(rdp->ac1_voltage_l3);
 	s->data.ac1_voltage = s->data.ac1_voltage_l1 + (double_equals(s->data.ac1_voltage_l2,0.0) ? s->data.ac1_voltage_l3 : s->data.ac1_voltage_l2);
+	/* 2Phase4: the slots are master/slave1/slave2 (not phases); master+slave2 share one
+	   phase, slave1+slave3 the other.  When slave3's voltage frame (0x183, mV) is
+	   available use the phase-pair averages; the legacy master+slave1 sum above still
+	   works because those two happen to be on opposite phases. */
+	if (s->cluster_config == CLUSTER_CONFIG_2PHASE4) {
+		double slv3;
+		if (!si_can_get_slave(s,0x183,0,&slv3))
+			s->data.ac1_voltage = ((s->data.ac1_voltage_l1 + s->data.ac1_voltage_l3) / 2.0) +
+				((s->data.ac1_voltage_l2 + (slv3 / 1000.0)) / 2.0);
+	}
 	s->data.ac1_frequency = GETD100(rdp->ac1_frequency);
 
 	s->data.battery_voltage =  GETD10(rdp->battery_voltage);
@@ -244,6 +300,13 @@ int si_can_get_data(si_session_t *s) {
 	s->data.ac2_voltage_l2 = GETD10(rdp->ac2_voltage_l2);
 	s->data.ac2_voltage_l3 = GETD10(rdp->ac2_voltage_l3);
 	s->data.ac2_voltage = s->data.ac2_voltage_l1 + (double_equals(s->data.ac2_voltage_l2,0.0) ? s->data.ac2_voltage_l3 : s->data.ac2_voltage_l2);
+	/* 2Phase4: phase-pair average using slave3's ExtVtg (0x183 hi dword, mV) - see ac1_voltage */
+	if (s->cluster_config == CLUSTER_CONFIG_2PHASE4) {
+		double slv3;
+		if (!si_can_get_slave(s,0x183,1,&slv3))
+			s->data.ac2_voltage = ((s->data.ac2_voltage_l1 + s->data.ac2_voltage_l3) / 2.0) +
+				((s->data.ac2_voltage_l2 + (slv3 / 1000.0)) / 2.0);
+	}
 	s->data.ac2_frequency = GETD100(rdp->ac2_frequency);
 
 	s->data.PVPwrAt =  GETD10(rdp->PVPwrAt);
@@ -298,15 +361,19 @@ int si_can_get_data(si_session_t *s) {
 		switch(s->cluster_config) {
 		case CLUSTER_CONFIG_UNKNOWN:
 			if (have_l1 && have_l2 && have_l3) {
-				// get the combined voltages of all 3 
+				// get the combined voltages of all 3
 				double combined = s->data.ac1_voltage_l1 + s->data.ac1_voltage_l2 + s->data.ac1_voltage_l3;
 				dprintf(dlevel,"combined: %2.1f\n", combined);
 				if (combined > 200.0 && combined < 220.0) {
 					// Assume 3PHASE
 					s->data.ac2_power = t;
 				} else {
-					// Assume 2PHASE4 - add the missing value
-					s->data.ac2_power = (t + (t / 3));
+					// Assume 2PHASE4 - the 3 slots are master/slave1/slave2, add slave3 from 0x1E3
+					double slv3;
+					if (!si_can_get_slave(s,0x1E3,0,&slv3))
+						s->data.ac2_power = t + slv3;
+					else
+						s->data.ac2_power = (t + (t / 3));	/* estimate: slave3 ~ avg of the others */
 				}
 			} else {
 				// Rest are just a straight calc
@@ -315,7 +382,12 @@ int si_can_get_data(si_session_t *s) {
 			break;
 		case CLUSTER_CONFIG_2PHASE4:
 			if (have_l1 && have_l2 && have_l3) {
-				s->data.ac2_power = (t + (t / 3));
+				/* the 3 slots are master/slave1/slave2 (NOT phases) - slave3 only exists in 0x1E3 */
+				double slv3;
+				if (!si_can_get_slave(s,0x1E3,0,&slv3))
+					s->data.ac2_power = t + slv3;
+				else
+					s->data.ac2_power = (t + (t / 3));	/* estimate: slave3 ~ avg of the others */
 			} else {
 				s->data.ac2_power = t;
 			}
@@ -373,8 +445,12 @@ int si_can_get_data(si_session_t *s) {
 					// Assume 3PHASE
 					s->data.ac1_power = t;
 				} else {
-					// Assume 2PHASE4 - add the missing value
-					s->data.ac1_power = (t + (t / 3));
+					// Assume 2PHASE4 - the 3 slots are master/slave1/slave2, add slave3 from 0x203
+					double slv3;
+					if (!si_can_get_slave(s,0x203,0,&slv3))
+						s->data.ac1_power = t + slv3;
+					else
+						s->data.ac1_power = (t + (t / 3));	/* estimate: slave3 ~ avg of the others */
 				}
 			} else {
 				// Rest are just a straight calc
@@ -383,7 +459,12 @@ int si_can_get_data(si_session_t *s) {
 			break;
 		case CLUSTER_CONFIG_2PHASE4:
 			if (have_l1 && have_l2 && have_l3) {
-				s->data.ac1_power = (t + (t / 3));
+				/* the 3 slots are master/slave1/slave2 (NOT phases) - slave3 only exists in 0x203 */
+				double slv3;
+				if (!si_can_get_slave(s,0x203,0,&slv3))
+					s->data.ac1_power = t + slv3;
+				else
+					s->data.ac1_power = (t + (t / 3));	/* estimate: slave3 ~ avg of the others */
 			} else {
 				s->data.ac1_power = t;
 			}
@@ -438,9 +519,9 @@ static void *si_can_recv_thread(void *handle) {
 			continue;
 		}
 		dprintf(8,"frame.can_id: %03x\n",frame.can_id);
-		if (frame.can_id < 0x300 || frame.can_id > 0x30f) continue;
+		fidx = si_can_id2slot(frame.can_id);
+		if (fidx < 0) continue;
 //		bindump("frame",&frame,sizeof(frame));
-		fidx = frame.can_id - 0x300;
 //		mask = 1 << frame.can_id;
 //		dprintf(8,"id: %03x, fidx: %x, mask: %08x, bitmap: %08x\n", frame.can_id, fidx, mask, s->bitmap);
 		dprintf(8,"id: %03x, fidx: %x\n", frame.can_id, fidx);
@@ -460,9 +541,8 @@ static int si_can_get_local(si_session_t *s, uint32_t id, uint8_t *data, int dat
 	time_t t;
 
 	dprintf(dlevel,"id: %03x, data: %p, len: %d\n", id, data, datasz);
-	if (id < 0x300 || id > 0x30f) return 1;
-
-	fidx = id - 0x300;
+	fidx = si_can_id2slot(id);
+	if (fidx < 0) return 1;
 	dprintf(dlevel,"id: %03x, fidx: %x\n", id, fidx);
 	retries=5;
 	r = 1;
@@ -512,8 +592,18 @@ int si_can_set_reader(si_session_t *s) {
 	if (strcmp(s->can->name,"can") == 0 && s->th == 0) {
 		pthread_attr_t attr;
 
-		/* Set the filter to our range */
-		s->can->config(s->can_handle,CAN_CONFIG_SET_RANGE,0x300,0x30F);
+		/* Set the filter to the aggregate range + the per-slave ids */
+		{
+			uint32_t ids[16 + SI_NSLAVEIDS];
+			struct can_config_filter fs;
+			register int i;
+
+			for(i=0; i < 16; i++) ids[i] = 0x300 + i;
+			for(i=0; i < SI_NSLAVEIDS; i++) ids[16+i] = si_slave_ids[i];
+			fs.id = ids;
+			fs.count = 16 + SI_NSLAVEIDS;
+			s->can->config(s->can_handle,CAN_CONFIG_SET_FILTER,&fs);
+		}
 
 		/* Create a detached thread */
 		if (pthread_attr_init(&attr)) {
@@ -736,11 +826,27 @@ int si_can_read_data(si_session_t *s, int all) {
 	if (all || s->input.source == CURRENT_SOURCE_CALCULATED) {
 		if (s->can_read(s,0x300,s->frames[0].data,8)) return 1;
 		if (s->can_read(s,0x302,s->frames[2].data,8)) return 1;
+		/* slave3 grid power (not in 0x300) - optional, estimate used when unavailable */
+		{
+			int slot = si_can_id2slot(0x1E3);
+			if (s->can_read(s,0x1E3,s->frames[slot].data,8) == 0) time(&s->times[slot]);
+		}
 	}
 
 	if (all || s->output.source == CURRENT_SOURCE_CALCULATED) {
 		if (s->can_read(s,0x301,s->frames[1].data,8)) return 1;
 		if (s->can_read(s,0x303,s->frames[3].data,8)) return 1;
+		/* slave3 SI power (not in 0x301) - optional, estimate used when unavailable */
+		{
+			int slot = si_can_id2slot(0x203);
+			if (s->can_read(s,0x203,s->frames[slot].data,8) == 0) time(&s->times[slot]);
+		}
+	}
+
+	/* slave3 voltages (not in 0x304/0x309) - optional, legacy sum used when unavailable */
+	{
+		int slot = si_can_id2slot(0x183);
+		if (s->can_read(s,0x183,s->frames[slot].data,8) == 0) time(&s->times[slot]);
 	}
 
 	if (s->can_read(s,0x304,s->frames[4].data,8)) return 1;

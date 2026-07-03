@@ -1,0 +1,12 @@
+{
+  "charge_capacity_ema": 543.1468452550282,
+  "discharge_capacity_ema": 502.0849612633904,
+  "alpha": 0.15,
+  "min_samples": 3,
+  "charge_cycles": 3,
+  "discharge_cycles": 3,
+  "bootstrap_charge": [],
+  "bootstrap_discharge": [],
+  "last_updated": "2026-02-02T18:21:10.847573",
+  "battery_capacity_config": 1050
+}

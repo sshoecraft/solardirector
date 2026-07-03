@@ -1,22 +1,26 @@
 
 // Direct mode state machine
 //
-// Cold-start ordering (the priming bug fix):
-//   STOPPED -> [STOP_FAN_PUMP -> WAIT_FAN_PUMP ->] PREPARE_UNIT ->
-//   START_UNIT -> WAIT_UNIT -> CONFIRM_FLOW -> ACTIVATE_VALVE ->
-//   RUNNING_OPEN -> ACTIVATE_PIN2 -> START_PRIMER -> WAIT_PRIMER ->
+// Direct mode = closed loop between the AC BPHX and the air handler, tank bypassed.
+// BOTH pumps run in series around the loop (the AH/fan pump is NOT bypassed). See
+// direct_mode.md and ccmemory ac-direct-topology.
+//
+// Cold-start ordering:
+//   STOPPED -> [STOP_UNIT -> WAIT_UNIT_STOP ->] PREPARE_UNIT ->
+//   START_UNIT -> WAIT_UNIT -> CONFIRM_FLOW ->
+//   START_FAN_PUMP -> WAIT_FAN_PUMP ->            (AH pump RUNNING before any valve flips)
+//   ACTIVATE_VALVE (valve1/supply) -> RUNNING_OPEN ->
+//   ACTIVATE_PIN2 (valve2/return, closes loop) -> START_PRIMER -> WAIT_PRIMER ->
 //   WAIT_WATER_TEMP -> RUNNING
 //
-// The unit (compressor + ac_pump) reaches RUNNING with normal storage-loop
-// flow BEFORE pin1 is activated. CONFIRM_FLOW then verifies thermal delta
-// on the ac_pump (proves water is moving through the heat exchanger) before
-// the valve redirects flow into the longer AC->AH loop. This prevents the
-// "valve-first" failure where the AC pump couldn't prime the long loop,
-// over-cooled the HX, and tripped vapor-temp freeze protection.
+// The AC unit reaches RUNNING with normal storage-loop flow and CONFIRM_FLOW verifies
+// thermal delta on the ac_pump (water moving through the BPHX) BEFORE the AH pump is
+// started and the valves flip. Both pumps MUST be RUNNING before ACTIVATE_VALVE or the
+// AC discharge chokes -> BPHX under-flow -> vapor-temp freeze trip.
 
 DIRECT_STATE_STOPPED = 0;
-DIRECT_STATE_STOP_FAN_PUMP = 1;
-DIRECT_STATE_WAIT_FAN_PUMP = 2;
+DIRECT_STATE_START_FAN_PUMP = 1;	// Start the AH (fan) pump (both pumps run in direct)
+DIRECT_STATE_WAIT_FAN_PUMP = 2;		// Wait for the AH pump to reach RUNNING before flipping valves
 DIRECT_STATE_STOP_UNIT = 3;
 DIRECT_STATE_WAIT_UNIT_STOP = 4;
 DIRECT_STATE_PREPARE_UNIT = 5;		// Set unit mode + in_direct flags, dispatch to START_UNIT/WAIT_UNIT/CONFIRM_FLOW
@@ -36,7 +40,7 @@ DIRECT_STATE_ACTIVATE_VALVE = 17;	// Open pin1 (only reached after unit RUNNING 
 function direct_statestr(state) {
 	let strings = [
 		"Stopped",
-		"Stop fan pump",
+		"Start fan pump",
 		"Wait fan pump",
 		"Stop unit",
 		"Wait unit stop",
@@ -112,17 +116,27 @@ function _direct_init(name, dg) {
 		return 1;
 	}
 
-	// Initialize pins
-	if (dg.pin1 >= 0) pinMode(dg.pin1, OUTPUT);
-	if (dg.pin2 >= 0) pinMode(dg.pin2, OUTPUT);
+	// Initialize valve relay pins (two relays per valve set: pwr + dir).
+	// Drive all LOW = de-energized (safe electrical rest). NOTE: for these directional/
+	// holding actuators this does NOT move the valve to storage -- they hold their last
+	// position unpowered. start.js repositions them to storage with a powered dg_valves_off
+	// move on boot, so that call is MANDATORY, not redundant.
+	if (dg.valve1_power >= 0) { pinMode(dg.valve1_power, OUTPUT); set_pin(dg.valve1_power, LOW); }
+	if (dg.valve1_select >= 0) { pinMode(dg.valve1_select, OUTPUT); set_pin(dg.valve1_select, LOW); }
+	if (dg.valve2_power >= 0) { pinMode(dg.valve2_power, OUTPUT); set_pin(dg.valve2_power, LOW); }
+	if (dg.valve2_select >= 0) { pinMode(dg.valve2_select, OUTPUT); set_pin(dg.valve2_select, LOW); }
 
 	// Derive primer from AC pump config
 	let ac_pump = pumps[dg.ac_pump];
 	dg.primer = ac_pump.primer || "";
 
-	// Initialize state
-	dg.enabled = true;
+	// Initialize state. Do NOT force enabled here - jconfig_add_props has
+	// already seeded the saved/default value (default "true" when absent,
+	// or a persisted "false" from a prior direct_disable). Clobbering it to
+	// true on every load is what re-enabled direct mode on every restart.
 	dg.state = DIRECT_STATE_STOPPED;
+	dg.valve1_power_time = 0;
+	dg.valve2_power_time = 0;
 	dg.active = false;
 	dg.pending_fan = "";
 	dg.active_fan = "";
@@ -134,19 +148,48 @@ function _direct_init(name, dg) {
 	dg.unit_start_time = 0;
 	dg.water_wait_time = 0;
 	dg.confirm_flow_start = 0;
+	dg.fan_pump_start_time = 0;
+	dg.direct_fan_pump_ref = false;		// true when DIRECT owns the AH-pump ref (scenario 1)
+	dg.in_teardown = false;			// re-entry guard for direct_off -> fan_stop -> fan_off -> direct_off
 
-	dprintf(dlevel, "direct group %s: pin1=%d pin2=%d fan=%s unit=%s fan_pump=%s ac_pump=%s primer=%s\n",
-		name, dg.pin1, dg.pin2, dg.fan, dg.unit, dg.fan_pump, dg.ac_pump, dg.primer);
+	dprintf(dlevel, "direct group %s: valve1_power=%d valve1_select=%d valve2_power=%d valve2_select=%d valve_time=%d fan=%s unit=%s fan_pump=%s ac_pump=%s primer=%s\n",
+		name, dg.valve1_power, dg.valve1_select, dg.valve2_power, dg.valve2_select, dg.valve_time, dg.fan, dg.unit, dg.fan_pump, dg.ac_pump, dg.primer);
 
 	return 0;
+}
+
+function direct_add(name, opts) {
+	return jconfig_add(name, opts, "direct", directs, direct_props, _direct_init);
+}
+
+function direct_del(name) {
+	let dg = directs[name];
+	// Turn off direct mode and valves before removing
+	if (dg && (dg.active || dg.pending_fan.length)) direct_off(name);
+	// Clear the runtime links on the associated fan/unit
+	if (dg) {
+		let fan = fans[dg.fan];
+		if (fan && fan.direct_group == name) fan.direct_group = "";
+		let unit = units[dg.unit];
+		if (unit && unit.in_direct_group == name) unit.in_direct_group = "";
+		// Best-effort: drive all valve relays LOW now. The group is being removed
+		// so direct_main won't run dg_valve_power_check for it again to cut power.
+		if (dg.valve1_power >= 0) set_pin(dg.valve1_power, LOW);
+		if (dg.valve1_select >= 0) set_pin(dg.valve1_select, LOW);
+		if (dg.valve2_power >= 0) set_pin(dg.valve2_power, LOW);
+		if (dg.valve2_select >= 0) set_pin(dg.valve2_select, LOW);
+	}
+	return jconfig_del(name, "direct", directs, direct_props);
 }
 
 function direct_set(name, opts) {
 	let r = jconfig_set(name, opts, "direct", directs, direct_props);
 	if (!r) {
 		let dg = directs[name];
-		if (dg.pin1 >= 0) pinMode(dg.pin1, OUTPUT);
-		if (dg.pin2 >= 0) pinMode(dg.pin2, OUTPUT);
+		if (dg.valve1_power >= 0) { pinMode(dg.valve1_power, OUTPUT); set_pin(dg.valve1_power, LOW); }
+		if (dg.valve1_select >= 0) { pinMode(dg.valve1_select, OUTPUT); set_pin(dg.valve1_select, LOW); }
+		if (dg.valve2_power >= 0) { pinMode(dg.valve2_power, OUTPUT); set_pin(dg.valve2_power, LOW); }
+		if (dg.valve2_select >= 0) { pinMode(dg.valve2_select, OUTPUT); set_pin(dg.valve2_select, LOW); }
 	}
 	return r;
 }
@@ -165,8 +208,11 @@ function direct_init() {
 
 	direct_props = [
 		[ "enabled", DATA_TYPE_BOOL, "true", 0 ],
-		[ "pin1", DATA_TYPE_INT, -1, 0 ],
-		[ "pin2", DATA_TYPE_INT, -1, 0 ],
+		[ "valve1_power", DATA_TYPE_INT, -1, 0 ],
+		[ "valve1_select", DATA_TYPE_INT, -1, 0 ],
+		[ "valve2_power", DATA_TYPE_INT, -1, 0 ],
+		[ "valve2_select", DATA_TYPE_INT, -1, 0 ],
+		[ "valve_time", DATA_TYPE_INT, 10, 0 ],
 		[ "fan", DATA_TYPE_STRING, "", 0 ],
 		[ "unit", DATA_TYPE_STRING, "", 0 ],
 		[ "primer_time", DATA_TYPE_INT, 30, 0 ],
@@ -178,6 +224,8 @@ function direct_init() {
 	];
 
 	let funcs = [
+		[ "add_direct", direct_add, 2 ],
+		[ "del_direct", direct_del, 1 ],
 		[ "direct_set", direct_set, 2 ],
 		[ "direct_get_config", direct_get_config, 1 ],
 		[ "direct_set_config", direct_set_config, 1 ],
@@ -242,24 +290,44 @@ function direct_disable(group_name) {
 	return common_disable(group_name, "direct", directs, direct_props);
 }
 
-// Valve control - centralizes valve logic and pump.direct flag
-// pin1 = stage 1 valves (AC output → AH input)
+// Two-relay valve control. Each valve set uses two relays off a 24V bus:
+//   pwr relay (relay1): COMM=+24V, NO feeds relay2 COMM - gates power
+//   dir relay (relay2): NC=storage, NO=direct - selects direction
+// To move a valve: set the dir relay first, then energize the pwr relay. Power
+// is held for valve_time seconds (cut by dg_valve_power_check in the 1s
+// direct_main loop) while the valve travels. Rest = both relays LOW (storage);
+// the valve physically holds its last position when unpowered.
+function dg_valve_move(group_name, dg, pwr_pin, dir_pin, to_direct, time_field) {
+	if (pwr_pin < 0) return 0;	// valve set not configured
+	// Direction relay FIRST - it settles before the power relay below energizes
+	if (dir_pin >= 0 && set_pin(dir_pin, to_direct ? HIGH : LOW)) {
+		config.errmsg = sprintf("unable to set valve dir pin %d", dir_pin);
+		return 1;
+	}
+	// Then apply power
+	if (set_pin(pwr_pin, HIGH)) {
+		config.errmsg = sprintf("unable to set valve pwr pin %d HIGH", pwr_pin);
+		return 1;
+	}
+	dg[time_field] = time();
+	log_info("valve move: group=%s pwr=%d dir=%d -> %s\n",
+		group_name, pwr_pin, dir_pin, to_direct ? "direct" : "storage");
+	return 0;
+}
+
+// pin1 = stage 1 valve set (AC output → AH input)
 function dg_valve1_on(group_name) {
 	let dg = directs[group_name];
 	if (!dg) {
 		config.errmsg = sprintf("direct group %s not found", group_name);
 		return 1;
 	}
-	if (dg.pin1 < 0) {
-		config.errmsg = sprintf("direct group %s has no valve pin1 configured", group_name);
+	if (dg.valve1_power < 0) {
+		config.errmsg = sprintf("direct group %s has no valve1 power pin configured", group_name);
 		return 1;
 	}
-	log_info("valve1 ON: group=%s pin1=%d\n", group_name, dg.pin1);
-	if (set_pin(dg.pin1, HIGH)) {
-		config.errmsg = sprintf("unable to set valve pin1 %d HIGH", dg.pin1);
-		return 1;
-	}
-	// Mark fan pump as in direct mode - L-valve blocks its output when activated
+	if (dg_valve_move(group_name, dg, dg.valve1_power, dg.valve1_select, true, "valve1_power_time")) return 1;
+	// Mark fan pump as in direct mode - valve blocks its output when in direct
 	let fan_pump = pumps[dg.fan_pump];
 	if (fan_pump) fan_pump.direct = true;
 	return 0;
@@ -271,37 +339,26 @@ function dg_valve1_off(group_name) {
 		config.errmsg = sprintf("direct group %s not found", group_name);
 		return 1;
 	}
-	if (dg.pin1 >= 0) {
-		log_info("valve1 OFF: group=%s pin1=%d\n", group_name, dg.pin1);
-		if (set_pin(dg.pin1, LOW)) {
-			config.errmsg = sprintf("unable to set valve pin1 %d LOW", dg.pin1);
-			return 1;
-		}
-	}
-	// Clear fan pump direct mode - L-valve no longer blocking output
+	if (dg.valve1_power >= 0 && dg_valve_move(group_name, dg, dg.valve1_power, dg.valve1_select, false, "valve1_power_time")) return 1;
+	// Clear fan pump direct mode - valve routed back to storage
 	let fan_pump = pumps[dg.fan_pump];
 	if (fan_pump) fan_pump.direct = false;
 	return 0;
 }
 
-// pin2 = stage 2 valves (AH output → AC input, closes the loop)
+// pin2 = stage 2 valve set (AH output → AC input, closes the loop)
 function dg_valve2_on(group_name) {
 	let dg = directs[group_name];
 	if (!dg) {
 		config.errmsg = sprintf("direct group %s not found", group_name);
 		return 1;
 	}
-	if (dg.pin2 < 0) {
-		// No pin2 configured - skip (stage 2 not available)
-		dprintf(1, "direct group %s has no pin2 configured, skipping stage 2\n", group_name);
+	if (dg.valve2_power < 0) {
+		// No stage 2 configured - skip (stage 2 not available)
+		dprintf(1, "direct group %s has no stage 2 valve configured, skipping\n", group_name);
 		return 0;
 	}
-	log_info("valve2 ON: group=%s pin2=%d\n", group_name, dg.pin2);
-	if (set_pin(dg.pin2, HIGH)) {
-		config.errmsg = sprintf("unable to set valve pin2 %d HIGH", dg.pin2);
-		return 1;
-	}
-	return 0;
+	return dg_valve_move(group_name, dg, dg.valve2_power, dg.valve2_select, true, "valve2_power_time");
 }
 
 function dg_valve2_off(group_name) {
@@ -310,21 +367,57 @@ function dg_valve2_off(group_name) {
 		config.errmsg = sprintf("direct group %s not found", group_name);
 		return 1;
 	}
-	if (dg.pin2 >= 0) {
-		log_info("valve2 OFF: group=%s pin2=%d\n", group_name, dg.pin2);
-		if (set_pin(dg.pin2, LOW)) {
-			config.errmsg = sprintf("unable to set valve pin2 %d LOW", dg.pin2);
-			return 1;
-		}
-	}
+	if (dg.valve2_power >= 0) return dg_valve_move(group_name, dg, dg.valve2_power, dg.valve2_select, false, "valve2_power_time");
 	return 0;
 }
 
-// Turn off all valves (both pin1 and pin2)
+// Turn off all valves (drive both valve sets back to storage)
 function dg_valves_off(group_name) {
 	if (dg_valve1_off(group_name)) return 1;
 	if (dg_valve2_off(group_name)) return 1;
 	return 0;
+}
+
+// Cut valve power valve_time seconds after a move was started. Runs every ~1s
+// from direct_main. Returns both relays to rest (LOW) once travel is complete.
+function dg_valve_power_check(dg) {
+	let vt = dg.valve_time;
+	if (dg.valve1_power_time > 0 && (time() - dg.valve1_power_time) >= vt) {
+		if (dg.valve1_power >= 0) set_pin(dg.valve1_power, LOW);
+		if (dg.valve1_select >= 0) set_pin(dg.valve1_select, LOW);
+		log_info("valve power cut: group=%s stage1 pwr=%d\n", dg.fan, dg.valve1_power);
+		dg.valve1_power_time = 0;
+	}
+	if (dg.valve2_power_time > 0 && (time() - dg.valve2_power_time) >= vt) {
+		if (dg.valve2_power >= 0) set_pin(dg.valve2_power, LOW);
+		if (dg.valve2_select >= 0) set_pin(dg.valve2_select, LOW);
+		log_info("valve power cut: group=%s stage2 pwr=%d\n", dg.fan, dg.valve2_power);
+		dg.valve2_power_time = 0;
+	}
+}
+
+// Release direct mode's hold on the AH (fan) pump. Called by every error path at or after
+// START_FAN_PUMP and by direct_off. Clears the pump.direct protection flag unconditionally
+// (a stranded flag would make a running pump un-cyclable / un-startable), and force-stops
+// the pump only if DIRECT started it (scenario 1 fresh start). When the fan owns the pump
+// (scenario 2 already-running, or after handoff at RUNNING) direct_fan_pump_ref is false and
+// the fan's own stop path (fan_off / fan_force_stop) releases the single ref.
+function direct_release_fan_pump(dg) {
+	let fan_pump = pumps[dg.fan_pump];
+	if (fan_pump) fan_pump.direct = false;
+	if (dg.direct_fan_pump_ref) {
+		pump_force_stop(dg.fan_pump);
+		dg.direct_fan_pump_ref = false;
+	}
+}
+
+// Start the air-handler blower (if not already running) and hand fan-pump ownership to the
+// fan. After this, direct no longer force-releases the pump; the fan's stop path releases
+// the single ref. Guarded so an already-running blower (scenario 2) isn't double-reffed.
+function direct_start_blower(dg) {
+	let fan = fans[dg.active_fan];
+	if (fan && fan.state != FAN_STATE_RUNNING) fan_start(dg.active_fan);
+	dg.direct_fan_pump_ref = false;
 }
 
 // Turn on direct mode - starts the state machine
@@ -396,16 +489,16 @@ function direct_on(group_name, mode_str) {
 	// Store request
 	dg.pending_fan = fan_name;
 	dg.target_mode = fan_mode;
+	dg.direct_fan_pump_ref = false;
 
-	// Check if fan pump is already stopped - if so, skip to PREPARE_UNIT
-	let fan_pump_state = pump_get_state(dg.fan_pump);
-	if (fan_pump_state == PUMP_STATE_STOPPED) {
-		dprintf(dlevel, "fan pump %s already stopped, skipping to PREPARE_UNIT\n", dg.fan_pump);
-		direct_set_state(group_name, DIRECT_STATE_PREPARE_UNIT);
-	} else {
-		dprintf(dlevel, "fan pump %s state=%s, starting STOP_FAN_PUMP\n", dg.fan_pump, pump_statestr(fan_pump_state));
-		direct_set_state(group_name, DIRECT_STATE_STOP_FAN_PUMP);
-	}
+	// Bring the AC unit up first (PREPARE_UNIT handles a wrong-mode running unit); the AH pump
+	// is started later, after CONFIRM_FLOW, so both pumps run before any valve flips. pump.direct
+	// is set in START_FAN_PUMP for BOTH scenarios -- deferring it there pairs it 1:1 with the
+	// single clear point (direct_release_fan_pump), so a pre-START_FAN_PUMP abort can never
+	// strand the flag on the AH pump (a stranded pump.direct would block the fan from starting
+	// later, run.js FAN_STATE_START_PUMP). cycle.js won't bump the running pump meanwhile -- it
+	// only starts STOPPED pumps.
+	direct_set_state(group_name, DIRECT_STATE_PREPARE_UNIT);
 
 	log_info("direct mode requested: group=%s fan=%s mode=%s\n", group_name, fan_name, fan_modestr(fan_mode));
 
@@ -425,10 +518,11 @@ function _direct_process(name, dg) {
 	if (dg.state == DIRECT_STATE_RUNNING || dg.state == DIRECT_STATE_RUNNING_OPEN) {
 		let unit = units[dg.unit];
 		let ac_pump = pumps[dg.ac_pump];
-		// If unit or pump stopped, turn off direct mode
-		if (unit.state != UNIT_STATE_RUNNING || pump_get_state(dg.ac_pump) != PUMP_STATE_RUNNING) {
-			dprintf(dlevel, "direct[%s]: unit/pump stopped (unit=%s, pump=%s), turning off\n",
-				name, unit_statestr(unit.state), pump_statestr(pump_get_state(dg.ac_pump)));
+		// Both pumps must stay running in the direct loop. If the unit, the AC pump, or the
+		// AH pump stops, tear down (an idle AH pump chokes the AC discharge -> HX under-flow).
+		if (unit.state != UNIT_STATE_RUNNING || pump_get_state(dg.ac_pump) != PUMP_STATE_RUNNING || pump_get_state(dg.fan_pump) != PUMP_STATE_RUNNING) {
+			dprintf(dlevel, "direct[%s]: unit/pump stopped (unit=%s, ac_pump=%s, fan_pump=%s), turning off\n",
+				name, unit_statestr(unit.state), pump_statestr(pump_get_state(dg.ac_pump)), pump_statestr(pump_get_state(dg.fan_pump)));
 			direct_off(name);
 			return;
 		}
@@ -457,29 +551,6 @@ function _direct_process(name, dg) {
 	let fan_pump = pumps[dg.fan_pump];
 
 	switch(dg.state) {
-	case DIRECT_STATE_STOP_FAN_PUMP:
-		dprintf(dlevel, "stopping fan pump %s\n", dg.fan_pump);
-		pump_stop(dg.fan_pump);
-		direct_set_state(name, DIRECT_STATE_WAIT_FAN_PUMP);
-		break;
-
-	case DIRECT_STATE_WAIT_FAN_PUMP:
-		let fan_pump_state = pump_get_state(dg.fan_pump);
-		dprintf(dlevel, "waiting for fan pump %s, state=%s\n", dg.fan_pump, pump_statestr(fan_pump_state));
-		if (fan_pump_state == PUMP_STATE_STOPPED) {
-			// Check if unit needs to be stopped (running in wrong mode)
-			let target_ac_mode = (dg.target_mode == FAN_MODE_COOL) ? AC_MODE_COOL : AC_MODE_HEAT;
-			if (unit.state == UNIT_STATE_RUNNING && unit.mode != target_ac_mode) {
-				dprintf(dlevel, "unit %s running in %s mode, need %s - stopping\n",
-					dg.unit, ac_modestr(unit.mode), ac_modestr(target_ac_mode));
-				direct_set_state(name, DIRECT_STATE_STOP_UNIT);
-			} else {
-				direct_set_state(name, DIRECT_STATE_PREPARE_UNIT);
-			}
-		}
-		// else stay in WAIT_FAN_PUMP
-		break;
-
 	case DIRECT_STATE_STOP_UNIT:
 		dprintf(dlevel, "stopping unit %s for mode change\n", dg.unit);
 		unit_stop(dg.unit);
@@ -660,9 +731,9 @@ function _direct_process(name, dg) {
 				dprintf(dlevel, "direct[%s]: flow check: ac_pump temp_in=%.1f, temp_out=%.1f, delta=%.1f, threshold=%.1f\n",
 					name, t_in, t_out, delta, dg.flow_confirm_threshold);
 				if (delta >= dg.flow_confirm_threshold) {
-					log_info("direct[%s]: flow confirmed (ac_pump delta=%.1f >= %.1f), activating valve\n",
+					log_info("direct[%s]: flow confirmed (ac_pump delta=%.1f >= %.1f), starting fan pump\n",
 						name, delta, dg.flow_confirm_threshold);
-					direct_set_state(name, DIRECT_STATE_ACTIVATE_VALVE);
+					direct_set_state(name, DIRECT_STATE_START_FAN_PUMP);
 					break;
 				}
 			}
@@ -674,46 +745,111 @@ function _direct_process(name, dg) {
 			let flow_elapsed = time() - dg.confirm_flow_start;
 			if (flow_elapsed >= dg.flow_confirm_timeout) {
 				error_set("direct", dg.pending_fan, sprintf("unit %s: no flow detected on ac_pump after %d seconds (delta < %.1f)", dg.unit, flow_elapsed, dg.flow_confirm_threshold));
-				unit_stop(dg.unit);
+				// clear in_direct flags BEFORE unit_stop so unit_off -> unit_mode isn't rejected
 				unit.in_direct = false;
 				unit.in_direct_pending = false;
+				unit_stop(dg.unit);
+				direct_set_state(name, DIRECT_STATE_ERROR);
+			}
+		}
+		break;
+
+	case DIRECT_STATE_START_FAN_PUMP:
+		// Both pumps run in the direct loop. Ensure the AH (fan) pump is running before any
+		// valve flips. Key on fan.state, not pump state: a running fan's pump can be
+		// transiently WARMUP/FLOW/COOLDOWN. Scenario 2 (fan already delivering on storage):
+		// the fan owns its ref -- skip. Scenario 1 (fresh start, fan dormant): DIRECT starts
+		// + owns the ref, released by direct_release_fan_pump or handed to the fan at RUNNING.
+		let sfp_fan = fans[dg.pending_fan];
+		if (sfp_fan && sfp_fan.state == FAN_STATE_RUNNING) {
+			// Scenario 2: the fan owns its running pump's ref; just protect it from cycle/sample.
+			dprintf(dlevel, "fan %s already running, its pump %s stays up\n", dg.pending_fan, dg.fan_pump);
+			if (pumps[dg.fan_pump]) pumps[dg.fan_pump].direct = true;
+		} else {
+			dprintf(dlevel, "starting fan pump %s (both pumps run in direct)\n", dg.fan_pump);
+			if (pump_start(dg.fan_pump)) {
+				error_set("direct", dg.pending_fan, sprintf("unable to start fan pump %s: %s", dg.fan_pump, config.errmsg));
+				unit.in_direct = false;
+				unit.in_direct_pending = false;
+				unit_stop(dg.unit);
+				direct_release_fan_pump(dg);
+				direct_set_state(name, DIRECT_STATE_ERROR);
+				break;
+			}
+			dg.direct_fan_pump_ref = true;
+			// now that DIRECT owns the running/starting pump, protect it from cycle/sample
+			let sfp_pump = pumps[dg.fan_pump];
+			if (sfp_pump) sfp_pump.direct = true;
+		}
+		dg.fan_pump_start_time = time();
+		direct_set_state(name, DIRECT_STATE_WAIT_FAN_PUMP);
+		break;
+
+	case DIRECT_STATE_WAIT_FAN_PUMP:
+		let wfp_state = pump_get_state(dg.fan_pump);
+		dprintf(dlevel, "waiting for fan pump %s to run, state=%s\n", dg.fan_pump, pump_statestr(wfp_state));
+		if (wfp_state == PUMP_STATE_RUNNING) {
+			direct_set_state(name, DIRECT_STATE_ACTIVATE_VALVE);
+			break;
+		}
+		if (wfp_state == PUMP_STATE_ERROR) {
+			error_set("direct", dg.pending_fan, sprintf("fan pump %s entered error state", dg.fan_pump));
+			unit.in_direct = false;
+			unit.in_direct_pending = false;
+			unit_stop(dg.unit);
+			direct_release_fan_pump(dg);
+			direct_set_state(name, DIRECT_STATE_ERROR);
+			break;
+		}
+		// Timeout only while stuck in RESERVE (PA denial) -- mirror WAIT_UNIT. Other
+		// transitional states (Start primer / Wait primer / Start / Wait pump / Flow /
+		// Warmup / Cooldown) are normal startup progress; keep waiting.
+		if (dg.fan_pump_start_time > 0 && wfp_state == PUMP_STATE_RESERVE) {
+			if ((time() - dg.fan_pump_start_time) >= dg.unit_timeout) {
+				error_set("direct", dg.pending_fan, sprintf("timeout waiting for fan pump %s power reserve", dg.fan_pump));
+				unit.in_direct = false;
+				unit.in_direct_pending = false;
+				unit_stop(dg.unit);
+				direct_release_fan_pump(dg);
 				direct_set_state(name, DIRECT_STATE_ERROR);
 			}
 		}
 		break;
 
 	case DIRECT_STATE_ACTIVATE_VALVE:
-		// Unit is RUNNING with confirmed flow through the HX. Safe to redirect
-		// the established flow into the AC->AH loop by opening pin1.
+		// Unit RUNNING + flow confirmed + AH pump RUNNING. Safe to flip valve1 (supply):
+		// BPHX-out -> AH-in. Both pumps are already moving water, so no dead-head.
 		if (unit.state != UNIT_STATE_RUNNING) {
 			error_set("direct", dg.pending_fan, sprintf("unit %s left RUNNING before valve activation (state=%s)", dg.unit, unit_statestr(unit.state)));
 			unit.in_direct = false;
 			unit.in_direct_pending = false;
+			direct_release_fan_pump(dg);
 			direct_set_state(name, DIRECT_STATE_ERROR);
 			break;
 		}
-		dprintf(dlevel, "activating 3-way valve (pin1) with unit RUNNING and flow confirmed\n");
+		dprintf(dlevel, "activating valve1 (supply) with unit RUNNING, flow confirmed, AH pump running\n");
 		if (dg_valve1_on(name)) {
-			error_set("direct", dg.pending_fan, sprintf("unable to activate 3-way valve: %s", config.errmsg));
+			error_set("direct", dg.pending_fan, sprintf("unable to activate valve1 (supply): %s", config.errmsg));
 			unit.in_direct = false;
 			unit.in_direct_pending = false;
+			direct_release_fan_pump(dg);
 			direct_set_state(name, DIRECT_STATE_ERROR);
 			break;
 		}
 		dg.active = true;
 		dg.active_fan = dg.pending_fan;
 		dg.mode = dg.target_mode;
-		if (dg.pin2 >= 0) {
-			// Stage 2 available - go to RUNNING_OPEN, wait for temp change on
-			// fan_pump.temp_out (proves stage 1 flow reached the AH side).
+		if (dg.valve2_power >= 0) {
+			// Stage 2 (return) available - go to RUNNING_OPEN, wait for a temp change on
+			// fan_pump.temp_out (proves supply-side flow reached the AH) before closing.
 			dg.initial_temp = get_sensor(fan_pump.temp_out_sensor, false);
 			dprintf(dlevel, "captured initial fan_pump temp_out: %.1f\n", dg.initial_temp);
 			direct_set_state(name, DIRECT_STATE_RUNNING_OPEN);
 			log_info("direct mode stage 1: group=%s fan=%s unit=%s mode=%s (waiting for temp change)\n",
 				name, dg.active_fan, dg.unit, fan_modestr(dg.mode));
 		} else {
-			// No stage 2 - start fan immediately (open loop can't reach water temp)
-			fan_start(dg.active_fan);
+			// No stage 2 configured - no closed loop to seal; start the blower now.
+			direct_start_blower(dg);
 			direct_set_state(name, DIRECT_STATE_RUNNING);
 			log_info("direct mode enabled: group=%s fan=%s unit=%s mode=%s\n",
 				name, dg.active_fan, dg.unit, fan_modestr(dg.mode));
@@ -721,14 +857,27 @@ function _direct_process(name, dg) {
 		break;
 
 	case DIRECT_STATE_WAIT_WATER_TEMP:
-		// Wait for water to reach temperature before starting fan
-		// In cool mode: wait until water <= cool_high_temp
-		// In heat mode: wait until water >= heat_low_temp
+		// Loop is sealed; gate the BLOWER start on the supply water reaching target so it
+		// doesn't blow lukewarm air. The fan pump is already running -- this only delays the
+		// air-handler blower.
+		//   Cool: wait until ac_pump temp_out <= cool_high_temp
+		//   Heat: wait until ac_pump temp_out >= heat_low_temp
 		if (unit.state != UNIT_STATE_RUNNING) {
 			error_set("direct", dg.active_fan, sprintf("unit %s stopped while waiting for water temp", dg.unit));
 			dg_valves_off(name);
 			unit.in_direct = false;
+			unit.in_direct_pending = false;
+			direct_release_fan_pump(dg);
 			direct_set_state(name, DIRECT_STATE_ERROR);
+			break;
+		}
+		// If the blower is already running (scenario 2 - was delivering on storage), there is
+		// nothing to gate; go straight to RUNNING.
+		if (fans[dg.active_fan] && fans[dg.active_fan].state == FAN_STATE_RUNNING) {
+			direct_start_blower(dg);
+			direct_set_state(name, DIRECT_STATE_RUNNING);
+			log_info("direct mode fully active: group=%s fan=%s unit=%s mode=%s (blower already on)\n",
+				name, dg.active_fan, dg.unit, fan_modestr(dg.mode));
 			break;
 		}
 		let wt_sensor = ac_pump.temp_out_sensor;
@@ -744,15 +893,15 @@ function _direct_process(name, dg) {
 					threshold = ac.heat_low_temp;
 					temp_ready = (water_temp >= threshold);
 				}
-				// Log water temp every 60 seconds
+				// Log water temp every 60 seconds (direct_main now runs at ~1s)
 				let wt_log_elapsed = time() - dg.water_wait_time;
-				if (wt_log_elapsed % 60 < ac.interval) {
+				if (wt_log_elapsed > 0 && (wt_log_elapsed % 60) == 0) {
 					log_info("direct[%s]: water temp: %.1f, target: %s %.1f\n",
 						name, water_temp, (dg.mode == FAN_MODE_COOL) ? "<=" : ">=", threshold);
 				}
 				if (temp_ready) {
-					log_info("direct[%s]: water temp ready (%.1f), starting fan %s\n", name, water_temp, dg.active_fan);
-					fan_start(dg.active_fan);
+					log_info("direct[%s]: water temp ready (%.1f), starting blower %s\n", name, water_temp, dg.active_fan);
+					direct_start_blower(dg);
 					direct_set_state(name, DIRECT_STATE_RUNNING);
 					log_info("direct mode fully active: group=%s fan=%s unit=%s mode=%s\n",
 						name, dg.active_fan, dg.unit, fan_modestr(dg.mode));
@@ -760,12 +909,12 @@ function _direct_process(name, dg) {
 				}
 			}
 		}
-		// Timeout - start fan anyway after water_temp_timeout
+		// Timeout - start blower anyway after water_temp_timeout
 		if (dg.water_wait_time > 0) {
 			let wt_elapsed = time() - dg.water_wait_time;
 			if (wt_elapsed >= dg.water_temp_timeout) {
-				log_warning("direct[%s]: water temp timeout after %d seconds, starting fan anyway\n", name, wt_elapsed);
-				fan_start(dg.active_fan);
+				log_warning("direct[%s]: water temp timeout after %d seconds, starting blower anyway\n", name, wt_elapsed);
+				direct_start_blower(dg);
 				direct_set_state(name, DIRECT_STATE_RUNNING);
 			}
 		}
@@ -774,19 +923,21 @@ function _direct_process(name, dg) {
 	case DIRECT_STATE_ACTIVATE_PIN2:
 		// Monitor unit - if it stops, abort
 		if (unit.state != UNIT_STATE_RUNNING) {
-			error_set("direct", dg.active_fan, sprintf("unit %s stopped before activating pin2", dg.unit));
+			error_set("direct", dg.active_fan, sprintf("unit %s stopped before activating valve2 (return)", dg.unit));
 			dg_valves_off(name);
 			unit.in_direct_pending = false;
 			unit.in_direct = false;
+			direct_release_fan_pump(dg);
 			direct_set_state(name, DIRECT_STATE_ERROR);
 			break;
 		}
-		dprintf(dlevel, "activating pin2 to close the loop\n");
+		dprintf(dlevel, "activating valve2 (return) to close the loop\n");
 		if (dg_valve2_on(name)) {
 			error_set("direct", dg.active_fan, sprintf("unable to activate valve2: %s", config.errmsg));
 			dg_valves_off(name);
 			unit.in_direct_pending = false;
 			unit.in_direct = false;
+			direct_release_fan_pump(dg);
 			direct_set_state(name, DIRECT_STATE_ERROR);
 			break;
 		}
@@ -800,6 +951,7 @@ function _direct_process(name, dg) {
 			dg_valves_off(name);
 			unit.in_direct_pending = false;
 			unit.in_direct = false;
+			direct_release_fan_pump(dg);
 			direct_set_state(name, DIRECT_STATE_ERROR);
 			break;
 		}
@@ -821,6 +973,7 @@ function _direct_process(name, dg) {
 			dg_valves_off(name);
 			unit.in_direct_pending = false;
 			unit.in_direct = false;
+			direct_release_fan_pump(dg);
 			direct_set_state(name, DIRECT_STATE_ERROR);
 			break;
 		}
@@ -853,6 +1006,9 @@ function direct_main() {
 
 	for(let name in directs) {
 		let dg = directs[name];
+		// Cut timed valve power for ALL groups (even disabled) so a move that
+		// was started before a disable still completes its power-off.
+		dg_valve_power_check(dg);
 		if (!dg.enabled) continue;
 		_direct_process(name, dg);
 	}
@@ -872,6 +1028,13 @@ function direct_off(group_name, stop_fan) {
 		return 0;
 	}
 
+	// Re-entry guard: direct_off -> fan_stop -> fan_off -> direct_off. The inner call
+	// returns immediately; the outer completes teardown exactly once.
+	if (dg.in_teardown) {
+		dprintf(dlevel, "direct group %s already tearing down, skipping re-entry\n", group_name);
+		return 0;
+	}
+
 	// Fan name comes from direct group config
 	let fan_name = dg.fan;
 
@@ -883,6 +1046,8 @@ function direct_off(group_name, stop_fan) {
 		dprintf(dlevel, "direct group %s not active or pending\n", group_name);
 		return 0;
 	}
+
+	dg.in_teardown = true;
 
 	let unit = units[dg.unit];
 	let fan_pump = pumps[dg.fan_pump];
@@ -899,6 +1064,11 @@ function direct_off(group_name, stop_fan) {
 		// Continue anyway - best effort cleanup
 	}
 
+	// Release direct's hold on the AH pump. If DIRECT owns the ref (scenario 1, blower never
+	// started) this force-stops it; if the fan owns it (scenario 2, or after the RUNNING
+	// handoff) this only clears pump.direct and the fan's stop path releases the ref.
+	direct_release_fan_pump(dg);
+
 	if (stop_fan) {
 		// Stop the fan BEFORE re-enabling fan pump
 		// Otherwise fan will check fan pump state while still RUNNING and error
@@ -912,9 +1082,10 @@ function direct_off(group_name, stop_fan) {
 			else fan_set_state(fan_name, FAN_STATE_STOPPED);
 		}
 	} else {
-		// Transition to storage mode - start fan pump so fan can use storage
-		dprintf(dlevel, "transitioning fan %s to storage mode\n", fan_name);
-		pump_start(dg.fan_pump);
+		// Transition to storage mode - the fan pump is ALREADY running (both pumps run in
+		// direct), so do NOT pump_start it again (that would double-ref). It keeps running
+		// under the fan's ownership for storage mode.
+		dprintf(dlevel, "transitioning fan %s to storage mode (fan pump already running)\n", fan_name);
 	}
 
 	// dg_valves_off already re-enabled fan pump (pump.direct = false, pump.enabled = true)
@@ -1023,8 +1194,11 @@ function direct_off(group_name, stop_fan) {
 	dg.unit_start_time = 0;
 	dg.water_wait_time = 0;
 	dg.confirm_flow_start = 0;
+	dg.fan_pump_start_time = 0;
+	dg.direct_fan_pump_ref = false;
 
 	log_info("direct mode disabled: group=%s fan=%s\n", group_name, fan_name);
 
+	dg.in_teardown = false;
 	return 0;
 }
